@@ -6,10 +6,13 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
+  PlusJakartaSans_400Regular,
   PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import { GeistMono_500Medium } from '@expo-google-fonts/geist-mono';
 import * as SystemUI from 'expo-system-ui';
 import * as Haptics from 'expo-haptics';
 import { F, ThemeProvider, makeStyles, useColors, useTheme } from './src/theme';
@@ -70,7 +73,7 @@ function AppInner() {
     return () => { live = false; clearInterval(t); };
   }, []);
 
-  const [fontsLoaded] = useFonts({ PlusJakartaSans_500Medium, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold });
+  const [fontsLoaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, GeistMono_500Medium });
   const onLayout = useCallback(() => {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);

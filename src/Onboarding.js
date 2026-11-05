@@ -220,7 +220,7 @@ const useStyles = makeStyles((C) => ({
   backBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: C.solid, alignItems: 'center', justifyContent: 'center' },
   backSpacer: { width: 46, height: 46 },
   skip: { paddingHorizontal: 16, height: 38, borderRadius: 19, backgroundColor: C.card, justifyContent: 'center' },
-  skipText: { fontFamily: F.bold, fontSize: 13, color: C.ink },
+  skipText: { fontFamily: F.semi, fontSize: 13, color: C.ink },
 
   pager: { flex: 1, overflow: 'hidden' },
   track: { flex: 1, flexDirection: 'row' },
@@ -232,9 +232,9 @@ const useStyles = makeStyles((C) => ({
   badge: { position: 'absolute', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   arc: { position: 'absolute', width: 96, height: 96, borderRadius: 48, borderWidth: 1.5, borderBottomColor: 'transparent', borderLeftColor: 'transparent' },
 
-  title: { fontFamily: F.black, fontSize: 34, lineHeight: 39, letterSpacing: -0.8, color: C.ink },
-  titleLight: { fontFamily: F.med },
-  copy: { fontFamily: F.med, fontSize: 14, lineHeight: 20, color: C.muted, marginTop: 10, maxWidth: 320 },
+  title: { fontFamily: F.bold, fontSize: 34, lineHeight: 39, letterSpacing: -0.8, color: C.ink },
+  titleLight: { fontFamily: F.reg },
+  copy: { fontFamily: F.reg, fontSize: 14, lineHeight: 20, color: C.muted, marginTop: 10, maxWidth: 320 },
 
   footer: { paddingHorizontal: 22, paddingTop: 20, paddingBottom: 14 },
   dots: { flexDirection: 'row', gap: GAP, marginBottom: 18, height: DOT },
@@ -242,5 +242,5 @@ const useStyles = makeStyles((C) => ({
   dot: { width: DOT, height: DOT, borderRadius: DOT / 2, backgroundColor: '#D5D8E0' },
   pill: { position: 'absolute', left: 0, top: 0, width: SLOT, height: DOT, borderRadius: DOT / 2, backgroundColor: C.solid },
   cta: { height: 62, borderRadius: 31, backgroundColor: C.solid, alignItems: 'center', justifyContent: 'center' },
-  ctaText: { fontFamily: F.bold, fontSize: 17, color: C.onSolid },
+  ctaText: { fontFamily: F.semi, fontSize: 17, color: C.onSolid },
 }));

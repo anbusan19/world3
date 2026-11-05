@@ -264,7 +264,7 @@ function ThemeOption({ mode, label, icon, selected, onPress }) {
       </View>
       <View style={styles.themeLabelRow}>
         <Ionicons name={icon} size={14} color={selected ? C.ink : C.muted} />
-        <Text style={[styles.themeLabel, selected && { color: C.ink, fontFamily: F.bold }]}>{label}</Text>
+        <Text style={[styles.themeLabel, selected && { color: C.ink, fontFamily: F.semi }]}>{label}</Text>
       </View>
     </Pressable>
   );
@@ -353,62 +353,62 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
 }
 
 const useStyles = makeStyles((C) => ({
-  title: { fontFamily: F.black, fontSize: 30, color: C.ink, letterSpacing: -0.8, marginBottom: 16 },
+  title: { fontFamily: F.bold, fontSize: 30, color: C.ink, letterSpacing: -0.8, marginBottom: 16 },
 
   card: { backgroundColor: C.blue, borderRadius: 28, padding: 20 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatar: { alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#FFFFFF' },
-  avatarText: { fontFamily: F.black },
-  name: { fontFamily: F.black, fontSize: 22, color: '#FFFFFF', letterSpacing: -0.4 },
-  ens: { fontFamily: 'monospace', fontSize: 13, color: '#CFE5F5', marginTop: 4 },
+  avatarText: { fontFamily: F.bold },
+  name: { fontFamily: F.bold, fontSize: 22, color: '#FFFFFF', letterSpacing: -0.4 },
+  ens: { fontFamily: F.mono, fontSize: 13, color: '#CFE5F5', marginTop: 4 },
   badges: { flexDirection: 'row', marginTop: 10 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 26, borderRadius: 13 },
-  pillText: { fontFamily: F.bold, fontSize: 11 },
-  preview: { fontFamily: F.med, fontSize: 11, color: '#CFE5F5', marginTop: 14 },
+  pillText: { fontFamily: F.semi, fontSize: 11 },
+  preview: { fontFamily: F.reg, fontSize: 11, color: '#CFE5F5', marginTop: 14 },
 
   stats: { flexDirection: 'row', gap: 10, marginTop: 12 },
   stat: { flex: 1, backgroundColor: C.card, borderRadius: 18, paddingVertical: 14, alignItems: 'center' },
-  statNum: { fontFamily: F.black, fontSize: 24, color: C.ink },
-  statLabel: { fontFamily: F.med, fontSize: 11, color: C.muted, marginTop: 2 },
+  statNum: { fontVariant: ['tabular-nums'], fontFamily: F.bold, fontSize: 24, color: C.ink },
+  statLabel: { fontFamily: F.reg, fontSize: 11, color: C.muted, marginTop: 2 },
 
   segment: { flexDirection: 'row', backgroundColor: C.card, borderRadius: 26, padding: 4, marginTop: 18 },
   seg: { flex: 1, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: C.solid },
   segInner: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  segText: { fontFamily: F.bold, fontSize: 13, color: C.muted },
+  segText: { fontFamily: F.semi, fontSize: 13, color: C.muted },
 
-  section: { fontFamily: F.black, fontSize: 20, letterSpacing: -0.4, color: C.ink, marginTop: 26, marginBottom: 12 },
+  section: { fontFamily: F.bold, fontSize: 20, letterSpacing: -0.4, color: C.ink, marginTop: 26, marginBottom: 12 },
   empty: { backgroundColor: C.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 8 },
-  emptyText: { fontFamily: F.med, fontSize: 13, color: C.muted, textAlign: 'center' },
+  emptyText: { fontFamily: F.reg, fontSize: 13, color: C.muted, textAlign: 'center' },
   strip: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   mini: { width: '30%' },
   achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   ach: { width: '47.5%', flexGrow: 1, backgroundColor: C.card, borderRadius: 20, padding: 14 },
   achIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  achTitle: { fontFamily: F.bold, fontSize: 14, color: C.ink },
-  achBody: { fontFamily: F.med, fontSize: 11, lineHeight: 15, color: C.muted, marginTop: 3 },
-  hint: { fontFamily: F.med, fontSize: 12, lineHeight: 17, color: C.muted, textAlign: 'center', marginTop: 10 },
+  achTitle: { fontFamily: F.semi, fontSize: 14, color: C.ink },
+  achBody: { fontFamily: F.reg, fontSize: 11, lineHeight: 15, color: C.muted, marginTop: 3 },
+  hint: { fontFamily: F.reg, fontSize: 12, lineHeight: 17, color: C.muted, textAlign: 'center', marginTop: 10 },
 
   groupWrap: { marginTop: 22 },
-  groupTitle: { fontFamily: F.bold, fontSize: 12, letterSpacing: 0.8, color: C.muted, marginBottom: 8, marginLeft: 6, textTransform: 'uppercase' },
+  groupTitle: { fontFamily: F.semi, fontSize: 12, letterSpacing: 0.8, color: C.muted, marginBottom: 8, marginLeft: 6, textTransform: 'uppercase' },
   group: { backgroundColor: C.card, borderRadius: 22, overflow: 'hidden' },
-  groupNote: { fontFamily: F.med, fontSize: 11, lineHeight: 16, color: C.muted, marginTop: 8, marginHorizontal: 8 },
+  groupNote: { fontFamily: F.reg, fontSize: 11, lineHeight: 16, color: C.muted, marginTop: 8, marginHorizontal: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, minHeight: 58 },
   rowLine: { borderBottomWidth: 1, borderBottomColor: C.line },
   rowIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  rowTitle: { fontFamily: F.bold, fontSize: 14, color: C.ink },
-  rowSub: { fontFamily: F.med, fontSize: 12, lineHeight: 16, color: C.muted, marginTop: 2 },
-  input: { fontFamily: F.bold, fontSize: 15, color: C.ink, paddingVertical: 2, paddingHorizontal: 0 },
+  rowTitle: { fontFamily: F.semi, fontSize: 14, color: C.ink },
+  rowSub: { fontFamily: F.reg, fontSize: 12, lineHeight: 16, color: C.muted, marginTop: 2 },
+  input: { fontFamily: F.semi, fontSize: 15, color: C.ink, paddingVertical: 2, paddingHorizontal: 0 },
 
   themeRow: { flexDirection: 'row', gap: 10, padding: 14 },
   themeOpt: { flex: 1, borderRadius: 16, borderWidth: 2, borderColor: C.line, padding: 8, alignItems: 'center' },
   themePreview: { width: '100%', height: 54, borderRadius: 10, overflow: 'hidden', flexDirection: 'row', borderWidth: 1, borderColor: C.line },
   themeLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
-  themeLabel: { fontFamily: F.med, fontSize: 12, color: C.muted },
+  themeLabel: { fontFamily: F.reg, fontSize: 12, color: C.muted },
 
   avatars: { flexDirection: 'row', gap: 10, marginTop: 10 },
   swatchRing: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   swatch: { width: 28, height: 28, borderRadius: 14 },
 
-  footer: { fontFamily: F.med, fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 22 },
+  footer: { fontFamily: F.reg, fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 22 },
 }));

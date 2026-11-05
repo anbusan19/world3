@@ -66,16 +66,16 @@ const useStyles = makeStyles((C) => ({
   hero: { flex: 1, minHeight: 200, justifyContent: 'center', marginVertical: 6 },
 
   copy: { marginBottom: 18 },
-  title: { fontFamily: F.black, fontSize: 32, lineHeight: 37, letterSpacing: -0.8, color: C.ink },
-  titleLight: { fontFamily: F.med },
-  sub: { fontFamily: F.med, fontSize: 14, lineHeight: 20, color: C.muted, marginTop: 10 },
+  title: { fontFamily: F.bold, fontSize: 32, lineHeight: 37, letterSpacing: -0.8, color: C.ink },
+  titleLight: { fontFamily: F.reg },
+  sub: { fontFamily: F.reg, fontSize: 14, lineHeight: 20, color: C.muted, marginTop: 10 },
 
   actions: { gap: 10, paddingBottom: 12 },
   google: { height: 58, borderRadius: 29, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  googleText: { fontFamily: F.bold, fontSize: 16, color: C.ink },
+  googleText: { fontFamily: F.semi, fontSize: 16, color: C.ink },
   passkey: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 4 },
-  passkeyText: { fontFamily: F.bold, fontSize: 13, color: C.muted },
+  passkeyText: { fontFamily: F.semi, fontSize: 13, color: C.muted },
   note: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6, paddingHorizontal: 4 },
   noteIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-  noteText: { flex: 1, fontFamily: F.med, fontSize: 11.5, lineHeight: 16, color: C.muted },
+  noteText: { flex: 1, fontFamily: F.reg, fontSize: 11.5, lineHeight: 16, color: C.muted },
 }));

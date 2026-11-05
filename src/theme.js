@@ -117,8 +117,17 @@ export const STAMP_THEMES = {
   ocean: { frame: '#3D8FD0', sky: '#D6EAF8', hill: '#7FB8E3', hill2: '#0265AD', accent: '#0B4F86' },
 };
 
+// One family, used the way World's brand guide uses its own: Regular for almost everything, a heavier weight as the accent,
+// and hierarchy from size and spacing rather than from heaviness. (World Pro itself is custom and not licensed to us, so
+// the app stays on Plus Jakarta Sans.)
+//   reg   body copy, descriptions          semi  labels, buttons, small headings, emphasis
+//   med   rarely: a touch more than body   bold  screen titles and big numbers
+//   black the stamps' printed labels only  mono  anything a person might verify: ids, addresses, ENS names
 export const F = {
+  reg: 'PlusJakartaSans_400Regular',
   med: 'PlusJakartaSans_500Medium',
+  semi: 'PlusJakartaSans_600SemiBold',
   bold: 'PlusJakartaSans_700Bold',
   black: 'PlusJakartaSans_800ExtraBold',
+  mono: 'GeistMono_500Medium',
 };

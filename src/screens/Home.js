@@ -74,29 +74,29 @@ export function Home({ spots, user, collected, openSpot, setScrollLock }) {
 }
 
 const useStyles = makeStyles((C) => ({
-  eyebrow: { fontFamily: F.bold, fontSize: 11, letterSpacing: 1.6, color: C.info },
-  title: { fontFamily: F.black, fontSize: 40, lineHeight: 44, letterSpacing: -1.2, color: C.ink, marginTop: 8, marginBottom: 20 },
-  titleLight: { fontFamily: F.med, color: C.ink },
+  eyebrow: { fontFamily: F.semi, fontSize: 11, letterSpacing: 1.6, color: C.info },
+  title: { fontFamily: F.bold, fontSize: 40, lineHeight: 44, letterSpacing: -1.2, color: C.ink, marginTop: 8, marginBottom: 20 },
+  titleLight: { fontFamily: F.reg, color: C.ink },
 
   heading: { marginTop: 28, marginBottom: 10, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  headingTitle: { fontFamily: F.black, fontSize: 20, color: C.ink, letterSpacing: -0.4 },
-  headingMeta: { fontFamily: F.med, fontSize: 12, color: C.muted },
+  headingTitle: { fontFamily: F.bold, fontSize: 20, color: C.ink, letterSpacing: -0.4 },
+  headingMeta: { fontFamily: F.reg, fontSize: 12, color: C.muted },
 
   row: { backgroundColor: C.card, borderRadius: 22, padding: 10, marginBottom: 10, flexDirection: 'row', alignItems: 'center' },
   rowStamp: { width: 58, height: 71 },
   rowInfo: { flex: 1, paddingHorizontal: 13 },
-  rowName: { fontFamily: F.bold, fontSize: 14, color: C.ink },
-  rowMeta: { fontFamily: F.med, fontSize: 11, color: C.muted, marginTop: 4 },
+  rowName: { fontFamily: F.semi, fontSize: 14, color: C.ink },
+  rowMeta: { fontFamily: F.reg, fontSize: 11, color: C.muted, marginTop: 4 },
   pill: { paddingHorizontal: 12, height: 28, borderRadius: 14, backgroundColor: C.soft, justifyContent: 'center' },
   pillNear: { backgroundColor: C.green },
-  pillText: { fontFamily: F.bold, fontSize: 11, color: C.muted },
+  pillText: { fontFamily: F.semi, fontSize: 11, color: C.muted },
   pillTextNear: { color: '#0B0B0F' },
 
   capture: { backgroundColor: C.panel, borderRadius: 28, padding: 20, marginTop: 14 },
   captureTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  captureKicker: { fontFamily: F.bold, fontSize: 11, letterSpacing: 1.6, color: C.green },
-  captureTitle: { fontFamily: F.black, fontSize: 24, color: '#fff', letterSpacing: -0.5, marginTop: 10 },
-  captureCopy: { fontFamily: F.med, fontSize: 13, color: '#B9BCC6', marginTop: 6 },
+  captureKicker: { fontFamily: F.semi, fontSize: 11, letterSpacing: 1.6, color: C.green },
+  captureTitle: { fontFamily: F.bold, fontSize: 24, color: '#fff', letterSpacing: -0.5, marginTop: 10 },
+  captureCopy: { fontFamily: F.reg, fontSize: 13, color: '#B9BCC6', marginTop: 6 },
   captureBtn: { height: 52, borderRadius: 26, backgroundColor: C.green, marginTop: 18, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  captureBtnText: { fontFamily: F.bold, fontSize: 14, color: '#0B0B0F' },
+  captureBtnText: { fontFamily: F.semi, fontSize: 14, color: '#0B0B0F' },
 }));

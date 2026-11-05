@@ -159,31 +159,31 @@ export function GlobeScreen({ setScrollLock }) {
 }
 
 const useStyles = makeStyles((C) => ({
-  title: { fontFamily: F.black, fontSize: 30, color: C.ink, letterSpacing: -0.8 },
-  sub: { fontFamily: F.med, fontSize: 13, lineHeight: 19, color: C.muted, marginTop: 6, marginBottom: 18 },
+  title: { fontFamily: F.bold, fontSize: 30, color: C.ink, letterSpacing: -0.8 },
+  sub: { fontFamily: F.reg, fontSize: 13, lineHeight: 19, color: C.muted, marginTop: 6, marginBottom: 18 },
   card: { height: 440, borderRadius: 28, backgroundColor: '#000', overflow: 'hidden' }, // space
 
   topRow: { position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   live: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 12, height: 30, borderRadius: 15 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.green },
-  liveText: { fontFamily: F.bold, fontSize: 10, letterSpacing: 0.8, color: '#fff' },
+  liveText: { fontFamily: F.semi, fontSize: 10, letterSpacing: 0.8, color: '#fff' },
   count: { flexDirection: 'row', alignItems: 'baseline', gap: 5, backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 12, height: 30, borderRadius: 15, alignItems: 'center' },
-  countNum: { fontFamily: F.black, fontSize: 16, color: '#fff' },
-  countLabel: { fontFamily: F.med, fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  countNum: { fontFamily: F.bold, fontSize: 16, color: '#fff' },
+  countLabel: { fontFamily: F.reg, fontSize: 11, color: 'rgba(255,255,255,0.7)' },
 
   toast: { position: 'absolute', left: 14, right: 14, bottom: 14, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 14, height: 40, borderRadius: 20 },
-  toastText: { flex: 1, fontFamily: F.med, fontSize: 12, color: '#fff' },
-  toastWho: { fontFamily: F.bold, color: C.green },
-  hint: { fontFamily: F.med, fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 10 },
+  toastText: { flex: 1, fontFamily: F.reg, fontSize: 12, color: '#fff' },
+  toastWho: { fontFamily: F.semi, color: C.green },
+  hint: { fontFamily: F.reg, fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 10 },
 
   feedHead: { marginTop: 22, marginBottom: 10, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  feedTitle: { fontFamily: F.black, fontSize: 20, color: C.ink, letterSpacing: -0.4 },
-  feedMeta: { fontFamily: F.med, fontSize: 11, color: C.muted },
+  feedTitle: { fontFamily: F.bold, fontSize: 20, color: C.ink, letterSpacing: -0.4 },
+  feedMeta: { fontFamily: F.reg, fontSize: 11, color: C.muted },
   row: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 18, padding: 10, marginBottom: 8 },
   bubble: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   rowText: { flex: 1, paddingLeft: 12 },
-  rowTitle: { fontFamily: F.bold, fontSize: 13, color: C.ink },
-  mono: { fontFamily: 'monospace' },
-  rowMeta: { fontFamily: F.med, fontSize: 11, color: C.muted, marginTop: 2 },
-  waiting: { fontFamily: F.med, fontSize: 12, color: C.muted, textAlign: 'center', padding: 16 },
+  rowTitle: { fontFamily: F.semi, fontSize: 13, color: C.ink },
+  mono: { fontFamily: F.mono },
+  rowMeta: { fontFamily: F.reg, fontSize: 11, color: C.muted, marginTop: 2 },
+  waiting: { fontFamily: F.reg, fontSize: 12, color: C.muted, textAlign: 'center', padding: 16 },
 }));

@@ -41,16 +41,16 @@ export function Collection({ collected, openSpot, openStamp }) {
 }
 
 const useStyles = makeStyles((C) => ({
-  title: { fontFamily: F.black, fontSize: 30, color: C.ink, letterSpacing: -0.8 },
-  sub: { fontFamily: F.med, fontSize: 13, color: C.muted, marginTop: 6 },
+  title: { fontFamily: F.bold, fontSize: 30, color: C.ink, letterSpacing: -0.8 },
+  sub: { fontFamily: F.reg, fontSize: 13, color: C.muted, marginTop: 6 },
   chips: { flexDirection: 'row', gap: 8, marginTop: 18, marginBottom: 20 },
   chip: { paddingHorizontal: 16, height: 34, borderRadius: 17, backgroundColor: C.card, justifyContent: 'center' },
   chipActive: { backgroundColor: C.solid },
-  chipText: { fontFamily: F.bold, fontSize: 12, color: C.ink },
+  chipText: { fontFamily: F.semi, fontSize: 12, color: C.ink },
   chipTextActive: { color: C.onSolid },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   cell: { width: '47%' },
   meta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  name: { flex: 1, fontFamily: F.bold, fontSize: 13, color: C.ink, paddingRight: 6 },
-  count: { fontFamily: F.med, fontSize: 13, color: C.muted },
+  name: { flex: 1, fontFamily: F.semi, fontSize: 13, color: C.ink, paddingRight: 6 },
+  count: { fontFamily: F.reg, fontSize: 13, color: C.muted },
 }));
