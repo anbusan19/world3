@@ -80,7 +80,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   await accounts.init();
   const world = createWorld({ config: captureOpts.worldConfig ?? worldConfigFromEnv(), fetchImpl: captureOpts.fetchImpl, now: captureOpts.now });
   const capture = createCaptureService({ store, captures, world, accounts, config: captureOpts.config ?? captureConfigFromEnv(), now: captureOpts.now });
-  const auth = createAuthService({ world, accounts, now: captureOpts.now });
+  const auth = createAuthService({ world, accounts, action: captureOpts.signinAction ?? process.env.WORLD_ID_SIGNIN_ACTION ?? 'signin', now: captureOpts.now });
   const bearer = (req) => (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
 
   const loopback = ['127.0.0.1', 'localhost', '::1'].includes(host);

@@ -73,8 +73,10 @@ export class Accounts {
   }
 }
 
-export function createAuthService({ world, accounts, now = () => Date.now() }) {
-  const ACTION = 'signin';
+// `action` is the World ID action people sign in with. A person can prove only once per action, so changing it starts
+// everyone over (useful in testing; real re-login needs session proofs, which are not built yet).
+export function createAuthService({ world, accounts, action = 'signin', now = () => Date.now() }) {
+  const ACTION = action;
   return {
     action: ACTION,
     request: () => world.sign(ACTION, {}),
