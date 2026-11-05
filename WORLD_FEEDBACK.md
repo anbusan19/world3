@@ -32,6 +32,15 @@ Notes kept as we build, for the World prize. Updated as each step is tried.
 - Time to first success once the app, RP and action existed and the phone had World App: about 15 minutes, almost all of it
   our own mistakes (a stale server address saved on the phone, Wi-Fi off), not World's.
 
+## A mistake that cost us time (worth a doc note)
+- We used one `capture` action for every spot. The first capture worked; the second, on another spot, made World App say
+  "Verification failed. Your credentials don't meet World3's requirements." That message gave no hint that the cause was
+  reusing an action. A nullifier is derived from the person plus the action, so one action means one proof per person.
+  Fix: one action per spot (`capture-<spotId>`), created in the portal. Docs should say this next to the nullifier text,
+  and World App should say "already used for this action" instead of "credentials don't meet requirements".
+- Same limit for sign-in: a second sign-in proof for the `signin` action is refused, so a signed-out person cannot sign back
+  in on a new phone with that proof. A session proof (`session_id`) is probably the right tool; not built yet.
+
 ## Still to confirm on a real device
 - Returning to our app automatically with `return_to` (it came back on its own here; check it on a clean install).
 - A full capture at a spot (we are 332 m from the nearest one).
