@@ -32,6 +32,12 @@ Notes kept as we build, for the World prize. Updated as each step is tried.
 - Time to first success once the app, RP and action existed and the phone had World App: about 15 minutes, almost all of it
   our own mistakes (a stale server address saved on the phone, Wi-Fi off), not World's.
 
+## Confirmed: a full capture on a real phone
+- World ID sign-in, then a capture at a spot 3 m away with a ±4 m GPS fix: the server recomputed the distance, World's
+  `/api/v4/verify` accepted the per-spot proof (`capture-06`), and the capture was recorded for that account.
+- IDKit surfaced the real reason for failures as `nullifier_replayed` once we logged `completion.error`; World App itself
+  only said "Your credentials don't meet World3's requirements".
+
 ## A mistake that cost us time (worth a doc note)
 - We used one `capture` action for every spot. The first capture worked; the second, on another spot, made World App say
   "Verification failed. Your credentials don't meet World3's requirements." That message gave no hint that the cause was
@@ -43,7 +49,6 @@ Notes kept as we build, for the World prize. Updated as each step is tried.
 
 ## Still to confirm on a real device
 - Returning to our app automatically with `return_to` (it came back on its own here; check it on a clean install).
-- A full capture at a spot (we are 332 m from the nearest one).
 - Testing with the simulator and `environment: "staging"` end to end.
 
 ## Highest-impact improvement (draft)
