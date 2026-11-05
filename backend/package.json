@@ -1,0 +1,18 @@
+{
+  "name": "world3-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local spots server and dashboard for World3: place 3D models (.glb) on the map.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "sample": "node scripts/make-sample-glb.mjs",
+    "share": "node scripts/share.mjs",
+    "proxy": "node src/proxy.js"
+  }
+}
