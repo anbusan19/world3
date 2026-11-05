@@ -49,7 +49,7 @@ async function signInAs(human, answer = { success: true, environment: 'staging',
   return post('/api/v1/auth/verify', { nonce: req.rp_context.nonce, idkitResponse: proofFor(req.rp_context.nonce, 'signin', human) }, '');
 }
 const nearPose = (over = {}) => ({ lat: spot.lat, lng: spot.lng, accuracyM: 8, timestamp: clock, ...over });
-const proof = (nonce, nullifier = '0xabc123') => proofFor(nonce, 'capture', nullifier);
+const proof = (nonce, nullifier = '0xabc123', sp = spot) => proofFor(nonce, `capture-${sp.id}`, nullifier);
 const ok = (nullifier = '0xabc123') => ({ success: true, environment: 'staging', nullifier });
 async function start(spotId = spot.id) {
   const r = await post('/api/v1/capture/nonce', { spotId });
@@ -94,8 +94,12 @@ test('a sign-in proof cannot be used to capture, and a capture proof cannot sign
   const req = await start();
   const r = await post('/api/v1/capture/verify', { spotId: spot.id, nonce: req.rp_context.nonce, pose: nearPose(), idkitResponse: proofFor(req.rp_context.nonce, 'signin', '0xC1') });
   assert.equal(r.body.code, 'not_verified');
+  // and a proof for another spot's action cannot capture this spot
+  const req2 = await start();
+  const r3 = await post('/api/v1/capture/verify', { spotId: spot.id, nonce: req2.rp_context.nonce, pose: nearPose(), idkitResponse: proofFor(req2.rp_context.nonce, `capture-${store.list()[1].id}`, '0xC1') });
+  assert.equal(r3.body.code, 'not_verified');
   const a = (await post('/api/v1/auth/nonce', {}, '')).body;
-  const r2 = await post('/api/v1/auth/verify', { nonce: a.rp_context.nonce, idkitResponse: proofFor(a.rp_context.nonce, 'capture', '0xC1') }, '');
+  const r2 = await post('/api/v1/auth/verify', { nonce: a.rp_context.nonce, idkitResponse: proofFor(a.rp_context.nonce, `capture-${spot.id}`, '0xC1') }, '');
   assert.equal(r2.body.code, 'not_verified');
 });
 
@@ -110,7 +114,7 @@ test('capturing without signing in is refused with 401', async () => {
 test('the nonce request returns a signed World ID request for the spot', async () => {
   const r = await start();
   assert.equal(r.app_id, 'app_test');
-  assert.equal(r.action, 'capture');
+  assert.equal(r.action, `capture-${spot.id}`);
   assert.equal(r.rp_context.rp_id, 'rp_test');
   assert.match(r.rp_context.signature, /^0x[0-9a-f]{130}$/i);
   assert.ok(r.rp_context.expires_at > r.rp_context.created_at);
@@ -156,17 +160,18 @@ test('refusal: the same human capturing the same spot twice -> already_captured'
   assert.equal(second.body.code, 'already_captured');
 });
 
-test('an account cannot capture as two different humans', async () => {
-  await actAs('0xD1'); // account D1 captures as D1 ...
-  worldAnswer = ok('0xD1');
-  let req = await start();
-  assert.equal((await post('/api/v1/capture/verify', { spotId: spot.id, nonce: req.rp_context.nonce, pose: nearPose(), idkitResponse: proof(req.rp_context.nonce, '0xD1') })).status, 200);
-  // ... then someone else's proof is sent through D1's session
+test('the same human can capture different spots (each spot has its own action)', async () => {
+  await actAs('0xE1');
   const other = store.list()[1];
-  const o = await post('/api/v1/capture/nonce', { spotId: other.id });
-  worldAnswer = ok('0xD2');
-  const r = await post('/api/v1/capture/verify', { spotId: other.id, nonce: o.body.rp_context.nonce, pose: { lat: other.lat, lng: other.lng, accuracyM: 5, timestamp: clock }, idkitResponse: proof(o.body.rp_context.nonce, '0xD2') });
-  assert.equal(r.body.code, 'not_verified');
+  worldAnswer = ok('0xE1');
+  const r1 = await post('/api/v1/capture/nonce', { spotId: spot.id });
+  assert.equal(r1.body.action, `capture-${spot.id}`);
+  assert.equal((await post('/api/v1/capture/verify', { spotId: spot.id, nonce: r1.body.rp_context.nonce, pose: nearPose(), idkitResponse: proof(r1.body.rp_context.nonce, '0xE1') })).status, 200);
+  const r2 = await post('/api/v1/capture/nonce', { spotId: other.id });
+  assert.equal(r2.body.action, `capture-${other.id}`);
+  worldAnswer = ok('0xE2'); // World derives a different nullifier for a different action
+  const ok2 = await post('/api/v1/capture/verify', { spotId: other.id, nonce: r2.body.rp_context.nonce, pose: { lat: other.lat, lng: other.lng, accuracyM: 5, timestamp: clock }, idkitResponse: proof(r2.body.rp_context.nonce, '0xE2', other) });
+  assert.equal(ok2.status, 200, JSON.stringify(ok2.body));
 });
 
 test('a different human can still capture that spot', async () => {
