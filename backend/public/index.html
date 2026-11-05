@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World3 Spots</title>
+  <link rel="icon" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="/app.css">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><img src="/logo.png" alt="" width="34" height="34"><span>World3</span><em>Spots</em></div>
+    <div class="grow"></div>
+    <span id="status" class="status"><i></i><span>Connecting…</span></span>
+    <a class="link" href="/api/v1/spots" target="_blank" rel="noopener">App feed</a>
+  </header>
+
+  <main class="grid">
+    <aside class="panel list">
+      <div class="panel-head">
+        <h2>Spots</h2>
+        <button id="new" class="btn primary" type="button">+ New spot</button>
+      </div>
+      <ul id="spots" class="spots"></ul>
+      <p class="fine">Drafts are only visible here. The app only gets <b>published</b> spots.</p>
+    </aside>
+
+    <section class="mapwrap">
+      <div id="map"></div>
+      <div class="tools">
+        <div class="seg" id="basemap" role="group" aria-label="Map style">
+          <button type="button" data-v="cartoon" class="on">Cartoon</button>
+          <button type="button" data-v="streets">Streets</button>
+        </div>
+        <form id="find" class="find" autocomplete="off">
+          <input id="findInput" type="text" placeholder="Paste coordinates  18.922, 72.8347" aria-label="Go to coordinates">
+          <button class="btn" type="submit">Go</button>
+          <button class="btn icon" type="button" id="locate" title="Use my location" aria-label="Use my location">◎</button>
+        </form>
+      </div>
+      <div id="hint" class="hint" hidden></div>
+    </section>
+
+    <aside class="panel editor" id="editor"></aside>
+  </main>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
