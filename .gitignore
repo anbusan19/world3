@@ -7,3 +7,8 @@ google-services.json
 
 # local spots server data (uploaded models and the spots database)
 backend/data/
+
+# secrets
+.env
+.env.*
+!.env.example
