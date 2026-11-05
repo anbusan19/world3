@@ -16,6 +16,7 @@ export function useLocation() {
   useEffect(() => {
     let cancelled = false;
     let sub = null;
+    let poll = null;
     best.current = Infinity;
     setState((s) => ({ ...s, status: s.coords ? s.status : 'asking', error: null }));
 
@@ -46,6 +47,12 @@ export function useLocation() {
         Location.getLastKnownPositionAsync({ maxAge: 10 * 60 * 1000 }).then((l) => accept(l, 'last')).catch(() => {});
         // 2. quick: a Wi-Fi/cell fix, coarse but usually within a couple of seconds
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).then((l) => accept(l, 'network')).catch(() => {});
+        // 2b. a one-shot request can fail quietly while the phone is still warming up, so ask again every few seconds until
+        //     we have a fix good enough to capture with (a watch started before the phone had any source may stay silent)
+        poll = setInterval(() => {
+          if (best.current <= 20) return;
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).then((l) => accept(l, 'network')).catch(() => {});
+        }, 4000);
         // 3. live: GPS updates that keep coming as you walk
         sub = await Location.watchPositionAsync(
           { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 0, timeInterval: 1000 },
@@ -59,6 +66,7 @@ export function useLocation() {
 
     return () => {
       cancelled = true;
+      clearInterval(poll);
       sub?.remove();
     };
   }, [attempt]);
