@@ -14,5 +14,8 @@
     "sample": "node scripts/make-sample-glb.mjs",
     "share": "node scripts/share.mjs",
     "proxy": "node src/proxy.js"
+  },
+  "dependencies": {
+    "@worldcoin/idkit-server": "^1.2.0"
   }
 }

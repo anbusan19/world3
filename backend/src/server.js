@@ -2,6 +2,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 
+// secrets live in backend/.env (git-ignored)
+try { process.loadEnvFile(new URL('../.env', import.meta.url)); } catch { /* no .env: World ID stays unconfigured */ }
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 3000);
 const HOST = process.env.HOST ?? '127.0.0.1';

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
+import { Captures, CaptureError, captureConfigFromEnv, createCaptureService } from './capture.js';
 import { GlbError, LIMITS, parseGlb } from './glb.js';
 import { SEED } from './seed.js';
 import { Store, toPublic } from './store.js';
@@ -68,9 +69,12 @@ async function readJson(req) {
 
 const sanitizeName = (s) => String(s ?? '').replace(/[^\w .()-]/g, '').slice(0, 80);
 
-export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = () => {} }) {
+export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = () => {}, capture: captureOpts = {} }) {
   const store = new Store(dataDir);
   await store.init(SEED);
+  const captures = new Captures(dataDir);
+  await captures.init();
+  const capture = createCaptureService({ store, captures, config: captureOpts.config ?? captureConfigFromEnv(), fetchImpl: captureOpts.fetchImpl, now: captureOpts.now });
 
   const loopback = ['127.0.0.1', 'localhost', '::1'].includes(host);
   const hostOk = (h) => !loopback || /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(h ?? ''); // blocks DNS-rebinding
@@ -100,7 +104,8 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
         try { originHost = new URL(origin).host; } catch { /* handled below */ }
         if (originHost !== req.headers.host) throw new HttpError(403, 'Cross-site requests are not allowed.');
       }
-      if (req.headers['x-requested-with'] !== 'world3-dashboard') throw new HttpError(403, 'Missing X-Requested-With header.');
+      // the dashboard and the phone app each send their own marker; a web page on another site cannot set it without a CORS preflight
+      if (!['world3-dashboard', 'world3-app'].includes(req.headers['x-requested-with'])) throw new HttpError(403, 'Missing X-Requested-With header.');
     }
 
     if (p === '/api/health') return send(res, 200, { ok: true, spots: store.list().length });
@@ -113,6 +118,16 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       const etag = `"${createHash('sha1').update(body).digest('hex').slice(0, 16)}"`;
       if (req.headers['if-none-match'] === etag) return send(res, 304, '', { etag, ...cors });
       return send(res, 200, body, { 'content-type': 'application/json; charset=utf-8', etag, 'cache-control': 'no-cache', ...cors });
+    }
+
+    // ---- capture: the backend decides ---------------------------------------------------------------------------
+    if (p === '/api/v1/capture/nonce' && method === 'POST') {
+      const { spotId } = await readJson(req);
+      return send(res, 200, capture.issue(spotId));
+    }
+    if (p === '/api/v1/capture/verify' && method === 'POST') {
+      const body = await readJson(req);
+      return send(res, 200, { ok: true, capture: await capture.verify(body) });
     }
 
     // ---- uploaded files -----------------------------------------------------------------------------------------
@@ -200,7 +215,8 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     try {
       await route(req, res, new URL(req.url, 'http://localhost'));
     } catch (e) {
-      if (e instanceof HttpError) send(res, e.status, { error: e.message, ...(e.extra ?? {}) }, e.status === 413 ? { connection: 'close' } : {});
+      if (e instanceof CaptureError) send(res, e.status, { ok: false, code: e.code, error: e.message });
+      else if (e instanceof HttpError) send(res, e.status, { error: e.message, ...(e.extra ?? {}) }, e.status === 413 ? { connection: 'close' } : {});
       else {
         console.error(e);
         send(res, 500, { error: 'Something went wrong on the server.' });
@@ -209,5 +225,5 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     log(`${req.method} ${req.url.split('?')[0]} ${res.statusCode} ${Date.now() - started}ms`);
   });
 
-  return { server, store };
+  return { server, store, captures };
 }
