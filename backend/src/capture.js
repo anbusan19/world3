@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { isAddress } from 'viem';
 import { CaptureError, refusal } from './world.js';
 
 // The capture verifier. The phone only sends evidence; this decides. A capture is accepted only when
@@ -51,7 +52,7 @@ export class Captures {
   }
 }
 
-export function createCaptureService({ store, captures, world, accounts, config = {}, now = () => Date.now() }) {
+export function createCaptureService({ store, captures, world, accounts, voucherSigner = null, config = {}, now = () => Date.now() }) {
   const c = { action: 'capture', maxAccuracyM: 25, maxAgeMs: 60_000, ...config };
   // One World ID action per spot. A person's nullifier is derived from the action, so a separate action per spot is what
   // makes "one human, one stamp per spot" work: a single shared action would let each person prove only once, ever.
@@ -66,8 +67,10 @@ export function createCaptureService({ store, captures, world, accounts, config 
   }
 
   // Step 2: the app sends its evidence and the World ID result. Returns the accepted capture or throws a CaptureError.
-  async function verify(user, { spotId, nonce, pose, idkitResponse }) {
+  async function verify(user, { spotId, nonce, pose, idkitResponse, recipient }) {
     if (!user) throw refusal('signed_out', 401);
+    // the wallet that will hold the stamp; checked before anything is spent, so a typo does not burn the person's request
+    if (voucherSigner && !isAddress(recipient ?? '')) throw new CaptureError('bad_recipient', 'A wallet address is needed to receive the stamp.', 400);
     // the nonce first, and it is burned straight away: whatever happens next, this request cannot be replayed
     const meta = world.take(nonce, actionFor(String(spotId)));
     if (!meta || meta.spotId !== String(spotId) || meta.userId !== user.id) throw refusal('nonce');
@@ -86,13 +89,17 @@ export function createCaptureService({ store, captures, world, accounts, config 
     // the nullifier is per spot, so a repeat is the same person asking again for the same spot
     if (captures.has(spot.id, nullifier)) throw refusal('already_captured');
 
-    const capture = { id: randomUUID(), spotId: spot.id, userId: user.id, nullifier, at: new Date(now()).toISOString() };
+    // the capture is accepted: sign the mint voucher (only the backend can; the contract mints against nothing else)
+    const voucher = voucherSigner ? await voucherSigner.sign({ recipient, spotId: spot.id }) : null;
+    const capture = { id: randomUUID(), spotId: spot.id, userId: user.id, nullifier, at: new Date(now()).toISOString(), ...(voucher ? { voucher } : {}) };
     await captures.add(capture);
-    // TODO(next): sign the EIP-712 mint voucher here and return it with the capture.
-    return { id: capture.id, spotId: spot.id, at: capture.at };
+    return { id: capture.id, spotId: spot.id, at: capture.at, voucher };
   }
 
-  return { issue, verify, config: c };
+  // the signed-in person's own vouchers (so a lost response, or a new install, does not lose a stamp)
+  const vouchersFor = (user) => captures.items.filter((x) => x.userId === user.id && x.voucher).map((x) => ({ captureId: x.id, spotId: x.spotId, at: x.at, ...x.voucher }));
+
+  return { issue, verify, vouchersFor, config: c };
 }
 
 export function captureConfigFromEnv(env = process.env) {

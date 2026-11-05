@@ -5,6 +5,7 @@ import path from 'node:path';
 import { Accounts, createAuthService } from './auth.js';
 import { Captures, captureConfigFromEnv, createCaptureService } from './capture.js';
 import { CaptureError, createWorld, worldConfigFromEnv } from './world.js';
+import { createVoucherSigner, voucherConfigFromEnv } from './voucher.js';
 import { GlbError, LIMITS, parseGlb } from './glb.js';
 import { SEED } from './seed.js';
 import { Store, toPublic } from './store.js';
@@ -79,7 +80,8 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   const accounts = new Accounts(dataDir);
   await accounts.init();
   const world = createWorld({ config: captureOpts.worldConfig ?? worldConfigFromEnv(), fetchImpl: captureOpts.fetchImpl, now: captureOpts.now });
-  const capture = createCaptureService({ store, captures, world, accounts, config: captureOpts.config ?? captureConfigFromEnv(), now: captureOpts.now });
+  const voucherSigner = createVoucherSigner(captureOpts.voucher ?? voucherConfigFromEnv());
+  const capture = createCaptureService({ store, captures, world, accounts, voucherSigner, config: captureOpts.config ?? captureConfigFromEnv(), now: captureOpts.now });
   const auth = createAuthService({ world, accounts, action: captureOpts.signinAction ?? process.env.WORLD_ID_SIGNIN_ACTION ?? 'signin', now: captureOpts.now });
   const bearer = (req) => (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
 
@@ -138,6 +140,12 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     if (p === '/api/v1/auth/signout' && method === 'POST') {
       await auth.signOut(bearer(req));
       return send(res, 200, { ok: true });
+    }
+
+    if (p === '/api/v1/vouchers' && method === 'GET') {
+      const user = auth.user(bearer(req));
+      if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
+      return send(res, 200, { vouchers: capture.vouchersFor(user), contract: voucherSigner?.contract ?? null, chainId: voucherSigner?.chainId ?? null });
     }
 
     // ---- capture: the backend decides (a signed-in person, a fresh World ID proof, evidence checked here) -----------
@@ -244,5 +252,5 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     log(`${req.method} ${req.url.split('?')[0]} ${res.statusCode} ${Date.now() - started}ms`);
   });
 
-  return { server, store, captures };
+  return { server, store, captures, voucherSigner };
 }
