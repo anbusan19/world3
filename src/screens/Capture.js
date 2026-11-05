@@ -28,6 +28,8 @@ const FAILS = {
   network: { icon: 'cloud-offline', title: 'Server unreachable', body: 'We could not reach the World3 server. Check the Spot server setting in Passport, then try again.' },
 };
 
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
 export function Capture({ spot, user, onClose, onSuccess, onViewPassport, registerBack }) {
   const [step, setStep] = useState('ar'); // 'ar' | 'verify' | 'result'
   const [run, setRun] = useState(null); // { i, failed } while the checklist is running
