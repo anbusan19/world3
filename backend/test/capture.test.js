@@ -10,7 +10,7 @@ import { distanceMeters } from '../src/capture.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const KEY = '0x' + randomBytes(32).toString('hex'); // a throwaway signing key, never a real one
-let dir, server, store, base, spot, worldCalls, worldAnswer, clock;
+let dir, server, store, base, spot, worldCalls = [], worldAnswer, clock;
 const H = { 'x-requested-with': 'world3-app', 'content-type': 'application/json' };
 
 // stands in for World's verify endpoint, so the tests never touch the network
@@ -25,7 +25,7 @@ before(async () => {
   ({ server, store } = await createApp({
     dataDir: dir,
     publicDir: path.join(here, '..', 'public'),
-    capture: { config: { appId: 'app_test', rpId: 'rp_test', signingKey: KEY, environment: 'staging' }, fetchImpl: fakeWorld, now: () => clock },
+    capture: { worldConfig: { appId: 'app_test', rpId: 'rp_test', signingKey: KEY, environment: 'staging' }, fetchImpl: fakeWorld, now: () => clock },
   }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -36,23 +36,76 @@ after(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-const post = async (p, body) => {
-  const r = await fetch(base + p, { method: 'POST', headers: H, body: JSON.stringify(body) });
+let token = ''; // the session of whoever is "using the app" in the current test
+const post = async (p, body, tok = token) => {
+  const r = await fetch(base + p, { method: 'POST', headers: { ...H, ...(tok ? { authorization: `Bearer ${tok}` } : {}) }, body: JSON.stringify(body) });
   return { status: r.status, body: await r.json() };
 };
+const proofFor = (nonce, action, nullifier) => ({ protocol_version: '4.0', nonce, action, environment: 'staging', responses: [{ identifier: 'proof_of_human', nullifier }] });
+// sign in as a human: the "signin" nullifier decides which account this is
+async function signInAs(human, answer = { success: true, environment: 'staging', nullifier: human }) {
+  worldAnswer = answer;
+  const req = (await post('/api/v1/auth/nonce', {}, '')).body;
+  return post('/api/v1/auth/verify', { nonce: req.rp_context.nonce, idkitResponse: proofFor(req.rp_context.nonce, 'signin', human) }, '');
+}
 const nearPose = (over = {}) => ({ lat: spot.lat, lng: spot.lng, accuracyM: 8, timestamp: clock, ...over });
-const proof = (nonce, nullifier = '0xabc123') => ({ protocol_version: '4.0', nonce, action: 'capture', environment: 'staging', responses: [{ identifier: 'proof_of_human', nullifier }] });
+const proof = (nonce, nullifier = '0xabc123') => proofFor(nonce, 'capture', nullifier);
 const ok = (nullifier = '0xabc123') => ({ success: true, environment: 'staging', nullifier });
 async function start(spotId = spot.id) {
   const r = await post('/api/v1/capture/nonce', { spotId });
   assert.equal(r.status, 200);
   return r.body;
 }
-const attempt = async ({ pose = nearPose(), nullifier, answer = ok(nullifier), skipProof = false } = {}) => {
+const sessions = new Map();
+// each human has their own account; switch the "phone" to that human's session
+async function actAs(human) {
+  if (!sessions.has(human)) sessions.set(human, (await signInAs(human)).body.token);
+  token = sessions.get(human);
+}
+const attempt = async ({ pose = nearPose(), nullifier = '0xabc123', answer = ok(nullifier), skipProof = false } = {}) => {
+  await actAs(nullifier);
+  worldCalls.length = 0; // count only the capture's own call to World, not the sign-in's
   worldAnswer = answer;
   const req = await start();
   return post('/api/v1/capture/verify', { spotId: spot.id, nonce: req.rp_context.nonce, pose, idkitResponse: skipProof ? null : proof(req.rp_context.nonce, nullifier) });
 };
+
+test('sign in with World ID creates an account, and the same human gets the same one', async () => {
+  const a = await signInAs('0xA1');
+  assert.equal(a.status, 200, JSON.stringify(a.body));
+  assert.match(a.body.user.id, /^u_[0-9a-f]{16}$/);
+  token = a.body.token;
+  const me = await fetch(base + '/api/v1/me', { headers: { authorization: `Bearer ${token}` } });
+  assert.equal((await me.json()).user.id, a.body.user.id);
+  const again = await signInAs('0xa1');
+  assert.equal(again.body.user.id, a.body.user.id);
+  assert.notEqual(again.body.token, a.body.token);
+});
+
+test('sign in refused when World does not accept the proof; no session is created', async () => {
+  const r = await signInAs('0xBAD', { success: false });
+  assert.equal(r.status, 422);
+  assert.equal(r.body.code, 'not_verified');
+  assert.equal(r.body.token, undefined);
+});
+
+test('a sign-in proof cannot be used to capture, and a capture proof cannot sign in', async () => {
+  worldAnswer = ok('0xC1');
+  const req = await start();
+  const r = await post('/api/v1/capture/verify', { spotId: spot.id, nonce: req.rp_context.nonce, pose: nearPose(), idkitResponse: proofFor(req.rp_context.nonce, 'signin', '0xC1') });
+  assert.equal(r.body.code, 'not_verified');
+  const a = (await post('/api/v1/auth/nonce', {}, '')).body;
+  const r2 = await post('/api/v1/auth/verify', { nonce: a.rp_context.nonce, idkitResponse: proofFor(a.rp_context.nonce, 'capture', '0xC1') }, '');
+  assert.equal(r2.body.code, 'not_verified');
+});
+
+test('capturing without signing in is refused with 401', async () => {
+  const r = await post('/api/v1/capture/nonce', { spotId: spot.id }, '');
+  assert.equal(r.status, 401);
+  assert.equal(r.body.code, 'signed_out');
+  const bad = await post('/api/v1/capture/nonce', { spotId: spot.id }, 'not-a-token');
+  assert.equal(bad.status, 401);
+});
 
 test('the nonce request returns a signed World ID request for the spot', async () => {
   const r = await start();
@@ -103,12 +156,26 @@ test('refusal: the same human capturing the same spot twice -> already_captured'
   assert.equal(second.body.code, 'already_captured');
 });
 
+test('an account cannot capture as two different humans', async () => {
+  await actAs('0xD1'); // account D1 captures as D1 ...
+  worldAnswer = ok('0xD1');
+  let req = await start();
+  assert.equal((await post('/api/v1/capture/verify', { spotId: spot.id, nonce: req.rp_context.nonce, pose: nearPose(), idkitResponse: proof(req.rp_context.nonce, '0xD1') })).status, 200);
+  // ... then someone else's proof is sent through D1's session
+  const other = store.list()[1];
+  const o = await post('/api/v1/capture/nonce', { spotId: other.id });
+  worldAnswer = ok('0xD2');
+  const r = await post('/api/v1/capture/verify', { spotId: other.id, nonce: o.body.rp_context.nonce, pose: { lat: other.lat, lng: other.lng, accuracyM: 5, timestamp: clock }, idkitResponse: proof(o.body.rp_context.nonce, '0xD2') });
+  assert.equal(r.body.code, 'not_verified');
+});
+
 test('a different human can still capture that spot', async () => {
   const r = await attempt({ nullifier: '0xBBBB' });
   assert.equal(r.status, 200);
 });
 
 test('a nonce can only be used once', async () => {
+  await actAs('0x77');
   worldAnswer = ok('0x77');
   const req = await start();
   const body = { spotId: spot.id, nonce: req.rp_context.nonce, pose: nearPose(), idkitResponse: proof(req.rp_context.nonce, '0x77') };
