@@ -16,6 +16,7 @@
     "proxy": "node src/proxy.js"
   },
   "dependencies": {
-    "@worldcoin/idkit-server": "^1.2.0"
+    "@worldcoin/idkit-server": "^1.2.0",
+    "viem": "^2.57.16"
   }
 }
