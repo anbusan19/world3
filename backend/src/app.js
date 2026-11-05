@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
-import { Captures, CaptureError, captureConfigFromEnv, createCaptureService } from './capture.js';
+import { Accounts, createAuthService } from './auth.js';
+import { Captures, captureConfigFromEnv, createCaptureService } from './capture.js';
+import { CaptureError, createWorld, worldConfigFromEnv } from './world.js';
 import { GlbError, LIMITS, parseGlb } from './glb.js';
 import { SEED } from './seed.js';
 import { Store, toPublic } from './store.js';
@@ -74,7 +76,12 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   await store.init(SEED);
   const captures = new Captures(dataDir);
   await captures.init();
-  const capture = createCaptureService({ store, captures, config: captureOpts.config ?? captureConfigFromEnv(), fetchImpl: captureOpts.fetchImpl, now: captureOpts.now });
+  const accounts = new Accounts(dataDir);
+  await accounts.init();
+  const world = createWorld({ config: captureOpts.worldConfig ?? worldConfigFromEnv(), fetchImpl: captureOpts.fetchImpl, now: captureOpts.now });
+  const capture = createCaptureService({ store, captures, world, accounts, config: captureOpts.config ?? captureConfigFromEnv(), now: captureOpts.now });
+  const auth = createAuthService({ world, accounts, now: captureOpts.now });
+  const bearer = (req) => (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
 
   const loopback = ['127.0.0.1', 'localhost', '::1'].includes(host);
   const hostOk = (h) => !loopback || /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(h ?? ''); // blocks DNS-rebinding
@@ -120,14 +127,26 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       return send(res, 200, body, { 'content-type': 'application/json; charset=utf-8', etag, 'cache-control': 'no-cache', ...cors });
     }
 
-    // ---- capture: the backend decides ---------------------------------------------------------------------------
+    // ---- sign in with World ID ----------------------------------------------------------------------------------
+    if (p === '/api/v1/auth/nonce' && method === 'POST') return send(res, 200, auth.request());
+    if (p === '/api/v1/auth/verify' && method === 'POST') return send(res, 200, { ok: true, ...(await auth.verify(await readJson(req))) });
+    if (p === '/api/v1/me' && method === 'GET') {
+      const user = auth.user(bearer(req));
+      if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
+      return send(res, 200, { user: { id: user.id } });
+    }
+    if (p === '/api/v1/auth/signout' && method === 'POST') {
+      await auth.signOut(bearer(req));
+      return send(res, 200, { ok: true });
+    }
+
+    // ---- capture: the backend decides (a signed-in person, a fresh World ID proof, evidence checked here) -----------
     if (p === '/api/v1/capture/nonce' && method === 'POST') {
       const { spotId } = await readJson(req);
-      return send(res, 200, capture.issue(spotId));
+      return send(res, 200, capture.issue(auth.user(bearer(req)), spotId));
     }
     if (p === '/api/v1/capture/verify' && method === 'POST') {
-      const body = await readJson(req);
-      return send(res, 200, { ok: true, capture: await capture.verify(body) });
+      return send(res, 200, { ok: true, capture: await capture.verify(auth.user(bearer(req)), await readJson(req)) });
     }
 
     // ---- uploaded files -----------------------------------------------------------------------------------------
