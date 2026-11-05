@@ -19,6 +19,7 @@ import { F, ThemeProvider, makeStyles, useColors, useTheme } from './src/theme';
 import { loadFeedBase, refreshSpots, spots } from './src/spots';
 import { distanceMeters } from './src/geo';
 import { useLocation } from './src/useLocation';
+import { loadSession, signOut } from './src/world';
 import { Onboarding } from './src/Onboarding';
 import { SignIn } from './src/screens/SignIn';
 import { Home } from './src/screens/Home';
@@ -71,6 +72,13 @@ function AppInner() {
     loadFeedBase().then(pull);
     const t = setInterval(pull, 20000);
     return () => { live = false; clearInterval(t); };
+  }, []);
+
+  // a saved World ID session skips onboarding and sign-in
+  useEffect(() => {
+    let live = true;
+    loadFeedBase().then(() => loadSession()).then((u) => { if (live && u) setPhase('app'); });
+    return () => { live = false; };
   }, []);
 
   const [fontsLoaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, GeistMono_500Medium });
@@ -197,7 +205,7 @@ function AppInner() {
                 setProfile={setProfile}
                 settings={settings}
                 updateSetting={updateSetting}
-                onSignOut={() => { setPhase('signin'); setTab('EXPLORE'); }}
+                onSignOut={() => { signOut(); setPhase('signin'); setTab('EXPLORE'); }}
               />
             )}
           </ScrollView>

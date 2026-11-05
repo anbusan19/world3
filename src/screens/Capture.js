@@ -24,6 +24,7 @@ const FAILS = {
   stale: { icon: 'time', title: 'Location out of date', body: 'Your location reading was too old. Try again.' },
   expired: { icon: 'hourglass', title: 'Request expired', body: 'That capture request ran out of time or was already used. Start again.' },
   busy: { icon: 'cloud-offline', title: 'World ID unavailable', body: 'World ID could not be reached. Try again in a moment.' },
+  signedout: { icon: 'person-remove', title: 'Signed out', body: 'Your session ended. Sign out and sign in with World ID again, then retry.' },
   network: { icon: 'cloud-offline', title: 'Server unreachable', body: 'We could not reach the World3 server. Check the Spot server setting in Passport, then try again.' },
 };
 

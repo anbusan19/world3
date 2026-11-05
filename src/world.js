@@ -1,4 +1,5 @@
 import { Linking } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { IDKit, proofOfHuman } from '@worldcoin/idkit-core/expo';
 import { getFeedBase } from './spots';
 
@@ -8,7 +9,7 @@ import { getFeedBase } from './spots';
 //   2. open World App with that request and wait for the person to approve or decline
 //   3. send the evidence and World's answer to the backend, which returns the capture or a refusal
 
-// kind is what the result screen shows: 'unverified' | 'repeat' | 'far' | 'gps' | 'stale' | 'expired' | 'busy' | 'network'
+// kind is what the screen shows: 'unverified' | 'repeat' | 'far' | 'gps' | 'stale' | 'expired' | 'busy' | 'network' | 'signedout'
 export class CaptureFailure extends Error {
   constructor(kind, message) {
     super(message);
@@ -24,14 +25,20 @@ const KIND_BY_CODE = {
   stale: 'stale',
   nonce: 'expired',
   world_unreachable: 'busy',
+  signed_out: 'signedout',
   not_configured: 'network',
   no_spot: 'network',
 };
 
+// The signed-in session: a random token the server gave us after a World ID proof. Kept in the phone's secure store.
+const TOKEN_KEY = 'world3.session';
+let token = null;
+const headers = () => ({ 'content-type': 'application/json', 'x-requested-with': 'world3-app', ...(token ? { authorization: `Bearer ${token}` } : {}) });
+
 async function post(path, body) {
   let res;
   try {
-    res = await fetch(`${getFeedBase()}${path}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'world3-app' }, body: JSON.stringify(body) });
+    res = await fetch(`${getFeedBase()}${path}`, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
   } catch {
     throw new CaptureFailure('network', 'Could not reach the World3 server.');
   }
@@ -41,15 +48,8 @@ async function post(path, body) {
   return data;
 }
 
-// onStage(0..2) tells the screen which step is running. Resolves with the accepted capture.
-export async function captureWithWorldId({ spot, user, onStage }) {
-  if (!user?.coords) throw new CaptureFailure('gps', 'We do not have your location yet.');
-  const pose = { lat: user.coords[1], lng: user.coords[0], accuracyM: user.accuracy ?? 999, timestamp: Date.now() };
-
-  onStage(0);
-  const req = await post('/api/v1/capture/nonce', { spotId: spot.id });
-
-  onStage(1);
+// Open World App with a signed request and wait for the person to approve or decline. Resolves with World's result.
+async function askWorldId(req, signal) {
   let completion;
   try {
     const request = await IDKit.request({
@@ -64,16 +64,72 @@ export async function captureWithWorldId({ spot, user, onStage }) {
       },
       allow_legacy_proofs: false,
       environment: req.environment,
-      return_to: 'world3://capture',
-    }).preset(proofOfHuman({ signal: spot.id }));
+      return_to: 'world3://verify',
+    }).preset(proofOfHuman({ signal }));
     await Linking.openURL(request.connectorURI);
     completion = await request.pollUntilCompletion({ timeout: 3 * 60 * 1000 });
   } catch {
     throw new CaptureFailure('unverified', 'World ID did not open. Install World App and try again.');
   }
   if (!completion.success) throw new CaptureFailure('unverified', 'World ID verification was cancelled or failed.');
+  return completion.result;
+}
+
+// ---- session ----------------------------------------------------------------------------------------------------
+
+// On launch: is the saved session still good? Resolves with the user, or null. If the server cannot be reached we keep the
+// session (and let the person in) instead of signing them out for a bad connection.
+export async function loadSession() {
+  try { token = await SecureStore.getItemAsync(TOKEN_KEY); } catch { token = null; }
+  if (!token) return null;
+  try {
+    const res = await fetch(`${getFeedBase()}/api/v1/me`, { headers: headers() });
+    if (res.status === 401) { await clearToken(); return null; }
+    if (!res.ok) return { id: null, offline: true };
+    return (await res.json()).user;
+  } catch {
+    return { id: null, offline: true };
+  }
+}
+
+async function clearToken() {
+  token = null;
+  try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch { /* nothing stored */ }
+}
+
+// Sign in with World ID: one proof of human makes (or finds) your account. onStage(0..1) drives the progress list.
+export async function signInWithWorldId({ onStage = () => {} } = {}) {
+  onStage(0);
+  const req = await post('/api/v1/auth/nonce', {});
+  onStage(1);
+  const result = await askWorldId(req, 'signin');
+  onStage(2);
+  const out = await post('/api/v1/auth/verify', { nonce: req.rp_context.nonce, idkitResponse: result });
+  token = out.token;
+  try { await SecureStore.setItemAsync(TOKEN_KEY, token); } catch { /* stays signed in until the app closes */ }
+  return out.user;
+}
+
+export async function signOut() {
+  const old = token;
+  await clearToken();
+  if (old) { try { await fetch(`${getFeedBase()}/api/v1/auth/signout`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'world3-app', authorization: `Bearer ${old}` }, body: '{}' }); } catch { /* the token is gone from the phone either way */ } }
+}
+
+// ---- capture ----------------------------------------------------------------------------------------------------
+
+// onStage(0..2) tells the screen which step is running. Resolves with the accepted capture.
+export async function captureWithWorldId({ spot, user, onStage }) {
+  if (!user?.coords) throw new CaptureFailure('gps', 'We do not have your location yet.');
+  const pose = { lat: user.coords[1], lng: user.coords[0], accuracyM: user.accuracy ?? 999, timestamp: Date.now() };
+
+  onStage(0);
+  const req = await post('/api/v1/capture/nonce', { spotId: spot.id });
+
+  onStage(1);
+  const result = await askWorldId(req, spot.id);
 
   onStage(2);
-  const out = await post('/api/v1/capture/verify', { spotId: spot.id, nonce: req.rp_context.nonce, pose, idkitResponse: completion.result });
+  const out = await post('/api/v1/capture/verify', { spotId: spot.id, nonce: req.rp_context.nonce, pose, idkitResponse: result });
   return out.capture;
 }
