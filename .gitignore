@@ -1,0 +1,9 @@
+node_modules/
+android/
+ios/
+.expo/
+google-services.json
+*.keystore
+
+# local spots server data (uploaded models and the spots database)
+backend/data/

@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "World3",
+    "slug": "world3",
+    "scheme": "world3",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "android": {
+      "package": "com.world3.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#0265AD"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-dev-client",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#F4F5F8",
+          "imageWidth": 200
+        }
+      ],
+      ["expo-location", { "locationWhenInUsePermission": "World3 uses your location to show nearby spots and check you are really there." }],
+      ["expo-camera", { "cameraPermission": "World3 uses the camera to show the stamp in front of you when you capture it, and to scan venue QR codes.", "recordAudioAndroid": false }],
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      ["@reactvision/react-viro", { "provider": "none", "android": { "xRMode": ["AR"] } }],
+      ["@maplibre/maplibre-react-native", { "android": { "nativeVersion": "13.7.0-pre-globe.0" } }]
+    ]
+  }
+}
