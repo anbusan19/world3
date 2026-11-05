@@ -14,9 +14,18 @@ const FONT = { med: 'PlusJakartaSans_500Medium', bold: 'PlusJakartaSans_700Bold'
 
 const GPS_TEXT = {
   asking: 'Finding you…',
+  searching: 'Searching for GPS…',
   denied: 'Location off · showing Mumbai',
   error: 'GPS unavailable · showing Mumbai',
 };
+
+// what the pill says once we have a position: how it was found and how sure we are (in metres)
+function gpsLabel(user) {
+  const m = user.accuracy != null ? ` ±${Math.round(user.accuracy)} m` : '';
+  if (user.source === 'gps') return `GPS${m}`;
+  if (user.source === 'network') return `Wi-Fi/cell${m}`;
+  return 'Last known place';
+}
 
 // spots: [{ id, name, coord: [lng, lat], tint, icon, dist }]
 // user: { status, coords }
@@ -69,8 +78,8 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
 
       <View style={styles.topRow} pointerEvents="box-none">
         <View style={styles.tag}>
-          <View style={[styles.dot, user.status === 'granted' && { backgroundColor: GREEN }]} />
-          <Text style={styles.tagText}>{user.status === 'granted' ? 'GPS on' : GPS_TEXT[user.status]}</Text>
+          <View style={[styles.dot, user.status === 'granted' && { backgroundColor: user.source === 'gps' && user.accuracy <= 25 ? GREEN : '#F6C453' }]} />
+          <Text style={styles.tagText}>{user.status === 'granted' ? gpsLabel(user) : GPS_TEXT[user.status]}</Text>
         </View>
         <View style={styles.buttons}>
           <Pressable style={[styles.btn, !user.coords && { opacity: 0.45 }]} onPress={goToMe} disabled={!user.coords}>
