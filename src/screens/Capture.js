@@ -6,29 +6,31 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stamp } from '../Stamp';
 import { ArCamera } from './ArCamera';
 import { BackButton, Chip, PrimaryButton } from '../ui';
-import { CAPTURE_M, shortName } from '../spots';
+import { shortName } from '../spots';
+import { CaptureFailure, captureWithWorldId } from '../world';
 import { F, makeStyles, useColors, useTheme } from '../theme';
 
-// FRONTEND ONLY. The camera step is real (see ArCamera.js); World ID and the backend are not. It shows the three steps
-// of the capture flow (camera, human check, result) and every outcome the README lists, so the design can be reviewed.
+// The capture flow: camera (ArCamera.js), then World ID and the server's checks (world.js), then the result. Nothing is
+// simulated here: the backend recomputes the distance, asks World to verify the proof, and may refuse for real.
 
-const PROGRESS = ['Requesting a one-time code', 'Verifying your World ID proof', 'Backend checking your location', 'Minting your stamp'];
+const PROGRESS = ['Requesting a one-time code', 'Verifying your World ID proof', 'Server checking your capture'];
 
-const OUTCOMES = [
-  { key: 'success', label: 'Success' },
-  { key: 'unverified', label: 'Not verified', failAt: 1, icon: 'person-remove', title: 'Not verified', body: 'We could not confirm you are a unique human. Verify with World ID and try again.' },
-  { key: 'repeat', label: 'Already captured', failAt: 2, icon: 'repeat', title: 'Already captured', body: 'One human can capture each spot once. This one is already in your passport.' },
-  { key: 'far', label: 'Too far', failAt: 2, icon: 'walk', title: 'Too far', body: `The server measured you outside the ${CAPTURE_M} m capture zone. Move closer and try again.` },
-  { key: 'gps', label: 'Poor GPS', failAt: 2, icon: 'cellular', title: 'Poor GPS signal', body: 'Your location was not accurate enough. Improve your signal, for example by stepping into the open, and try again.' },
-];
-
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// what the result screen says for each way a capture can be refused (kinds come from CaptureFailure in world.js)
+const FAILS = {
+  unverified: { icon: 'person-remove', title: 'Not verified', body: 'We could not confirm you are a unique human. Verify with World ID and try again.' },
+  repeat: { icon: 'repeat', title: 'Already captured', body: 'One human can capture each spot once. This one is already in your passport.' },
+  far: { icon: 'walk', title: 'Too far', body: 'The server measured you outside the capture zone. Move closer and try again.' },
+  gps: { icon: 'cellular', title: 'Poor GPS signal', body: 'Your location was not accurate enough. Improve your signal, for example by stepping into the open, and try again.' },
+  stale: { icon: 'time', title: 'Location out of date', body: 'Your location reading was too old. Try again.' },
+  expired: { icon: 'hourglass', title: 'Request expired', body: 'That capture request ran out of time or was already used. Start again.' },
+  busy: { icon: 'cloud-offline', title: 'World ID unavailable', body: 'World ID could not be reached. Try again in a moment.' },
+  network: { icon: 'cloud-offline', title: 'Server unreachable', body: 'We could not reach the World3 server. Check the Spot server setting in Passport, then try again.' },
+};
 
 export function Capture({ spot, user, onClose, onSuccess, onViewPassport, registerBack }) {
   const [step, setStep] = useState('ar'); // 'ar' | 'verify' | 'result'
-  const [outcome, setOutcome] = useState('success');
   const [run, setRun] = useState(null); // { i, failed } while the checklist is running
-  const [result, setResult] = useState(null); // 'success' or an OUTCOMES entry
+  const [result, setResult] = useState(null); // 'success' or { kind, icon, title, body } for a refusal
   const alive = useRef(true);
 
   // set true on every (re)mount: React re-runs effects in dev and on Fast Refresh, and a stale `false` would stop the run
@@ -48,21 +50,21 @@ export function Capture({ spot, user, onClose, onSuccess, onViewPassport, regist
   }, [step, run, registerBack]);
 
   async function start() {
-    const out = OUTCOMES.find((o) => o.key === outcome);
-    for (let i = 0; i < PROGRESS.length; i++) {
-      setRun({ i, failed: false });
-      await wait(750);
+    setRun({ i: 0, failed: false });
+    try {
+      await captureWithWorldId({ spot, user, onStage: (i) => alive.current && setRun({ i, failed: false }) });
+    } catch (e) {
       if (!alive.current) return;
-      if (out.failAt === i) {
-        setRun({ i, failed: true });
-        await wait(900);
-        if (!alive.current) return;
-        setResult(out);
-        setStep('result');
-        setRun(null);
-        return;
-      }
+      const kind = e instanceof CaptureFailure ? e.kind : 'network';
+      setRun((r) => ({ i: r?.i ?? 0, failed: true }));
+      await wait(900);
+      if (!alive.current) return;
+      setResult({ kind, ...(FAILS[kind] ?? FAILS.network) });
+      setStep('result');
+      setRun(null);
+      return;
     }
+    if (!alive.current) return;
     setRun({ i: PROGRESS.length, failed: false });
     await wait(500);
     if (!alive.current) return;
@@ -77,8 +79,6 @@ export function Capture({ spot, user, onClose, onSuccess, onViewPassport, regist
     return (
       <VerifyStep
         spot={spot}
-        outcome={outcome}
-        setOutcome={setOutcome}
         run={run}
         onBack={() => setStep('ar')}
         onStart={start}
@@ -98,7 +98,7 @@ export function Capture({ spot, user, onClose, onSuccess, onViewPassport, regist
 
 /* --------------------------------- Verify -------------------------------- */
 
-function VerifyStep({ spot, outcome, setOutcome, run, onBack, onStart }) {
+function VerifyStep({ spot, run, onBack, onStart }) {
   const { isDark } = useTheme();
   const styles = useStyles();
   const C = useColors();
@@ -128,7 +128,7 @@ function VerifyStep({ spot, outcome, setOutcome, run, onBack, onStart }) {
         <View style={styles.chips}>
           <Chip icon="ribbon" label="Proof of Human" />
           <Chip icon="pin" label="Tied to this spot" />
-          <Chip icon="wallet" label="Bound to your wallet" />
+          <Chip icon="shield-checkmark" label="Checked by the server" />
         </View>
 
         {run ? (
@@ -153,18 +153,6 @@ function VerifyStep({ spot, outcome, setOutcome, run, onBack, onStart }) {
           <>
             <PrimaryButton label="Verify with World ID" icon="shield-checkmark" onPress={onStart} style={{ marginTop: 26 }} />
             <Text style={styles.small}>Your phone sends evidence. The server decides.</Text>
-
-            <View style={styles.previewBox}>
-              <Text style={styles.previewTitle}>PREVIEW OUTCOME</Text>
-              <View style={styles.previewRow}>
-                {OUTCOMES.map((o) => (
-                  <Pressable key={o.key} onPress={() => setOutcome(o.key)} style={[styles.pChip, outcome === o.key && styles.pChipOn]}>
-                    <Text style={[styles.pText, outcome === o.key && { color: C.onSolid }]}>{o.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Text style={styles.previewNote}>Design aid: pick what happens, then verify. Nothing is checked for real.</Text>
-            </View>
           </>
         )}
       </ScrollView>
