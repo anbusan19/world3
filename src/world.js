@@ -68,10 +68,14 @@ async function askWorldId(req, signal) {
     }).preset(proofOfHuman({ signal }));
     await Linking.openURL(request.connectorURI);
     completion = await request.pollUntilCompletion({ timeout: 3 * 60 * 1000 });
-  } catch {
-    throw new CaptureFailure('unverified', 'World ID did not open. Install World App and try again.');
+  } catch (e) {
+    if (__DEV__) console.log('[world] request failed', String(e?.message ?? e));
+    throw new CaptureFailure('unverified', `World ID did not open (${String(e?.message ?? e).slice(0, 80)}). Install World App and try again.`);
   }
-  if (!completion.success) throw new CaptureFailure('unverified', 'World ID verification was cancelled or failed.');
+  if (!completion.success) {
+    if (__DEV__) console.log('[world] not completed:', JSON.stringify(completion.error));
+    throw new CaptureFailure('unverified', `World ID verification did not finish (${String(completion.error)}).`);
+  }
   return completion.result;
 }
 
