@@ -22,8 +22,19 @@ Notes kept as we build, for the World prize. Updated as each step is tried.
   the server's nonce and check it matches; confirm against a real proof.
 - Not obvious: how `signal` maps to `signal_hash` for 4.0 uniqueness proofs, so we cannot check the signal server-side.
 
+## Confirmed on a real Android phone (sign in with World ID)
+- IDKit's `connectorURI` opens World App directly from a React Native app via `Linking.openURL`. No QR needed on the phone.
+- World App shows "World3 will see these proofs: Unique Human", then "Presenting"; our app got the result back by polling
+  (`pollUntilCompletion`) and the server's `/api/v4/verify/{rp_id}` accepted it on the first try.
+- The `nonce` in the proof result equals the nonce in the RP signature we issued, so we can bind a proof to our request.
+- Used for two actions: `signin` (an account from the nullifier) and `capture` (a fresh check per spot). A proof for one
+  action is refused for the other.
+- Time to first success once the app, RP and action existed and the phone had World App: about 15 minutes, almost all of it
+  our own mistakes (a stale server address saved on the phone, Wi-Fi off), not World's.
+
 ## Still to confirm on a real device
-- Opening World App from a React Native app via `connectorURI` and returning with `return_to`.
+- Returning to our app automatically with `return_to` (it came back on its own here; check it on a clean install).
+- A full capture at a spot (we are 332 m from the nearest one).
 - Testing with the simulator and `environment: "staging"` end to end.
 
 ## Highest-impact improvement (draft)
