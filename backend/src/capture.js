@@ -53,20 +53,23 @@ export class Captures {
 
 export function createCaptureService({ store, captures, world, accounts, config = {}, now = () => Date.now() }) {
   const c = { action: 'capture', maxAccuracyM: 25, maxAgeMs: 60_000, ...config };
+  // One World ID action per spot. A person's nullifier is derived from the action, so a separate action per spot is what
+  // makes "one human, one stamp per spot" work: a single shared action would let each person prove only once, ever.
+  const actionFor = (spotId) => `${c.action}-${spotId}`;
 
   // Step 1: a signed-in person asks to capture a spot. We sign a World ID request for it and remember the nonce.
   function issue(user, spotId) {
     if (!user) throw refusal('signed_out', 401);
     const spot = store.get(String(spotId));
     if (!spot || !spot.published) throw new CaptureError('no_spot', 'There is no such spot.', 404);
-    return world.sign(c.action, { spotId: spot.id, userId: user.id });
+    return world.sign(actionFor(spot.id), { spotId: spot.id, userId: user.id });
   }
 
   // Step 2: the app sends its evidence and the World ID result. Returns the accepted capture or throws a CaptureError.
   async function verify(user, { spotId, nonce, pose, idkitResponse }) {
     if (!user) throw refusal('signed_out', 401);
     // the nonce first, and it is burned straight away: whatever happens next, this request cannot be replayed
-    const meta = world.take(nonce, c.action);
+    const meta = world.take(nonce, actionFor(String(spotId)));
     if (!meta || meta.spotId !== String(spotId) || meta.userId !== user.id) throw refusal('nonce');
     const spot = store.get(meta.spotId);
     if (!spot || !spot.published) throw new CaptureError('no_spot', 'There is no such spot.', 404);
@@ -78,10 +81,9 @@ export function createCaptureService({ store, captures, world, accounts, config 
     if (acc > c.maxAccuracyM) throw refusal('poor_accuracy');
     if (distanceMeters({ lat, lng }, { lat: spot.lat, lng: spot.lng }) > spot.captureRadiusM) throw refusal('too_far');
 
-    // World's servers must accept the proof (for this action only)
-    const nullifier = await world.verifyProof(idkitResponse, nonce, c.action);
-    // this account always captures as the same human, and one human gets one stamp per spot
-    if (!(await accounts.bindCapture(user, nullifier))) throw refusal('not_verified');
+    // World's servers must accept the proof (for this spot's action only)
+    const nullifier = await world.verifyProof(idkitResponse, nonce, actionFor(spot.id));
+    // the nullifier is per spot, so a repeat is the same person asking again for the same spot
     if (captures.has(spot.id, nullifier)) throw refusal('already_captured');
 
     const capture = { id: randomUUID(), spotId: spot.id, userId: user.id, nullifier, at: new Date(now()).toISOString() };
