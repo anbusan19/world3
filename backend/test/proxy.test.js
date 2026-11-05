@@ -1,0 +1,27 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import { createProxy } from '../src/proxy.js';
+
+function listen(srv) { return new Promise((r) => srv.listen(0, '127.0.0.1', () => r(srv.address().port))); }
+const get = (port, path, method = 'GET') => new Promise((resolve, reject) => {
+  const q = http.request({ host: '127.0.0.1', port, path, method }, (res) => { let b = ''; res.on('data', (c) => (b += c)); res.on('end', () => resolve({ status: res.statusCode, body: b })); });
+  q.on('error', reject); q.end();
+});
+
+test('proxy forwards the feed and files only, read-only', async () => {
+  const seen = [];
+  const up = http.createServer((req, res) => { seen.push(req.method + ' ' + req.url + ' ' + req.headers.host); res.end('ok'); });
+  const upPort = await listen(up);
+  const proxy = createProxy({ upstreamHost: '127.0.0.1', upstreamPort: upPort });
+  const port = await listen(proxy);
+  assert.equal((await get(port, '/api/v1/spots')).status, 200);
+  assert.equal((await get(port, '/files/models/04-abc.glb')).status, 200);
+  assert.equal((await get(port, '/')).status, 404); // dashboard
+  assert.equal((await get(port, '/api/spots')).status, 404); // admin list
+  assert.equal((await get(port, '/files/models/../../x')).status, 404);
+  assert.equal((await get(port, '/api/v1/spots', 'PUT')).status, 405);
+  assert.equal((await get(port, '/api/spots', 'POST')).status, 405);
+  assert.equal(seen.length, 2);
+  proxy.close(); up.close();
+});
