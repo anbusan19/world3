@@ -18,13 +18,14 @@ import { http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { CampaignError, CampaignSchema, campaignValues } from '../src/campaign.js';
 import { redact } from '../src/arkiv.js';
+import { gasForCreative } from '../src/adgas.js';
 
 try { process.loadEnvFile(new URL('../.env', import.meta.url)); } catch { /* a sponsor has no server .env; they pass their own key */ }
 const { values: a } = parseArgs({ options: {
   spot: { type: 'string' }, sponsor: { type: 'string' }, headline: { type: 'string' }, image: { type: 'string' }, url: { type: 'string' }, alt: { type: 'string' },
   days: { type: 'string', default: '2' }, event: { type: 'string' }, 'dry-run': { type: 'boolean' }, pause: { type: 'string' }, resume: { type: 'string' }, delete: { type: 'string' },
 } });
-const TX = { gas: 5_000_000n }; // gas is paid per byte stored: ~4.1M for a 95 KB image, so keep the limit roomy (only gas used is charged)
+const TX = { gas: 5_000_000n }; // pause, resume and delete are cheap (about 0.25M and 0.15M); only gas used is charged
 const eventSlug = a.event ?? process.env.ARKIV_EVENT_SLUG ?? 'ethglobal-mumbai-2026';
 const fail = (m) => { console.error(`\n  ${m}\n`); process.exit(1); };
 
@@ -66,7 +67,7 @@ try {
 
   // the entity outlives the campaign by a week so it can still be read while the event is wrapped up
   const expiration = ExpirationTime.fromDays(Math.ceil(days) + 7);
-  const { entityKey, txHash } = await wallet.createEntity(CampaignSchema, values, { expiration }, TX);
+  const { entityKey, txHash } = await wallet.createEntity(CampaignSchema, values, { expiration }, { gas: gasForCreative(values.creative.length, days + 7) }); // gas depends on size and on how long it is kept
   console.log(`\n  Published.
     entity key ${entityKey}
     owner      ${account.address}
