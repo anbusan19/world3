@@ -1,8 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stamp } from '../Stamp';
+import { Stamp3D } from '../Stamp3D';
 import { BackButton, Chip, InfoRow, PrimaryButton } from '../ui';
-import { shortName } from '../spots';
 import { F, makeStyles } from '../theme';
 
 const fmtDate = (ms) =>
@@ -21,7 +20,7 @@ export function StampDetail({ spot, collectedAt, onBack }) {
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Stamp theme={spot.theme} art={spot.art} icon={spot.icon} label={shortName(spot)} tag={spot.id} iconSize={72} labelSize={18} holes={12} style={styles.big} />
+          <Stamp3D spot={spot} width={230} timed />
         </View>
         <Text style={styles.name}>{spot.name}</Text>
         <Text style={styles.sub}>Captured {fmtDate(collectedAt)}</Text>

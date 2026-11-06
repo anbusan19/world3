@@ -68,7 +68,7 @@ function AppInner() {
   const saveProfile = useCallback((next) => {
     setProfile((p) => {
       const n = typeof next === 'function' ? next(p) : next;
-      SecureStore.setItemAsync('world3.profile', JSON.stringify({ name: n.name, avatar: n.avatar })).catch(() => {});
+      SecureStore.setItemAsync('world3.profile', JSON.stringify({ name: n.name, avatar: n.avatar, image: n.image ?? null })).catch(() => {});
       return n;
     });
   }, []);

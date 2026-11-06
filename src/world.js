@@ -200,3 +200,24 @@ export async function fetchMyCaptures() {
     return [];
   }
 }
+
+// The public explorer feed: recent stamps across everyone, no personal data. { total, items, spots }
+export async function fetchExplorer({ limit = 10, offset = 0, q = '', spot = '' } = {}) {
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 6000);
+    const u = `${getFeedBase()}/api/v1/explorer?limit=${limit}&offset=${offset}&q=${encodeURIComponent(q)}&spot=${encodeURIComponent(spot)}`;
+    const res = await fetch(u, { signal: ctl.signal });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// The full explorer lives on the website. It only works from a phone when the spot server has a public https address.
+export function explorerUrl() {
+  const base = getFeedBase();
+  return /^https:\/\//i.test(base) ? `${base}/explorer.html` : null;
+}

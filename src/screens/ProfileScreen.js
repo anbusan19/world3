@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, Share, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Pressable, Share, Switch, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { Stamp } from '../Stamp';
 import { PrimaryButton } from '../ui';
 import { usePassport } from '../usePassport';
 import { getFeedBase, refreshSpots, setFeedBase, shortName, spots } from '../spots';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { WorldMark } from '../art/WorldMark';
 import { F, STAMP_THEMES, makeStyles, useColors, useTheme } from '../theme';
 
@@ -76,14 +78,37 @@ function SegLabel({ icon, label, on }) {
 
 /* --------------------------------- header ---------------------------------- */
 
-export function Avatar({ name, theme, size = 84 }) {
+export function Avatar({ name, theme, image, size = 84 }) {
   const styles = useStyles();
   const t = STAMP_THEMES[theme] ?? STAMP_THEMES.sky;
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: t.frame }]}>
-      <Text style={[styles.avatarText, { color: t.accent, fontSize: size * 0.42 }]}>{(name || 'E').trim().charAt(0).toUpperCase() || 'E'}</Text>
+    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: t.frame, overflow: 'hidden' }]}>
+      {image ? (
+        <Image source={{ uri: image }} style={{ width: size, height: size }} />
+      ) : (
+        <Text style={[styles.avatarText, { color: t.accent, fontSize: size * 0.42 }]}>{(name || 'E').trim().charAt(0).toUpperCase() || 'E'}</Text>
+      )}
     </View>
   );
+}
+
+// Pick a square photo from the gallery and keep a copy inside the app, so it is still there after a restart.
+async function pickPhoto(setProfile) {
+  try {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) { Alert.alert('Photos are off', 'Allow photo access in your phone settings to choose a profile picture.'); return; }
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.6 });
+    if (r.canceled || !r.assets?.[0]?.uri) return;
+    let uri = r.assets[0].uri;
+    try {
+      const dest = `${FileSystem.documentDirectory}avatar-${Date.now()}.jpg`;
+      await FileSystem.copyAsync({ from: uri, to: dest });
+      uri = dest;
+    } catch {}
+    setProfile((p) => ({ ...p, image: uri }));
+  } catch {
+    Alert.alert('Could not open photos', 'Try again in a moment.');
+  }
 }
 
 function Header({ profile, setProfile, stats, passport }) {
@@ -99,7 +124,10 @@ function Header({ profile, setProfile, stats, passport }) {
       <Text style={styles.title}>Profile</Text>
       <View style={styles.card}>
         <View style={styles.headRow}>
-          <Avatar name={profile.name} theme={profile.avatar} />
+          <Pressable onPress={() => pickPhoto(setProfile)} onLongPress={() => profile.image && setProfile((p) => ({ ...p, image: null }))} accessibilityLabel="Change profile picture">
+            <Avatar name={profile.name} theme={profile.avatar} image={profile.image} />
+            <View style={styles.camBadge}><Ionicons name="camera" size={14} color="#0B0B0F" /></View>
+          </Pressable>
           <View style={{ flex: 1 }}>
             {editing ? (
               <TextInput
@@ -222,7 +250,12 @@ function PublicPassport({ pp, stamps }) {
     }, 500);
     return () => { live = false; clearTimeout(t); };
   }, [label]); // eslint-disable-line react-hooks/exhaustive-deps
-  const shareText = p.url ? `My World3 passport: ${p.url}` : `My World3 passport: ${p.name}`;
+  // The link people can open from any phone: our passport page when the spot server has a public https address,
+  // otherwise the ENS app's page for the name (it works everywhere and needs nothing from us).
+  const base = getFeedBase();
+  const webUrl = p.url ?? (/^https:\/\//i.test(base) && p.label ? `${base}/p/${p.label}` : null);
+  const link = webUrl ?? `https://sepolia.app.ens.domains/${p.name}`;
+  const shareText = `My World3 passport: ${link}`;
 
   if (p.status === 'loading') return <View style={styles.pp}><ActivityIndicator color={C.muted} /></View>;
   if (p.status === 'unavailable') return <View style={styles.pp}><Text style={styles.ppBody}>Public passports are not available right now. Check the Spot server setting and that you are signed in.</Text></View>;
@@ -252,10 +285,10 @@ function PublicPassport({ pp, stamps }) {
         {p.published && (
           <View style={styles.ppButtons}>
             <PrimaryButton label="Share link" icon="share-outline" onPress={() => Share.share({ message: shareText }).catch(() => {})} style={{ flex: 1 }} />
-            {p.url ? <PrimaryButton label="Open" tone="light" icon="open-outline" onPress={() => Linking.openURL(p.url).catch(() => {})} style={{ flex: 1 }} /> : null}
+            <PrimaryButton label="Open" tone="light" icon="open-outline" onPress={() => Linking.openURL(link).catch(() => {})} style={{ flex: 1 }} />
           </View>
         )}
-        {p.published && !p.url ? <Text style={styles.ppNote}>The share link needs this server to have a public address. The name above works on ENS regardless.</Text> : null}
+        {p.published && !webUrl ? <Text style={styles.ppNote}>This link opens your name on the ENS app. For World3's own passport page, give the spot server a public https address (Settings, Developer).</Text> : null}
         <Pressable onPress={() => pp.setPublic(!p.published)} disabled={pp.busy} hitSlop={8}>
           <Text style={styles.ppLink}>{pp.busy ? 'Working…' : p.published ? 'Make private (removes your stamps from ENS)' : 'Make public again'}</Text>
         </Pressable>
@@ -384,9 +417,9 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
     <>
       <Group title="Appearance">
         <View style={styles.themeSeg}>
-          {[['system', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([m, label]) => (
-            <Pressable key={m} onPress={() => setMode(m)} style={[styles.themeBtn, mode === m && { backgroundColor: C.solid }]}>
-              <Text style={[styles.themeBtnText, mode === m && { color: C.onSolid, fontFamily: F.semi }]}>{label}</Text>
+          {[['system', 'phone-portrait-outline', 'Follow phone'], ['light', 'sunny-outline', 'Light'], ['dark', 'moon-outline', 'Dark']].map(([m, icon, label]) => (
+            <Pressable key={m} onPress={() => setMode(m)} accessibilityLabel={label} accessibilityRole="button" style={[styles.themeBtn, mode === m && { backgroundColor: C.solid }]}>
+              <Ionicons name={icon} size={20} color={mode === m ? C.onSolid : C.muted} />
             </Pressable>
           ))}
         </View>
@@ -460,6 +493,7 @@ const useStyles = makeStyles((C) => ({
   avatar: { alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#FFFFFF' },
   avatarText: { fontFamily: F.bold },
   name: { fontFamily: F.bold, fontSize: 22, color: '#FFFFFF', letterSpacing: -0.4 },
+  camBadge: { position: 'absolute', right: 0, bottom: 0, width: 30, height: 30, borderRadius: 15, backgroundColor: '#A6D16C', borderWidth: 3, borderColor: '#0265AD', alignItems: 'center', justifyContent: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   nameInput: { padding: 0, borderBottomWidth: 1.5, borderBottomColor: '#A6D16C' },
   themeSeg: { flexDirection: 'row', margin: 12, padding: 4, borderRadius: 22, backgroundColor: C.soft },
