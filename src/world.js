@@ -27,6 +27,8 @@ const KIND_BY_CODE = {
   world_unreachable: 'busy',
   signed_out: 'signedout',
   event_over: 'ended',
+  not_started: 'notstarted',
+  locked: 'locked',
   not_configured: 'network',
   no_spot: 'network',
 };
@@ -125,8 +127,10 @@ export async function signOut() {
 
 // onStage(0..2) tells the screen which step is running. Resolves with the accepted capture.
 export async function captureWithWorldId({ spot, user, onStage }) {
-  if (!user?.coords) throw new CaptureFailure('gps', 'We do not have your location yet.');
-  const pose = { lat: user.coords[1], lng: user.coords[0], accuracyM: user.accuracy ?? 999, timestamp: Date.now() };
+  // a quest stamp is claimed by finishing its quest, so it sends no location
+  const quest = spot.kind === 'quest';
+  if (!quest && !user?.coords) throw new CaptureFailure('gps', 'We do not have your location yet.');
+  const pose = quest ? undefined : { lat: user.coords[1], lng: user.coords[0], accuracyM: user.accuracy ?? 999, timestamp: Date.now() };
 
   onStage(0);
   const req = await post('/api/v1/capture/nonce', { spotId: spot.id });

@@ -15,7 +15,7 @@ const THEMES = {
 };
 const THEME_NAMES = { coral: 'Coral', sky: 'Sky', sun: 'Sun', leaf: 'Leaf', ocean: 'Ocean' };
 const ARTS = [['', 'None (use the model image)'], ['gateway', 'Gateway of India'], ['ethglobal', 'ETHGlobal Mumbai'], ['csmt', 'CSMT station']];
-const FIELDS = ['name', 'label', 'city', 'type', 'kind', 'lat', 'lng', 'captureRadiusM', 'approachRadiusM', 'heading', 'scale', 'heightOffsetM', 'theme', 'art', 'published', 'onArkiv'];
+const FIELDS = ['name', 'label', 'city', 'type', 'kind', 'lat', 'lng', 'captureRadiusM', 'approachRadiusM', 'heading', 'scale', 'heightOffsetM', 'theme', 'art', 'published', 'onArkiv', 'eventId', 'requiresFrom', 'requiresMin'];
 const NUMBERS = new Set(['lat', 'lng', 'captureRadiusM', 'approachRadiusM', 'heading', 'scale', 'heightOffsetM']);
 const DEFAULT_CENTER = [72.8347, 18.9322];
 
@@ -51,7 +51,7 @@ function toast(msg, kind = '') {
 }
 
 const saved = () => state.spots.find((s) => s.id === state.sel) ?? null;
-const pick = (s) => Object.fromEntries(FIELDS.map((k) => [k, s[k] ?? (k === 'art' ? '' : k === 'city' ? '' : s[k])]));
+const pick = (s) => ({ ...Object.fromEntries(FIELDS.map((k) => [k, s[k] ?? (k === 'art' ? '' : k === 'city' ? '' : s[k])])), eventId: s.eventId ?? 'ethmumbai', requiresFrom: s.requires?.from?.join(', ') ?? '', requiresMin: s.requires?.min ?? '' });
 const norm = (d) => JSON.stringify(FIELDS.map((k) => (NUMBERS.has(k) && d[k] !== '' ? Number(d[k]) : d[k])));
 const isDirty = () => !!state.draft && !!saved() && norm(state.draft) !== norm(pick(saved()));
 
@@ -270,7 +270,9 @@ function renderEditor() {
         ${field('Name', 'name', 'text', 'maxlength="60"')}
         <div class="row">${field('Stamp label', 'label', 'text', 'maxlength="14"', '(on the stamp)')}${field('City', 'city', 'text', 'maxlength="40"')}</div>
         <div class="field"><span>Type</span>${seg('type', [['LANDMARK', 'Landmark', 'A place anyone can visit'], ['EVENT', 'Event', 'A venue or happening']])}</div>
-        <div class="field"><span>How it is verified</span>${seg('kind', [['geospatial', 'Outdoor', 'Camera + GPS fix at the place'], ['anchor', 'QR anchor', 'Scan a code at the venue']])}</div>
+        <div class="field"><span>How it is verified</span>${seg('kind', [['geospatial', 'Outdoor', 'Camera + GPS fix at the place'], ['anchor', 'QR anchor', 'Scan a code at the venue'], ['quest', 'Quest', 'Claimed anywhere once its other stamps are collected']])}</div>
+        <label class="field"><span>Event <small>(when it opens and closes)</small></span><select data-f="eventId">${(state.events ?? [{ id: 'ethmumbai', name: 'ETHGlobal Mumbai' }]).map((e) => `<option value="${esc(e.id)}" ${d.eventId === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</select></label>
+        <div class="row">${field('Quest needs spots', 'requiresFrom', 'text', 'placeholder="e.g. 67, 68, 69"', '(ids, optional)')}${field('How many', 'requiresMin', 'number', 'min="1"')}</div>
       </div>
 
       <div class="sec"><h4>Location</h4>
@@ -447,6 +449,8 @@ async function save() {
     const d = state.draft;
     const body = { ...d, name: d.name.trim(), label: d.label.trim().toUpperCase(), city: d.city.trim(), art: d.art || null };
     for (const k of NUMBERS) body[k] = Number(body[k]);
+    body.requires = d.requiresFrom.trim() ? { from: d.requiresFrom.split(/[ ,]+/).filter(Boolean), min: Number(d.requiresMin) || 1 } : null;
+    delete body.requiresFrom; delete body.requiresMin;
     const { spot: next, arkivError } = await api('PUT', `/api/spots/${spot.id}`, body);
     replaceSaved(next);
     state.draft = pick(next);
@@ -656,6 +660,7 @@ async function boot() {
   renderEditor();
   try {
     state.spots = (await api('GET', '/api/spots')).spots;
+    try { state.events = (await api('GET', '/api/events')).events; } catch { /* the select falls back to the main event */ }
   } catch (e) {
     toast(`Could not load spots: ${e.message}`, 'bad');
   }

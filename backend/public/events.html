@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World3 · Events</title>
+  <link rel="icon" href="/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/sponsor.css">
+  <link rel="stylesheet" href="/skin.css">
+  <style>
+    .ev { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; align-items: start; }
+    body > main.ev > .hero { grid-column: span 12 !important; min-height: 0; }
+    body > main.ev > .list { grid-column: span 8 !important; display: grid; gap: 12px; }
+    body > main.ev > .new { grid-column: span 4 !important; position: sticky; top: 16px; align-self: start; }
+    .item { background: var(--card); border-radius: 28px; padding: 20px 22px; display: grid; gap: 10px; }
+    .item h3 { margin: 0; font-size: 20px; letter-spacing: -.03em; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .item .blurb { color: var(--muted); margin: 0; }
+    .item .meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; font-weight: 700; color: var(--muted); }
+    .st { border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; background: var(--soft); }
+    .st.live { background: var(--green); color: #0B0B0F; } .st.upcoming { background: color-mix(in srgb, var(--orange) 25%, transparent); } .st.ended { color: var(--muted); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .item .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    @media (max-width: 900px) { body > main.ev > .list, body > main.ev > .new { grid-column: 1 / -1 !important; position: static; } }
+    textarea { width: 100%; min-height: 70px; border: 1.5px solid var(--line); border-radius: 14px; padding: 10px 14px; background: var(--card); font: inherit; color: inherit; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="World3"></picture><em>Events</em></a>
+    <span class="grow"></span>
+    <a class="link" href="/">Spots</a>
+  </header>
+  <main class="ev">
+    <section class="hero"><h1>Events open and close on their own clock.</h1><p>Every spot belongs to one event. Before it starts the spots are hidden, after it ends nothing can be collected and ads stop, and the stamps people already have stay in their passports as memories.</p></section>
+    <section class="list" id="list" aria-live="polite"></section>
+    <section class="card new">
+      <h2>New event</h2>
+      <form id="form" autocomplete="off">
+        <label class="field"><span>Id <i>(letters, numbers, dashes)</i></span><input id="id" required pattern="[a-z0-9][a-z0-9\-]{1,23}" placeholder="aqualine"></label>
+        <label class="field"><span>Name</span><input id="name" required maxlength="60" placeholder="Aqua Line Passport"></label>
+        <label class="field"><span>About</span><textarea id="blurb" maxlength="240"></textarea></label>
+        <label class="field"><span>Starts <i>(empty = already open)</i></span><input id="startsAt" type="datetime-local"></label>
+        <label class="field"><span>Ends <i>(empty = never)</i></span><input id="endsAt" type="datetime-local"></label>
+        <div class="row"><button class="btn dark" type="submit">Save event</button><span id="msg" class="msg" role="status"></span></div>
+      </form>
+    </section>
+  </main>
+  <script>
+    const H = { 'x-requested-with': 'world3-dashboard', 'content-type': 'application/json' };
+    const $ = (s) => document.querySelector(s);
+    const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const say = (t, tone = '') => { $('#msg').textContent = t; $('#msg').className = 'msg ' + tone; };
+    const local = (iso) => { if (!iso) return ''; const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+    const fmt = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null);
+    let data = { events: [], spots: {} };
+    async function api(m, p, b) { const r = await fetch(p, { method: m, headers: H, body: b ? JSON.stringify(b) : undefined, cache: 'no-store' }); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || 'Error ' + r.status); return j; }
+    function render() {
+      $('#list').innerHTML = data.events.map((e) => `<article class="item"><h3>${esc(e.name)} <span class="st ${e.status}">${e.status}</span></h3>
+        ${e.blurb ? `<p class="blurb">${esc(e.blurb)}</p>` : ''}
+        <div class="meta"><span>id ${esc(e.id)}</span><span>${data.spots[e.id] ?? 0} spots</span><span>${fmt(e.startsAt) ? 'starts ' + fmt(e.startsAt) : 'already open'}</span><span>${fmt(e.endsAt) ? 'ends ' + fmt(e.endsAt) : 'never ends'}</span></div>
+        <div class="actions"><button class="btn sm" data-edit="${esc(e.id)}" type="button">Edit</button>${e.id === 'ethmumbai' ? '' : `<button class="btn sm danger" data-del="${esc(e.id)}" type="button">Delete</button>`}</div></article>`).join('');
+    }
+    async function load() { data = await api('GET', '/api/events'); render(); }
+    $('#list').addEventListener('click', async (ev) => {
+      const ed = ev.target.closest('[data-edit]'); const del = ev.target.closest('[data-del]');
+      if (ed) { const e = data.events.find((x) => x.id === ed.dataset.edit); $('#id').value = e.id; $('#name').value = e.name; $('#blurb').value = e.blurb; $('#startsAt').value = local(e.startsAt); $('#endsAt').value = local(e.endsAt); scrollTo({ top: 0, behavior: 'smooth' }); say('Editing ' + e.name); }
+      if (del && confirm('Delete this event? Its spots fall back to the main event.')) { try { await api('DELETE', '/api/events/' + del.dataset.del); await load(); } catch (e) { say(e.message, 'bad'); } }
+    });
+    $('#form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      try {
+        await api('POST', '/api/events', { id: $('#id').value.trim(), name: $('#name').value, blurb: $('#blurb').value, startsAt: $('#startsAt').value ? new Date($('#startsAt').value).toISOString() : null, endsAt: $('#endsAt').value ? new Date($('#endsAt').value).toISOString() : null });
+        say('Saved.', 'ok'); await load();
+      } catch (e) { say(e.message, 'bad'); }
+    });
+    load().catch((e) => say(e.message, 'bad'));
+    setInterval(() => load().catch(() => {}), 30000);
+  </script>
+</body>
+</html>

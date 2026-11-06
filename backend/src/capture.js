@@ -52,7 +52,7 @@ export class Captures {
   }
 }
 
-export function createCaptureService({ store, captures, world, accounts, voucherSigner = null, config = {}, now = () => Date.now() }) {
+export function createCaptureService({ store, captures, world, accounts, voucherSigner = null, config = {}, now = () => Date.now(), gate = () => null }) {
   const c = { action: 'capture', maxAccuracyM: 25, maxAgeMs: 60_000, ...config };
   // One World ID action per spot. A person's nullifier is derived from the action, so a separate action per spot is what
   // makes "one human, one stamp per spot" work: a single shared action would let each person prove only once, ever.
@@ -63,6 +63,7 @@ export function createCaptureService({ store, captures, world, accounts, voucher
     if (!user) throw refusal('signed_out', 401);
     const spot = store.get(String(spotId));
     if (!spot || !spot.published) throw new CaptureError('no_spot', 'There is no such spot.', 404);
+    const closed = gate(spot, user); if (closed) throw closed; // its event is not running, or its quest is not unlocked yet
     return world.sign(actionFor(spot.id), { spotId: spot.id, userId: user.id });
   }
 
@@ -77,12 +78,16 @@ export function createCaptureService({ store, captures, world, accounts, voucher
     const spot = store.get(meta.spotId);
     if (!spot || !spot.published) throw new CaptureError('no_spot', 'There is no such spot.', 404);
 
-    // location evidence
+    const closed = gate(spot, user); if (closed) throw closed;
+
+    // location evidence (a quest stamp is earned by finishing its quest, so it needs none)
+    if (spot.kind !== 'quest') {
     const lat = Number(pose?.lat), lng = Number(pose?.lng), acc = Number(pose?.accuracyM), ts = Number(pose?.timestamp);
     if (![lat, lng, acc, ts].every(Number.isFinite)) throw new CaptureError('bad_request', 'The location evidence is missing or malformed.', 400);
     if (Math.abs(now() - ts) > c.maxAgeMs) throw refusal('stale');
     if (acc > c.maxAccuracyM) throw refusal('poor_accuracy');
     if (distanceMeters({ lat, lng }, { lat: spot.lat, lng: spot.lng }) > spot.captureRadiusM) throw refusal('too_far');
+    }
 
     // World's servers must accept the proof (for this spot's action only)
     const nullifier = await world.verifyProof(idkitResponse, nonce, actionFor(spot.id));

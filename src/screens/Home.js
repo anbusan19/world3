@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MapCard } from '../MapCard';
 import { Stamp } from '../Stamp';
 import { formatDistance } from '../geo';
-import { NEAR_METERS, SERVERS, getEvent, getFailStreak, shortName } from '../spots';
+import { NEAR_METERS, SERVERS, eventOf, getEvent, getFailStreak, shortName } from '../spots';
 import { F, makeStyles, useColors } from '../theme';
 
 // Explore: the real map fills the whole screen, and the words sit on top of it. A strip of spot cards floats above the
@@ -45,7 +45,7 @@ export function Home({ spots: all, user, collected, openSpot, onFix }) {
         </Pressable>
       )}
 
-      {over && (
+      {over && spots.length === 0 && (
         <View style={[styles.endedCard, { bottom: insets.bottom + 108 }]}>
           <Text style={styles.endedTitle}>{ev?.name ?? 'The event'} has ended</Text>
           <Text style={styles.endedBody}>The spots are gone and stamps can no longer be collected. Everything you collected stays in your passport.</Text>
@@ -60,14 +60,18 @@ export function Home({ spots: all, user, collected, openSpot, onFix }) {
             const got = collected[s.id] != null;
             const on = s.id === selectedId;
             const away = formatDistance(s.dist);
+            const isQuest = s.kind === 'quest';
+            const unlocked = isQuest && s.requires && s.requires.from.filter((id) => collected[id] != null).length >= s.requires.min;
+            const ev = eventOf(s);
+            const tag = ev && ev.id !== 'ethmumbai' && ev.id !== 'india' ? ev.name : s.type;
             return (
               <Pressable key={s.id} onPress={() => setSelectedId(s.id)} style={[styles.card, on && styles.cardOn]}>
                 <Stamp theme={s.theme} art={s.art} icon={s.icon} label={shortName(s)} iconSize={20} labelSize={6} style={styles.thumb} />
                 <View style={styles.cardText}>
                   <Text style={styles.cardName} numberOfLines={1}>{s.name}</Text>
-                  <Text style={styles.cardMeta} numberOfLines={1}>{got ? 'Collected' : away ? `${s.type} · ${away}` : s.type}</Text>
-                  <View style={[styles.pill, (near || got) && styles.pillNear]}>
-                    <Text style={[styles.pillText, (near || got) && { color: '#0B0B0F' }]}>{got ? 'In your passport' : near ? 'Near · capture' : s.dist == null ? '—' : 'Far'}</Text>
+                  <Text style={styles.cardMeta} numberOfLines={1}>{got ? 'Collected' : isQuest ? `${tag} · quest` : away ? `${tag} · ${away}` : tag}</Text>
+                  <View style={[styles.pill, (near || got || unlocked) && styles.pillNear]}>
+                    <Text style={[styles.pillText, (near || got || unlocked) && { color: '#0B0B0F' }]}>{got ? 'In your passport' : isQuest ? (unlocked ? 'Claim now' : 'Quest · locked') : near ? 'Near · capture' : s.dist == null ? '—' : 'Far'}</Text>
                   </View>
                 </View>
                 <Pressable style={styles.go} onPress={() => openSpot(s)} hitSlop={8}>

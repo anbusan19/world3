@@ -25,7 +25,10 @@ export async function pingServer(url) {
     return res.ok ? Date.now() - t0 : null;
   } catch { return null; }
 }
-export const getEvent = () => eventInfo;
+export const getEvent = () => eventInfo; // the main event
+let eventList = [];
+export const getEvents = () => eventList; // every event: { id, name, blurb, theme, startsAt, endsAt, status }
+export const eventOf = (spot) => eventList.find((e) => e.id === (spot?.eventId ?? 'ethmumbai')) ?? null;
 
 // Where the app fetches spots from. Default: the Mac over USB (`adb reverse tcp:3000 tcp:3000`). For testing away from
 // the cable, run `npm run share` in backend/ and paste the https URL it prints into Profile > Settings > Spot server
@@ -67,6 +70,7 @@ function fromFeed(f, ended = false) {
     tint: TINTS[f.theme] ?? TINTS.coral, theme: f.theme, icon: f.icon,
     captureM: f.captureRadiusM, approachM: f.approachRadiusM,
     model: f.model ? { ...f.model, url: feedBase + f.model.url } : null,
+    eventId: f.eventId ?? 'ethmumbai', requires: f.requires ?? null,
     arkiv: f.arkiv ?? null, // set when the spot is listed on Arkiv: { entityKey, owner, expiresOn }
   };
 }
@@ -83,14 +87,17 @@ export async function refreshSpots(force = false) {
     failStreak = 0;
     const body = await res.json();
     eventInfo = body.event ?? null;
+    eventList = body.events ?? eventList;
     // After the event only the record of stamps remains: the places stay (so a collected stamp can still be opened) but have
     // no coordinates, no model, and cannot be captured.
-    const next = eventInfo?.over ? (body.archive ?? []).map((f) => fromFeed(f, true)) : (body.spots ?? []).map((f) => fromFeed(f));
-    if (eventInfo?.over) {
-      const same = JSON.stringify(next) === JSON.stringify(spots);
-      spots.splice(0, spots.length, ...next);
-      return force ? next.length : !same;
+    const live = (body.spots ?? []).map((f) => fromFeed(f));
+    const memories = (body.archive ?? []).map((f) => fromFeed(f, true));
+    if (!live.length && memories.length) {
+      const same = JSON.stringify(memories) === JSON.stringify(spots);
+      spots.splice(0, spots.length, ...memories);
+      return force ? memories.length : !same;
     }
+    const next = [...live, ...memories];
     if (!next.length) return force ? -1 : false;
     if (!force && JSON.stringify(next) === JSON.stringify(spots)) return false;
     spots.splice(0, spots.length, ...next);

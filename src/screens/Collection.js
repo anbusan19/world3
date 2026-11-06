@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Stamp } from '../Stamp';
-import { shortName, spots } from '../spots';
+import { eventOf, getEvents, shortName, spots } from '../spots';
 import { explorerUrl, fetchExplorer } from '../world';
 import { F, STAMP_THEMES, makeStyles, useColors } from '../theme';
 
@@ -42,20 +42,31 @@ export function Collection({ collected, openSpot, openStamp }) {
           <Text style={styles.sub}>{have} of {spots.length} collected. Tap a stamp to open it.</Text>
           <Chips items={filters} value={filter} onChange={setFilter} />
           {shown.length === 0 ? <Text style={styles.empty}>No stamps match.</Text> : null}
-          <View style={styles.grid}>
-            {shown.map((s) => {
-              const got = collected[s.id] != null;
-              return (
-                <Pressable key={s.id} style={styles.cell} onPress={() => (got ? openStamp(s) : openSpot(s))}>
-                  <Stamp theme={s.theme} art={s.art} icon={s.icon} label={shortName(s)} tag={s.id} locked={!got} iconSize={46} labelSize={14} holes={10} />
-                  <View style={styles.meta}>
-                    <Text style={styles.name} numberOfLines={1}>{s.name}</Text>
-                    <Text style={styles.count}>{got ? '1/1' : '0/1'}</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
+          {groupByEvent(shown).map((g) => (
+            <View key={g.id}>
+              <View style={styles.evHead}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.evName}>{g.ev?.name ?? 'Stamps'}</Text>
+                  <Text style={styles.evSub}>{eventLine(g.ev)} · {g.items.filter((x) => collected[x.id] != null).length} of {g.items.length} collected</Text>
+                </View>
+                {g.ev?.status === 'ended' ? <View style={styles.memory}><Text style={styles.memoryText}>MEMORY</Text></View> : g.ev?.status === 'upcoming' ? <View style={styles.memory}><Text style={styles.memoryText}>SOON</Text></View> : null}
+              </View>
+              <View style={styles.grid}>
+                {g.items.map((s) => {
+                  const got = collected[s.id] != null;
+                  return (
+                    <Pressable key={s.id} style={styles.cell} onPress={() => (got ? openStamp(s) : openSpot(s))}>
+                      <Stamp theme={s.theme} art={s.art} icon={s.icon} label={shortName(s)} tag={s.id} locked={!got} iconSize={46} labelSize={14} holes={10} />
+                      <View style={styles.meta}>
+                        <Text style={styles.name} numberOfLines={1}>{s.name}</Text>
+                        <Text style={styles.count}>{got ? '1/1' : '0/1'}</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ))}
         </>
       ) : (
         <ExplorerView q={q} places={shown} openSpot={openSpot} />
@@ -75,6 +86,24 @@ function Chips({ items, value, onChange }) {
       ))}
     </View>
   );
+}
+
+// stamps grouped by the event they belong to, the event that is live first, ended ones (memories) last
+function groupByEvent(list) {
+  const rank = (e) => (e?.status === 'live' ? 0 : e?.status === 'upcoming' ? 1 : 2);
+  const map = new Map();
+  for (const s of list) { const id = s.eventId ?? 'ethmumbai'; if (!map.has(id)) map.set(id, { id, ev: eventOf(s), items: [] }); map.get(id).items.push(s); }
+  return [...map.values()].sort((a, b) => rank(a.ev) - rank(b.ev));
+}
+function eventLine(ev) {
+  if (!ev) return '';
+  const d = (iso) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  if (ev.status === 'ended') return `Ended ${d(ev.endsAt)}`;
+  if (ev.status === 'upcoming') return `Starts ${d(ev.startsAt)}`;
+  if (!ev.endsAt) return 'Always on';
+  const ms = Date.parse(ev.endsAt) - Date.now();
+  const days = Math.floor(ms / 86400000);
+  return days >= 1 ? `Ends in ${days} d` : `Ends in ${Math.max(1, Math.floor(ms / 3600000))} h`;
 }
 
 const ago = (iso) => {
@@ -164,7 +193,12 @@ const useStyles = makeStyles((C) => ({
   chipActive: { backgroundColor: C.solid },
   chipText: { fontFamily: F.semi, fontSize: 12, color: C.ink },
   chipTextActive: { color: C.onSolid },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 8 },
+  evHead: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 14 },
+  evName: { fontFamily: F.bold, fontSize: 19, color: C.ink, letterSpacing: -0.4 },
+  evSub: { fontFamily: F.reg, fontSize: 12, color: C.muted, marginTop: 2 },
+  memory: { backgroundColor: C.solid, borderRadius: 12, paddingHorizontal: 10, height: 24, justifyContent: 'center' },
+  memoryText: { fontFamily: F.bold, fontSize: 10, letterSpacing: 1, color: C.onSolid },
   cell: { width: '47%' },
   meta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   name: { flex: 1, fontFamily: F.semi, fontSize: 13, color: C.ink, paddingRight: 6 },

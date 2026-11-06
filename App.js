@@ -165,6 +165,7 @@ function AppInner() {
               spot={spot}
               collectedAt={collected[spot.id]}
               onBack={pop}
+              quest={spot.requires ? (() => { const items = spot.requires.from.map((id) => ({ id, name: byId(id)?.name ?? `Stamp ${id}`, got: collected[id] != null })); return { need: spot.requires.min, total: items.length, have: items.filter((x) => x.got).length, items }; })() : null}
               onCapture={() => push('capture', spot)}
               onOpenStamp={() => push('stamp', spot)}
             />

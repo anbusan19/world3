@@ -2,7 +2,7 @@
 // fields that were valid, `errors` is a list of { field, message } the dashboard can show next to the input.
 
 export const TYPES = ['LANDMARK', 'EVENT'];
-export const KINDS = ['geospatial', 'anchor'];
+export const KINDS = ['geospatial', 'anchor', 'quest']; // quest: claimed from anywhere once its requirements are met
 export const THEMES = ['coral', 'sky', 'sun', 'leaf', 'ocean'];
 export const ARTS = ['gateway', 'ethglobal', 'csmt']; // illustrations bundled inside the app
 export const ICONS = ['business', 'ticket', 'train', 'location', 'flag', 'home', 'boat', 'flame', 'triangle', 'radio', 'time', 'person', 'grid', 'git-branch'];
@@ -23,6 +23,8 @@ export const DEFAULTS = {
   icon: 'location',
   published: false,
   onArkiv: false,
+  eventId: 'ethmumbai',
+  requires: null,
 };
 
 export function defaultLabel(name) {
@@ -86,6 +88,18 @@ export function validateSpot(input, { partial = false } = {}) {
   ranged('heading', 0, 360, 'Heading', ' degrees');
   ranged('scale', 0.05, 20, 'Scale');
   ranged('heightOffsetM', -5, 50, 'Height offset', ' m');
+
+  if (has('eventId')) {
+    if (typeof body.eventId !== 'string' || !/^[a-z0-9][a-z0-9-]{1,23}$/.test(body.eventId)) bad('eventId', 'Pick one of the events.');
+    else value.eventId = body.eventId;
+  }
+  if (has('requires')) {
+    const r = body.requires;
+    if (r === null) value.requires = null;
+    else if (!r || !Array.isArray(r.from) || r.from.length < 1 || r.from.length > 40 || !r.from.every((x) => /^\d{1,6}$/.test(String(x)))) bad('requires', 'A quest lists the spot ids it needs, like { from: ["07", "08"], min: 2 }.');
+    else if (!Number.isInteger(r.min) || r.min < 1 || r.min > r.from.length) bad('requires', 'How many of them are needed must be between 1 and the number listed.');
+    else value.requires = { from: r.from.map(String), min: r.min };
+  }
 
   if (has('onArkiv')) {
     if (typeof body.onArkiv !== 'boolean') bad('onArkiv', 'Publish on Arkiv must be true or false.');

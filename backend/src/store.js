@@ -126,6 +126,8 @@ export function toPublic(spot) {
     type: spot.type,
     kind: spot.kind,
     coord: [spot.lng, spot.lat],
+    eventId: spot.eventId ?? 'ethmumbai',
+    requires: spot.requires ?? null,
     captureRadiusM: spot.captureRadiusM,
     approachRadiusM: spot.approachRadiusM,
     theme: spot.theme,

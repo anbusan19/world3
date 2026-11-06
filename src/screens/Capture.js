@@ -25,6 +25,8 @@ const FAILS = {
   expired: { icon: 'hourglass', title: 'Request expired', body: 'That capture request ran out of time or was already used. Start again.' },
   busy: { icon: 'cloud-offline', title: 'World ID unavailable', body: 'World ID could not be reached. Try again in a moment.' },
   signedout: { icon: 'person-remove', title: 'Signed out', body: 'Your session ended. Sign out and sign in with World ID again, then retry.' },
+  locked: { icon: 'lock-closed', title: 'Quest still locked', body: 'Collect the stamps this quest asks for first, then claim this one.' },
+  notstarted: { icon: 'hourglass', title: 'Not open yet', body: 'This event has not started. Come back when it opens.' },
   ended: { icon: 'time', title: 'The event has ended', body: 'This stamp could only be collected during the event. Stamps you already collected stay in your passport.' },
   network: { icon: 'cloud-offline', title: 'Server unreachable', body: 'We could not reach the World3 server. Check the Spot server setting in Passport, then try again.' },
 };
@@ -32,7 +34,8 @@ const FAILS = {
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export function Capture({ spot, user, onClose, onSuccess, onViewPassport, registerBack }) {
-  const [step, setStep] = useState('ar'); // 'ar' | 'verify' | 'result'
+  const quest = spot.kind === 'quest'; // a quest stamp is claimed anywhere: no AR step
+  const [step, setStep] = useState(quest ? 'verify' : 'ar'); // 'ar' | 'verify' | 'result'
   const [run, setRun] = useState(null); // { i, failed } while the checklist is running
   const [result, setResult] = useState(null); // 'success' or { kind, icon, title, body } for a refusal
   const alive = useRef(true);
@@ -47,7 +50,7 @@ export function Capture({ spot, user, onClose, onSuccess, onViewPassport, regist
   useEffect(() => {
     registerBack?.(() => {
       if (run) return true; // busy
-      if (step === 'verify') { setStep('ar'); return true; }
+      if (step === 'verify' && !quest) { setStep('ar'); return true; }
       return false;
     });
     return () => registerBack?.(null);
@@ -84,7 +87,7 @@ export function Capture({ spot, user, onClose, onSuccess, onViewPassport, regist
       <VerifyStep
         spot={spot}
         run={run}
-        onBack={() => setStep('ar')}
+        onBack={() => (quest ? onClose() : setStep('ar'))}
         onStart={start}
       />
     );

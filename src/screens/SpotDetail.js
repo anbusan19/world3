@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stamp } from '../Stamp';
 import { BackButton, Chip, InfoRow, PrimaryButton } from '../ui';
 import { formatDistance } from '../geo';
-import { APPROACH_M, CAPTURE_M, shortName, spotState } from '../spots';
+import { APPROACH_M, CAPTURE_M, eventOf, shortName, spotState } from '../spots';
 import { F, makeStyles, useColors } from '../theme';
 
 const STATES = [
@@ -16,7 +16,10 @@ const STATES = [
 
 // Spot page. `spot.dist` (metres, or null) is the real GPS distance. The "Preview state" switch is a design aid so
 // every state can be seen without walking to the place; it starts on whatever the real distance says.
-export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }) {
+export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp, quest = null }) {
+  const isQuest = spot.kind === 'quest';
+  const ev = eventOf(spot);
+  const unlocked = !quest || quest.have >= quest.need;
   const styles = useStyles();
   const C = useColors();
   const [state, setState] = useState(spotState(spot.dist, spot));
@@ -50,10 +53,10 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
 
         <Text style={styles.name}>{spot.name}</Text>
         <Text style={styles.sub}>
-          {spot.city} · {spot.type === 'EVENT' ? 'Event spot' : 'Landmark'}
+          {spot.city} · {isQuest ? 'Quest stamp' : spot.type === 'EVENT' ? 'Event spot' : 'Landmark'}{ev && ev.id !== 'ethmumbai' && ev.id !== 'india' ? ` · ${ev.name}` : ''}
         </Text>
         <View style={styles.chipRow}>
-          <Chip icon={spot.kind === 'anchor' ? 'qr-code' : 'camera'} label={spot.kind === 'anchor' ? 'Anchor spot · scan QR' : 'Geospatial spot'} />
+          <Chip icon={isQuest ? 'trophy' : spot.kind === 'anchor' ? 'qr-code' : 'camera'} label={isQuest ? 'Claim after the quest' : spot.kind === 'anchor' ? 'Anchor spot · scan QR' : 'Geospatial spot'} />
           <Chip icon="navigate" label={away ? `${away} away` : 'Distance needs GPS'} />
           {spot.arkiv && <Chip icon="cube" label="Listed on Arkiv" />}
         </View>
@@ -63,8 +66,27 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
           </Text>
         )}
 
+        {/* quest progress */}
+        {isQuest && quest && (
+          <View style={styles.card}>
+            <View style={styles.cardHead}>
+              <Text style={styles.cardTitle}>The quest</Text>
+              <Text style={styles.preview}>{Math.min(quest.have, quest.need)} OF {quest.need}</Text>
+            </View>
+            <Text style={styles.stateBody}>Collect {quest.need === quest.total ? 'all' : `any ${quest.need} of`} these {quest.total} stamps, then claim this one from anywhere.</Text>
+            <View style={{ marginTop: 12, gap: 8 }}>
+              {quest.items.map((it) => (
+                <View key={it.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Ionicons name={it.got ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={it.got ? C.green : C.muted} />
+                  <Text style={[styles.segText, { marginTop: 0, fontSize: 13, color: it.got ? C.ink : C.muted }]}>{it.name}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* distance state */}
-        <View style={styles.card}>
+        {!isQuest && <View style={styles.card}>
           <View style={styles.cardHead}>
             <Text style={styles.cardTitle}>Where you are</Text>
             <Text style={styles.preview}>PREVIEW STATE</Text>
@@ -81,7 +103,7 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
           <Text style={styles.rules}>
             Approaching starts within about {spot.approachM ?? APPROACH_M} m. The capture zone is within {spot.captureM ?? CAPTURE_M} m.
           </Text>
-        </View>
+        </View>}
 
         {done ? (
           <PrimaryButton label="View your stamp" icon="albums" onPress={onOpenStamp} style={{ marginTop: 16 }} />
@@ -89,6 +111,11 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
           <>
             <PrimaryButton label="Event has ended" icon="time" tone="green" disabled onPress={() => {}} style={{ marginTop: 16 }} />
             <Text style={styles.why}>This stamp could only be collected during the event. It can no longer be captured.</Text>
+          </>
+        ) : isQuest ? (
+          <>
+            <PrimaryButton label={unlocked ? 'Claim stamp' : 'Quest locked'} icon={unlocked ? 'trophy' : 'lock-closed'} tone="green" disabled={!unlocked} onPress={onCapture} style={{ marginTop: 16 }} />
+            {!unlocked && <Text style={styles.why}>Collect {quest.need - quest.have} more stamp{quest.need - quest.have === 1 ? '' : 's'} from the list above to unlock it.</Text>}
           </>
         ) : (
           <>
