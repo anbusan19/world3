@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { usePhoneSize as useWindowDimensions } from '../phoneSize';
 import Svg, { ClipPath, Circle, Defs, Ellipse, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -141,23 +141,19 @@ const Squiggle = ({ color = '#F6E27A', w = 64 }) => (
 export function IntroHero() {
   const styles = useStyles();
   const { width } = useWindowDimensions();
+  const bleed = Platform.OS === 'web' ? 0 : 22; // run out to the screen edges, past the page padding
+  const size = Platform.OS === 'web' ? 300 : Math.min(width, 400) * 0.98;
   return (
-    <View style={styles.intro}>
-      <Svg width="100%" height="100%" viewBox="0 0 340 380" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
-        <Path d="M0 70 C60 10 130 60 200 24 C260 -6 320 14 340 56 L340 316 C340 352 312 380 276 380 L64 380 C28 380 0 352 0 316 Z" fill="#A6D16C" />
-        <Path d="M0 250 C70 200 130 270 200 236 C260 206 310 196 340 214 L340 316 C340 352 312 380 276 380 L64 380 C28 380 0 352 0 316 Z" fill="#8CC152" />
-      </Svg>
-      <View style={styles.introSquig1}><Squiggle /></View>
-      <View style={styles.introSquig2}><Squiggle color="#FFFFFF" w={48} /></View>
-      <GlobeHero size={Math.min(250, width * 0.66)} />
-      <View style={styles.introChip}>
+    <View style={[styles.intro, { marginHorizontal: -bleed }]}>
+      {/* the globe sits in the top-right corner, partly off the edge, like the dashboard's */}
+      <View style={{ position: 'absolute', right: -size * 0.28, top: -size * 0.16 }}>
+        <GlobeHero size={size} />
+      </View>
+      <View style={[styles.introChip, { left: 14 + bleed }]}>
         <Text style={styles.introChipText}>Spots across India</Text>
         <View style={styles.introChipArrow}>
           <Ionicons name="arrow-forward" size={14} color="#A6D16C" />
         </View>
-      </View>
-      <View style={styles.introNum}>
-        <Text style={styles.introNumText}>01</Text>
       </View>
     </View>
   );
@@ -302,7 +298,7 @@ const useStyles = makeStyles((C) => ({
   peek: { position: 'absolute', width: '31%' },
   badge: { position: 'absolute', width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: C.bg },
 
-  intro: { flex: 1, minHeight: 300, borderRadius: 36, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  intro: { flex: 1, minHeight: 300, overflow: 'hidden' },
   introMap: { width: '78%', transform: [{ rotate: '-3deg' }] },
   introSquig1: { position: 'absolute', left: 18, top: 16 },
   introSquig2: { position: 'absolute', right: 20, bottom: 54 },
