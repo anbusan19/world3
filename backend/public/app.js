@@ -209,7 +209,7 @@ function setPlacing(on) {
 function renderKpis() {
   const el = $('#kpis'); if (!el) return;
   const n = state.spots.length, pub = state.spots.filter((s) => s.published).length;
-  const tiles = [[n, 'spots', ''], [pub, 'published', 'green'], [n - pub, 'drafts', ''], [state.spots.filter((s) => s.model).length, 'with a 3D model', ''], [state.spots.filter((s) => s.arkiv).length, 'on Arkiv', '']];
+  const tiles = [[n, 'spots', ''], [pub, 'published', 'green'], [n - pub, 'drafts', ''], [state.spots.filter((s) => s.model).length, 'with a 3D model', ''], [state.spots.filter((s) => s.arkivInfo).length, 'on Arkiv', ''], [state.spots.filter((s) => s.chain?.status && !s.chain.status.closed).length, 'on chain', 'green']];
   el.innerHTML = tiles.map(([v, l, c]) => `<div class="kpi ${c}"><b data-to="${v}">${v}</b><span>${l}</span></div>`).join('');
   if (!renderKpis.done && !matchMedia('(prefers-reduced-motion: reduce)').matches) { // count up once, the first time
     renderKpis.done = true;
@@ -233,7 +233,7 @@ function renderList() {
         <div><div class="name">${esc(v.name)}</div>
         <div class="sub"><span class="tag ${s.published ? 'pub' : ''}">${s.published ? 'Published' : 'Draft'}</span>
         <span class="tag">${v.kind === 'anchor' ? 'QR anchor' : 'Outdoor'}</span>
-        ${s.model ? '<span class="tag model">3D model</span>' : '<span class="tag">No model</span>'}</div></div></li>`;
+        ${s.model ? '<span class="tag model">3D model</span>' : '<span class="tag">No model</span>'}${s.chain?.status && !s.chain.status.closed ? '<span class="tag chain">On chain</span>' : ''}</div></div></li>`;
     })
     .join('');
 }
@@ -263,7 +263,8 @@ function renderEditor() {
       <div style="flex:1;min-width:0"><span class="id">SPOT ${spot.id}</span><h3 data-title></h3>
         <label class="sw" style="margin-top:8px"><span class="switch"><input type="checkbox" data-f="published" ${d.published ? 'checked' : ''}><i></i></span><span data-pubtext></span></label>
         <label class="sw" style="margin-top:6px"><span class="switch"><input type="checkbox" data-f="onArkiv" ${d.onArkiv ? 'checked' : ''}><i></i></span><span>List on Arkiv (public: name and a rounded location, about 100 m)</span></label>
-        <div class="fine" data-arkivtext style="margin-top:4px"></div></div>
+        <div class="fine" data-arkivtext style="margin-top:4px"></div>
+        <div class="fine" data-chaintext style="margin-top:4px"></div></div>
     </div>
     <div class="scroll">
       <div class="sec"><h4>Basics</h4>
@@ -316,6 +317,17 @@ function refreshDerived() {
     el.closest('.field')?.classList.toggle('bad', !!errs[el.dataset.e]);
   }
   const title = $('[data-title]'); if (title) title.textContent = d.name || 'Untitled spot';
+  const ch = $('[data-chaintext]');
+  if (ch) {
+    const c = spot.chain;
+    ch.replaceChildren();
+    if (!c) ch.textContent = 'Stamp contract: not configured on this server.';
+    else if (c.pending) ch.textContent = 'Registering on Sepolia…';
+    else if (c.error) ch.textContent = `Not on chain yet: ${c.error}. Saving again retries.`;
+    else if (c.status && !c.status.closed) { ch.append('On Sepolia: anyone can see this stamp and mint it. '); if (c.txUrl) { const a = document.createElement('a'); a.href = c.txUrl; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = 'registration ↗'; ch.append(a); } }
+    else if (c.status?.closed) ch.textContent = 'Closed on chain: no new stamps.';
+    else ch.textContent = spot.published ? 'Waiting to be registered on Sepolia…' : 'Registered on Sepolia when you publish it.';
+  }
   const ak = $('[data-arkivtext]');
   if (ak) {
     const a = spot.arkivInfo;

@@ -20,6 +20,8 @@ const ALLOWED = [
   // the explorer: recent stamps across everyone, no personal data
   /^\/(explorer\.html|skin\.css|hero-globe\.bundle\.js|logo\.png|title-light\.png|title-dark\.png)$/,
   /^\/share\/(ad|stamp)\/[A-Za-z0-9._-]{1,80}$/, // share cards (picture + the page X reads)
+  /^\/stamp\/[0-9a-f]{64}\.json$/, // ERC-1155 metadata
+  /^\/api\/v1\/chain$/,
   /^\/api\/v1\/explorer$/,
   /^\/api\/v1\/faucet\/info$/,
 ];

@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stamp3D } from '../Stamp3D';
 import { BackButton, Chip, InfoRow, PrimaryButton } from '../ui';
@@ -8,8 +9,15 @@ import { F, makeStyles } from '../theme';
 const fmtDate = (ms) =>
   new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-// A collected stamp. Token details are PREVIEW values: nothing is minted yet.
-export function StampDetail({ spot, collectedAt, onBack }) {
+// A collected stamp. The token is a real non-transferable ERC-1155 on Sepolia, minted by the server's relayer right after the capture.
+export function StampDetail({ spot, collectedAt, onBack, mintUrl = null, onRefresh }) {
+  // the stamp is minted on chain a few seconds after the capture: keep asking until the transaction is known
+  useEffect(() => {
+    if (mintUrl || !onRefresh) return undefined;
+    onRefresh();
+    const t = setInterval(onRefresh, 6000);
+    return () => clearInterval(t);
+  }, [mintUrl]); // eslint-disable-line react-hooks/exhaustive-deps
   const styles = useStyles();
   const tokenId = `#${spot.id.padStart(4, '0')}`;
   return (
@@ -33,26 +41,26 @@ export function StampDetail({ spot, collectedAt, onBack }) {
         <View style={styles.card}>
           <Row k="Token" v={`ERC-1155 · ${tokenId}`} mono />
           <Row k="Network" v="Ethereum Sepolia" />
-          <Row k="Mint transaction" v="Preview only" />
+          <Row k="Mint transaction" v={mintUrl ? `${mintUrl.slice(-10)}… · tap to open` : 'Minting on Sepolia…'} mono={!!mintUrl} onPress={mintUrl ? () => Linking.openURL(mintUrl).catch(() => {}) : undefined} />
           <Row k="Location stored" v="Name and time. Never coordinates." last />
         </View>
 
         <InfoRow icon="information-circle-outline" title="Why can’t I send it?" body="A stamp means “I was there”. It stays with the person who captured it." />
 
         <PrimaryButton label="Share on X" icon="share-social" onPress={() => shareStamp(spot)} style={{ marginTop: 14 }} />
-        <PrimaryButton label="View on explorer" tone="light" icon="open-outline" onPress={() => {}} style={{ marginTop: 10 }} />
+        <PrimaryButton label="View on Sepolia" tone="light" icon="open-outline" disabled={!mintUrl} onPress={() => mintUrl && Linking.openURL(mintUrl).catch(() => {})} style={{ marginTop: 10 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Row({ k, v, mono, last }) {
+function Row({ k, v, mono, last, onPress }) {
   const styles = useStyles();
   return (
-    <View style={[styles.row, last && { borderBottomWidth: 0 }]}>
+    <Pressable onPress={onPress} disabled={!onPress} style={[styles.row, last && { borderBottomWidth: 0 }]}>
       <Text style={styles.k}>{k}</Text>
-      <Text style={[styles.v, mono && { fontFamily: F.mono, fontSize: 12 }]}>{v}</Text>
-    </View>
+      <Text style={[styles.v, mono && { fontFamily: F.mono, fontSize: 12 }, onPress && { textDecorationLine: 'underline' }]}>{v}</Text>
+    </Pressable>
   );
 }
 

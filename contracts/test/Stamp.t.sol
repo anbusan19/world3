@@ -20,6 +20,9 @@ contract StampTest is Test {
         signer = vm.addr(signerKey);
         stamp = new Stamp(signer, owner, "https://world3.example/stamps/{id}.json");
         vm.warp(1_800_000_000);
+        vm.startPrank(owner);
+        for (uint256 i = 1; i <= 12; i++) stamp.registerSpot(i, "Spot", "SPOT", 0, 0); // every spot the tests mint is registered
+        vm.stopPrank();
     }
 
     // ------------------------------------------------------------------------------------------------- helpers
@@ -152,6 +155,8 @@ contract StampTest is Test {
         Stamp.Voucher memory v = _voucher(alice, 7, 1);
         bytes memory sig = _sign(signerKey, v);
         Stamp other = new Stamp(signer, owner, "x");
+        vm.prank(owner);
+        other.registerSpot(7, "Spot", "SPOT", 0, 0);
         vm.expectRevert(Stamp.BadSignature.selector);
         other.mint(v, sig);
     }
@@ -231,18 +236,92 @@ contract StampTest is Test {
 
     function testFuzz_anyValidVoucherMintsExactlyOne(address to, uint256 spot, uint256 nonce) public {
         vm.assume(to != address(0) && to.code.length == 0);
+        spot = bound(spot, 1, 12); // the spots registered in setUp
         _mint(to, spot, nonce);
         assertEq(stamp.balanceOf(to, spot), 1);
     }
 
     function testFuzz_aSignatureForOneRecipientNeverMintsForAnother(address a, address b, uint256 spot) public {
         vm.assume(a != b && b != address(0) && b.code.length == 0);
+        spot = bound(spot, 1, 12);
         Stamp.Voucher memory v = _voucher(a, spot, 1);
         bytes memory sig = _sign(signerKey, v);
         v.recipient = b;
         vm.expectRevert(Stamp.BadSignature.selector);
         stamp.mint(v, sig);
     }
+
+    // ---------------------------------------------------------------------------------------------------- the registry
+
+    function test_onlyTheOwnerRegistersSpots() public {
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, alice));
+        stamp.registerSpot(99, "Nope", "NOPE", 0, 0);
+    }
+
+    function test_anyoneCanReadARegisteredSpot() public {
+        vm.prank(owner);
+        stamp.registerSpot(50, "Taj Mahal", "TAJMAHAL", 1_800_000_100, 1_800_009_000);
+        (string memory name, string memory label, uint64 starts, uint64 ends, bool exists) = stamp.spots(50);
+        assertEq(name, "Taj Mahal");
+        assertEq(label, "TAJMAHAL");
+        assertEq(starts, 1_800_000_100);
+        assertEq(ends, 1_800_009_000);
+        assertTrue(exists);
+    }
+
+    function test_cannotMintAnUnregisteredSpot() public {
+        Stamp.Voucher memory v = _voucher(alice, 777, 1);
+        bytes memory sig = _sign(signerKey, v);
+        vm.expectRevert(Stamp.UnknownSpot.selector);
+        stamp.mint(v, sig);
+    }
+
+    function test_theWindowIsEnforcedOnChain() public {
+        vm.prank(owner);
+        stamp.registerSpot(60, "Aqua", "AQUA", 1_800_000_100, 1_800_000_200);
+        assertFalse(stamp.isOpen(60)); // not started yet
+        Stamp.Voucher memory v = _voucher(alice, 60, 1);
+        bytes memory sig = _sign(signerKey, v);
+        vm.expectRevert(Stamp.SpotNotOpen.selector);
+        stamp.mint(v, sig);
+
+        vm.warp(1_800_000_150);
+        assertTrue(stamp.isOpen(60));
+        stamp.mint(v, sig);
+        assertEq(stamp.balanceOf(alice, 60), 1);
+
+        vm.warp(1_800_000_200); // the end is exclusive
+        assertFalse(stamp.isOpen(60));
+        Stamp.Voucher memory w = _voucher(bob, 60, 2);
+        bytes memory sig2 = _sign(signerKey, w);
+        vm.expectRevert(Stamp.SpotNotOpen.selector);
+        stamp.mint(w, sig2);
+        assertEq(stamp.balanceOf(alice, 60), 1, "a stamp already minted stays");
+    }
+
+    function test_closingASpotStopsNewStampsOnly() public {
+        _mint(alice, 3, 1);
+        vm.prank(owner);
+        stamp.closeSpot(3);
+        Stamp.Voucher memory v = _voucher(bob, 3, 2);
+        bytes memory sig = _sign(signerKey, v);
+        vm.expectRevert(Stamp.SpotNotOpen.selector);
+        stamp.mint(v, sig);
+        assertEq(stamp.balanceOf(alice, 3), 1);
+    }
+
+    function test_aBadWindowIsRefusedAndABatchRegistersEverything() public {
+        vm.startPrank(owner);
+        vm.expectRevert(Stamp.BadWindow.selector);
+        stamp.registerSpot(70, "Bad", "BAD", 200, 100);
+        Stamp.SpotInput[] memory items = new Stamp.SpotInput[](3);
+        for (uint256 i = 0; i < 3; i++) items[i] = Stamp.SpotInput(80 + i, "B", "B", 0, 0);
+        stamp.registerSpots(items);
+        vm.stopPrank();
+        assertTrue(stamp.isOpen(80) && stamp.isOpen(81) && stamp.isOpen(82));
+    }
+
 }
 
 /// The backend (Node, viem) signs vouchers; this proves the contract accepts exactly what it produces.
@@ -257,6 +336,7 @@ contract StampBackendVectorTest is Test {
         vm.chainId(chainId);
         deployCodeTo("Stamp.sol:Stamp", abi.encode(signerAddr, address(this), "x"), contractAddr);
         Stamp stamp = Stamp(contractAddr);
+        stamp.registerSpot(vm.parseJsonUint(json, ".spotId"), "Spot", "SPOT", 0, 0); // this contract's owner is the test itself
 
         Stamp.Voucher memory v = Stamp.Voucher({
             recipient: vm.parseJsonAddress(json, ".recipient"),

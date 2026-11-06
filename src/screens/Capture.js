@@ -208,7 +208,7 @@ function ResultStep({ spot, result, onRetry, onClose, onViewPassport }) {
             <Text style={styles.rTitle}>Stamp collected.</Text>
             <Text style={styles.rBody}>{spot.name} is now in your passport.</Text>
             <View style={styles.tx}>
-              <Text style={styles.txLabel}>MINT (PREVIEW)</Text>
+              <Text style={styles.txLabel}>MINTING ON SEPOLIA</Text>
               <Text style={styles.mono}>token #{spot.id.padStart(4, '0')} · Sepolia</Text>
             </View>
             {ad && <SponsorCard ad={ad} />}

@@ -36,12 +36,23 @@ export class Captures {
     if (existsSync(this.file)) this.items = JSON.parse(await readFile(this.file, 'utf8')).captures ?? [];
   }
 
+  setMint(id, mintTx) {
+    const c = this.items.find((x) => x.id === id);
+    if (!c) return Promise.resolve();
+    c.mintTx = mintTx;
+    return this.#persist();
+  }
+
   has(spotId, nullifier) {
     return this.items.some((c) => c.spotId === spotId && c.nullifier === nullifier);
   }
 
   add(item) {
     this.items.push(item);
+    return this.#persist();
+  }
+
+  #persist() {
     const data = JSON.stringify({ version: 1, captures: this.items }, null, 2);
     this.#queue = this.#queue.then(async () => {
       const tmp = `${this.file}.tmp`;

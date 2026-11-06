@@ -15,6 +15,7 @@ import { GlbError, LIMITS, parseGlb } from './glb.js';
 import { SEED } from './seed.js';
 import { explore } from './explorer.js';
 import { Events } from './events.js';
+import { createStampChain } from './stampchain.js';
 import { adCardSvg, sharePage, stampCardSvg, toPng } from './share.js';
 import { FaucetError, createFaucet } from './faucet.js';
 import { Store, toPublic } from './store.js';
@@ -81,7 +82,7 @@ async function readJson(req) {
 
 const sanitizeName = (s) => String(s ?? '').replace(/[^\w .()-]/g, '').slice(0, 80);
 
-export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = () => {}, capture: captureOpts = {}, arkiv: arkivOpts = {}, ens: ensOpts = {} }) {
+export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = () => {}, capture: captureOpts = {}, arkiv: arkivOpts = {}, ens: ensOpts = {}, stamp: stampOpts = {} }) {
   const store = new Store(dataDir);
   await store.init(SEED);
   const arkiv = await createArkiv({ dataDir, ...arkivOpts });
@@ -129,9 +130,25 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   const loopback = ['127.0.0.1', 'localhost', '::1'].includes(host);
   const hostOk = (h) => !loopback || /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(h ?? ''); // blocks DNS-rebinding
 
+  // The Stamp contract's registry: a published spot is written on chain so anyone can list it and mint it. A failure never blocks saving.
+  const chain = await createStampChain({ dataDir, privateKey: process.env.STAMP_OWNER_KEY || process.env.ENS_PRIVATE_KEY, rpcUrl: process.env.SEPOLIA_RPC_URL, contract: process.env.STAMP_CONTRACT, chainId: Number(process.env.CHAIN_ID) || 11155111, ...stampOpts });
+  const chainBusy = new Set(); const chainErr = new Map();
+  const chainMsg = (e) => String(e?.shortMessage ?? e?.message ?? 'failed').replace(/https?:\/\/\S+/g, '[url]').slice(0, 120);
+  function syncChain(spot) {
+    if (!chain.enabled || !spot.published) return;
+    chainBusy.add(spot.id); chainErr.delete(spot.id);
+    chain.sync(spot, events.of(spot)).catch((e) => { chainErr.set(spot.id, chainMsg(e)); console.error('chain sync failed:', chainMsg(e)); }).finally(() => chainBusy.delete(spot.id));
+  }
+  function syncChainEvent(eventId) {
+    if (!chain.enabled) return;
+    const list = store.list().filter((x) => x.published && (x.eventId ?? 'ethmumbai') === eventId);
+    if (list.length) chain.syncMany(list.map((spot) => ({ spot, ev: events.of(spot) }))).catch((e) => console.error('chain event sync failed:', chainMsg(e)));
+  }
+  const chainInfo = (id) => (chain.enabled ? { contract: chain.address, status: chain.status(id), pending: chainBusy.has(id), error: chainErr.get(id) ?? null, txUrl: chain.status(id)?.tx ? chain.txUrl(chain.status(id).tx) : null } : null);
+
   // Arkiv: a spot is public there only when it is published AND the organizer ticked "On Arkiv". A failure never blocks saving.
   const arkivInfo = (id) => (arkiv.enabled ? arkiv.status(id) : null);
-  const withArkiv = (spot) => ({ ...spot, arkivInfo: arkivInfo(spot.id), arkivEnabled: arkiv.enabled });
+  const withArkiv = (spot) => ({ ...spot, arkivInfo: arkivInfo(spot.id), arkivEnabled: arkiv.enabled, chain: chainInfo(spot.id) });
   async function syncArkiv(spot) {
     if (!arkiv.enabled) return null;
     try {
@@ -229,6 +246,27 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       return send(res, 200, sharePage({ title, description, image: `${base}/share/${kind}/${id}.png`, url: `${base}/share/${kind}/${id}` }), { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300', ...cors });
     }
 
+    // the Stamp contract, for anyone who wants to read the registry or mint with a voucher themselves
+    if (p === '/api/v1/chain' && method === 'GET') return send(res, 200, chain.enabled ? { enabled: true, chainId: chain.chainId, contract: chain.address, explorer: chain.explorer, registered: chain.count() } : { enabled: false }, cors);
+    if (p === '/api/chain/sync' && method === 'POST') {
+      if (!chain.enabled) throw new HttpError(503, 'The stamp contract is not configured (STAMP_CONTRACT).');
+      const list = store.list().filter((x) => x.published);
+      const out = await chain.syncMany(list.map((spot) => ({ spot, ev: events.of(spot) }))).catch((e) => { throw new HttpError(502, chainMsg(e)); });
+      return send(res, 200, out);
+    }
+
+    // ERC-1155 metadata for a stamp (the contract's URI is .../stamp/{id}.json, with {id} as 64 hex digits)
+    const metaRoute = p.match(/^\/stamp\/([0-9a-f]{64})\.json$/);
+    if (metaRoute && method === 'GET') {
+      const id = String(parseInt(metaRoute[1], 16));
+      const spot = store.list().find((x) => x.published && String(Number(x.id)) === id);
+      if (!spot) throw new HttpError(404, 'No such stamp.');
+      const loop = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+      const fwd = loop ? req.headers['x-forwarded-host'] : null;
+      const base = (process.env.PUBLIC_BASE_URL || (fwd ? `${req.headers['x-forwarded-proto'] || 'https'}://${fwd}` : `http://${req.headers.host}`)).replace(/\/+$/, '');
+      return send(res, 200, { name: spot.name, description: `A World3 stamp: proof that a verified human was at ${spot.name}${spot.city ? `, ${spot.city}` : ''}. Non-transferable.`, image: `${base}/share/stamp/${spot.id}.png`, external_url: `${base}/share/stamp/${spot.id}`, attributes: [{ trait_type: 'Place', value: spot.name }, { trait_type: 'City', value: spot.city || '' }, { trait_type: 'Event', value: events.of(spot).name }] }, cors);
+    }
+
     // the public explorer: recent stamps across everyone (no personal data), searchable
     if (p === '/api/v1/explorer' && method === 'GET') {
       const q = url.searchParams;
@@ -239,7 +277,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     if (p === '/api/v1/me/captures' && method === 'GET') {
       const user = auth.user(bearer(req));
       if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
-      return send(res, 200, { captures: captures.items.filter((c) => c.userId === user.id).map((c) => ({ spotId: c.spotId, at: c.at })) });
+      return send(res, 200, { captures: captures.items.filter((c) => c.userId === user.id).map((c) => ({ spotId: c.spotId, at: c.at, mintTx: c.mintTx ?? null, mintUrl: c.mintTx && chain.enabled ? chain.txUrl(c.mintTx) : null })) });
     }
 
     // ---- the person's own public passport (opt-in) --------------------------------------------------------------------
@@ -303,12 +341,12 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       if (method === 'GET') return send(res, 200, events.snapshot(events.main, nowMs()));
       if (method === 'PUT') {
         const body = await readJson(req);
-        try { await events.upsert({ ...events.main, ...(body.endsAt !== undefined ? { endsAt: body.endsAt } : {}), ...(body.name ? { name: body.name } : {}) }); return send(res, 200, events.snapshot(events.main, nowMs())); } catch (e) { throw new HttpError(400, e.message); }
+        try { await events.upsert({ ...events.main, ...(body.endsAt !== undefined ? { endsAt: body.endsAt } : {}), ...(body.name ? { name: body.name } : {}) }); syncChainEvent(events.main.id); return send(res, 200, events.snapshot(events.main, nowMs())); } catch (e) { throw new HttpError(400, e.message); }
       }
     }
     if (p === '/api/events') {
       if (method === 'GET') return send(res, 200, { events: events.list(nowMs()), spots: store.list().reduce((m, x) => ({ ...m, [x.eventId ?? 'ethmumbai']: (m[x.eventId ?? 'ethmumbai'] ?? 0) + 1 }), {}) });
-      if (method === 'POST') { try { return send(res, 201, { event: events.snapshot(await events.upsert(await readJson(req)), nowMs()) }); } catch (e) { throw new HttpError(400, e.message); } }
+      if (method === 'POST') { try { const ev = await events.upsert(await readJson(req)); syncChainEvent(ev.id); return send(res, 201, { event: events.snapshot(ev, nowMs()) }); } catch (e) { throw new HttpError(400, e.message); } }
     }
     const evRoute = p.match(/^\/api\/events\/([a-z0-9-]+)$/);
     if (evRoute && method === 'DELETE') { try { return send(res, 200, { removed: await events.remove(evRoute[1]) }); } catch (e) { throw new HttpError(400, e.message); } }
@@ -379,7 +417,9 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       const who = auth.user(bearer(req));
       const body = await readJson(req);
       { const closed = eventGate(body?.spotId); if (closed) throw closed; }
-      const accepted = await capture.verify(who, body);
+      // a person has no wallet in the app yet: the server holds one for them (the same address that owns their passport name)
+      const accepted = await capture.verify(who, { ...body, recipient: body?.recipient ?? (who && passports ? passports.ownerFor(who.id) : undefined) });
+      if (chain.enabled && accepted.voucher) chain.mint(accepted.voucher).then((tx) => captures.setMint(accepted.id, tx)).catch((e) => console.error('mint relay failed:', chainMsg(e)));
       passports?.onCapture(who.id); // a person with a public passport gets the new stamp published (in the background)
       return send(res, 200, { ok: true, capture: accepted });
     }
@@ -400,7 +440,9 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       if (method === 'POST') {
         const { value, errors } = validateSpot(await readJson(req));
         if (errors.length) throw new HttpError(400, 'Some fields need fixing.', { issues: errors });
-        return send(res, 201, { spot: withArkiv(await store.create(value)) });
+        const created = await store.create(value);
+        syncChain(created);
+        return send(res, 201, { spot: withArkiv(created) });
       }
     }
     m = p.match(/^\/api\/spots\/(\d+)$/);
@@ -417,10 +459,12 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
         if (errors.length) throw new HttpError(400, 'Some fields need fixing.', { issues: errors });
         const saved = await store.update(spot.id, value);
         const arkivError = await syncArkiv(saved);
+        syncChain(saved);
         return send(res, 200, { spot: withArkiv(saved), arkivError });
       }
       if (method === 'DELETE') {
         if (arkiv.enabled && arkiv.status(spot.id)) await arkiv.unpublish(spot.id).catch((e) => console.error('arkiv unpublish failed:', safeMessage(e)));
+        if (chain.enabled && chain.status(spot.id)) chain.close(spot.id).catch((e) => console.error('chain close failed:', chainMsg(e))); // new stamps stop; minted ones stay
         await store.remove(spot.id);
         return send(res, 200, { ok: true });
       }

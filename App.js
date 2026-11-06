@@ -60,6 +60,7 @@ function AppInner() {
   const [stack, setStack] = useState([]); // overlay screens on top of the tabs: { name, spotId }
   const [collected, setCollected] = useState({}); // spotId -> time captured
   const [scrollLock, setScrollLock] = useState(false);
+  const [mints, setMints] = useState({}); // spotId -> link to the mint transaction on Sepolia
   const [profile, setProfile] = useState({ name: 'Explorer', avatar: 'sky' });
   // the name and avatar colour are remembered on the phone
   useEffect(() => {
@@ -97,7 +98,7 @@ function AppInner() {
   useEffect(() => {
     if (phase !== 'app') return;
     let live = true;
-    fetchMyCaptures().then((list) => { if (live && list.length) setCollected((c) => ({ ...Object.fromEntries(list.map((x) => [x.spotId, Date.parse(x.at) || Date.now()])), ...c })); });
+    fetchMyCaptures().then((list) => { if (live && list.length) { setCollected((c) => ({ ...Object.fromEntries(list.map((x) => [x.spotId, Date.parse(x.at) || Date.now()])), ...c })); setMints(Object.fromEntries(list.filter((x) => x.mintUrl).map((x) => [x.spotId, x.mintUrl]))); } });
     return () => { live = false; };
   }, [phase]);
 
@@ -180,7 +181,7 @@ function AppInner() {
               registerBack={registerBack}
             />
           )}
-          {top.name === 'stamp' && <StampDetail spot={spot} collectedAt={collected[spot.id]} onBack={pop} />}
+          {top.name === 'stamp' && <StampDetail spot={spot} collectedAt={collected[spot.id]} onBack={pop} mintUrl={mints[spot.id] ?? null} onRefresh={() => fetchMyCaptures().then((list) => setMints(Object.fromEntries(list.filter((x) => x.mintUrl).map((x) => [x.spotId, x.mintUrl]))))} />}
         </View>
       </SafeAreaProvider>
     );
