@@ -4,6 +4,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { Accounts, createAuthService } from './auth.js';
 import { createAds } from './ads.js';
+import { Sponsors } from './sponsors.js';
 import { createArkiv, safeMessage } from './arkiv.js';
 import { Captures, captureConfigFromEnv, createCaptureService } from './capture.js';
 import { CaptureError, createWorld, worldConfigFromEnv } from './world.js';
@@ -83,9 +84,11 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   const accounts = new Accounts(dataDir);
   await accounts.init();
   const world = createWorld({ config: captureOpts.worldConfig ?? worldConfigFromEnv(), fetchImpl: captureOpts.fetchImpl, now: captureOpts.now });
+  const sponsors = new Sponsors(dataDir, (arkivOpts.sponsors ?? (process.env.ARKIV_SPONSORS ?? '').split(',')).map((a) => a.trim()).filter(Boolean));
+  await sponsors.init();
   const ads = await createAds({
     dataDir, arkiv,
-    allowedOwners: (arkivOpts.sponsors ?? (process.env.ARKIV_SPONSORS ?? '').split(',')).map((a) => a.trim()).filter(Boolean),
+    allowedOwners: () => sponsors.addresses(),
     hasCaptured: (userId, spotId) => captures.items.some((c) => c.userId === userId && c.spotId === spotId),
     captureCount: (spotId) => captures.items.filter((c) => c.spotId === spotId).length,
     now: captureOpts.now,
@@ -159,6 +162,46 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       if (!arkiv.enabled) throw new HttpError(503, 'Arkiv is not configured on this server.');
       return send(res, 200, { owner: arkiv.owner, eventSlug: arkiv.eventSlug, schema: 'world3.spot', spots: await arkiv.list() }, cors);
     }
+
+    // ---- the advertiser page: public, read-only facts --------------------------------------------------------------
+    if (p === '/api/v1/sponsors/info' && method === 'GET') {
+      const addr = url.searchParams.get('address');
+      return send(res, 200, {
+        eventSlug: arkiv.eventSlug ?? process.env.ARKIV_EVENT_SLUG ?? 'ethglobal-mumbai-2026',
+        arkivEnabled: arkiv.enabled,
+        organizer: arkiv.owner ?? null,
+        approved: addr ? sponsors.isApproved(addr) || (!!arkiv.owner && addr.toLowerCase() === arkiv.owner.toLowerCase()) : null,
+        spots: store.list().filter((s) => s.published).map((s) => ({ id: s.id, name: s.name, label: s.label, city: s.city })),
+      });
+    }
+    if (p === '/api/v1/sponsors/campaigns' && method === 'GET') {
+      const owner = url.searchParams.get('owner') ?? '';
+      if (!/^0x[0-9a-fA-F]{40}$/.test(owner)) throw new HttpError(400, 'owner must be a wallet address.');
+      if (!arkiv.enabled) return send(res, 200, { campaigns: [], approved: false });
+      const approved = sponsors.isApproved(owner) || owner.toLowerCase() === arkiv.owner.toLowerCase();
+      const rows = await arkiv.readCampaignsFor(owner).catch(() => { throw new HttpError(502, 'Arkiv could not be read right now.'); });
+      const campaigns = [];
+      for (const r of rows) {
+        const st = approved ? await ads.statusOf(r.$key) : { shown: false, reason: 'waiting for the organizer to approve this wallet', impressions: 0, captures: null };
+        campaigns.push({ key: r.$key, spotId: r.spotId, status: r.status, startsAt: r.startsAt, endsAt: r.endsAt, sponsor: r.sponsor, headline: r.headline, clickUrl: r.clickUrl, width: r.width, height: r.height, expiresAtBlock: r.$expiresAt, ...st });
+      }
+      return send(res, 200, { approved, campaigns });
+    }
+
+    // ---- organizer: approve sponsor wallets (same-origin dashboard only) ------------------------------------------------
+    if (p === '/api/sponsors') {
+      if (method === 'GET') {
+        const out = [];
+        for (const sp of sponsors.list()) out.push({ ...sp, campaigns: arkiv.enabled ? await arkiv.readCampaignsFor(sp.address).then((r) => r.length).catch(() => null) : null });
+        return send(res, 200, { sponsors: out, organizer: arkiv.owner ?? null });
+      }
+      if (method === 'POST') {
+        const { address, name } = await readJson(req);
+        try { return send(res, 201, { sponsor: await sponsors.add(address, name) }); } catch (e) { throw new HttpError(400, e.message); }
+      }
+    }
+    const spRoute = p.match(/^\/api\/sponsors\/(0x[0-9a-fA-F]{40})$/);
+    if (spRoute && method === 'DELETE') return send(res, 200, { removed: await sponsors.remove(spRoute[1]) });
 
     // ---- sponsor ads: shown only after a verified capture at that spot ----------------------------------------------
     const adRoute = p.match(/^\/api\/v1\/spots\/([^/]+)\/ad$/);
@@ -307,5 +350,5 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     log(`${req.method} ${req.url.split('?')[0]} ${res.statusCode} ${Date.now() - started}ms`);
   });
 
-  return { server, store, captures, voucherSigner, arkiv, ads };
+  return { server, store, captures, voucherSigner, arkiv, ads, sponsors };
 }

@@ -31,7 +31,8 @@ export async function createAds({ dataDir, arkiv, allowedOwners = [], hasCapture
   let rejected = [];
   let loadedAt = 0;
   let loading = null;
-  const owners = () => [...new Set([arkiv.owner, ...allowedOwners].filter(Boolean).map((a) => a.toLowerCase()))];
+  // `allowedOwners` may be a function, so the organizer's approvals apply without a restart
+  const owners = () => [...new Set([arkiv.owner, ...(typeof allowedOwners === 'function' ? allowedOwners() : allowedOwners)].filter(Boolean).map((a) => a.toLowerCase()))];
 
   async function check(raw) {
     const owner = String(raw.$owner ?? '').toLowerCase();
@@ -101,6 +102,14 @@ export async function createAds({ dataDir, arkiv, allowedOwners = [], hasCapture
       return active.map((c) => ({ campaign: c.key, spotId: c.spotId, sponsor: c.sponsor, headline: c.headline, impressions: countFor(c.key), captures: captureCount(c.spotId), endsAt: c.endsAt }));
     },
     rejected: () => rejected,
+    // what is true of one campaign right now: is it being shown, and if an approved sponsor's campaign is not, why not
+    async statusOf(key) {
+      await fresh();
+      const c = active.find((x) => x.key === key);
+      if (c) return { shown: true, impressions: countFor(key), captures: captureCount(c.spotId) };
+      return { shown: false, reason: rejected.find((r) => r.key === key)?.reason ?? null, impressions: countFor(key), captures: null };
+    },
+    isApprovedOwner: (address) => owners().includes(String(address).toLowerCase()),
     dir,
   };
 }

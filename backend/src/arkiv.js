@@ -183,6 +183,18 @@ export async function createArkiv({ dataDir, config = arkivConfigFromEnv(), clie
       return out;
     },
 
+    // one sponsor's own campaigns, without the image bytes (the advertiser page lists these)
+    async readCampaignsFor(ownerAddress, eventSlug = config.eventSlug) {
+      const { entities } = await publicClient
+        .select({ $key: true, $expiresAt: true, spotId: true, status: true, startsAt: true, endsAt: true, sponsor: true, headline: true, clickUrl: true, mime: true, width: true, height: true, sha256: true })
+        .from(CampaignSchema)
+        .ownedBy(ownerAddress)
+        .where(eq('eventSlug', eventSlug))
+        .limit(100)
+        .fetch();
+      return entities.map(flat);
+    },
+
     // the public list, read back from the chain (the part of the app that "reads from Arkiv")
     async list() {
       const { entities } = await publicClient
