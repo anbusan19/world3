@@ -10,10 +10,9 @@
   <link rel="stylesheet" href="/skin.css">
 </head>
 <body>
-  <header class="top">
-    <a class="brand" href="/"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="wrld3"></picture><em>Sponsors</em></a>
-    <span class="grow"></span>
-    <a class="btn" href="/" style="display:inline-grid;place-items:center;text-decoration:none">← Spots</a>
+  <header class="top" data-page="sponsors">
+    <a class="brand" href="/" aria-label="wrld3 organizer"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="wrld3"></picture><em>Organizer</em></a>
+    <div class="grow"></div>
   </header>
   <main>
     <section class="hero">
@@ -51,6 +50,7 @@
       <div id="rejected" class="fine"></div>
     </section>
   </main>
+  <script src="/dash-nav.js"></script>
   <script src="/sponsors.js"></script>
   <script type="module" src="/hero-globe.bundle.js"></script>
 </body>

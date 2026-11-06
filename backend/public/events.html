@@ -25,10 +25,9 @@
   </style>
 </head>
 <body>
-  <header class="top">
-    <a class="brand" href="/"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="wrld3"></picture><em>Events</em></a>
-    <span class="grow"></span>
-    <a class="link" href="/">Spots</a>
+  <header class="top" data-page="events">
+    <a class="brand" href="/" aria-label="wrld3 organizer"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="wrld3"></picture><em>Organizer</em></a>
+    <div class="grow"></div>
   </header>
   <main class="ev">
     <section class="hero"><h1>Events open and close on their own clock.</h1><p>Every spot belongs to one event. Before it starts the spots are hidden, after it ends nothing can be collected and ads stop, and the stamps people already have stay in their passports as memories.</p></section>
@@ -45,6 +44,8 @@
       </form>
     </section>
   </main>
+  <script src="/dash-nav.js"></script>
+  <script type="module" src="/hero-globe.bundle.js"></script>
   <script>
     const H = { 'x-requested-with': 'wrld3-dashboard', 'content-type': 'application/json' };
     const $ = (s) => document.querySelector(s);

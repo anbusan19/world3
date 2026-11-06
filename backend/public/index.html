@@ -15,8 +15,8 @@
   <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
-  <header class="top">
-    <div class="brand"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="wrld3"></picture><em>Spots</em></div>
+  <header class="top" data-page="spots">
+    <a class="brand" href="/" aria-label="wrld3 organizer"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="wrld3"></picture><em>Organizer</em></a>
     <div class="grow"></div>
     <div class="eventbox">
       <button id="eventChip" class="eventchip" type="button" aria-expanded="false" title="When the event ends, the spots disappear and ads stop">Event: …</button>
@@ -27,11 +27,6 @@
       </form>
     </div>
     <span id="status" class="status"><i></i><span>Connecting…</span></span>
-    <a class="link on" href="/">Spots</a>
-    <a class="link" href="/events.html">Events</a>
-    <a class="link" href="/sponsors.html">Sponsors</a>
-    <a class="link" href="/sponsor.html" target="_blank" rel="noopener">Advertiser page</a>
-    <a class="link" href="/api/v1/spots" target="_blank" rel="noopener">App feed</a>
   </header>
   <div class="kpis" id="kpis" aria-live="polite"></div>
 
@@ -89,6 +84,7 @@
   </main>
 
   <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script src="/dash-nav.js"></script>
   <script type="module" src="/app.js"></script>
 </body>
 </html>
