@@ -301,6 +301,9 @@ function validate() {
   else if (S.account && !S.onRabdi) $('#problem').textContent = 'Switch your wallet to the Arkiv Rabdi network.';
 }
 
+// Ads show in a small card, so there is no reason to store more: every picture is shrunk to about 40 KB (the limit is 100 KB).
+// Smaller means a cheaper, faster write and a quicker load in the app.
+const AD_TARGET_BYTES = 40 * 1024; const AD_MAX_SIDE = 960;
 async function chooseImage(picked) {
   if (S.image?.url) URL.revokeObjectURL(S.image.url);
   S.image = null;
@@ -308,7 +311,7 @@ async function chooseImage(picked) {
   if (picked) {
     try { // shrink anything over the limit (or too large) so nobody needs a separate compressor
       $('#dropInfo').textContent = 'Checking the image…';
-      const out = await compressImage(picked, { maxBytes: LIMITS.creativeBytes, maxSide: LIMITS.maxSide });
+      const out = await compressImage(picked, { maxBytes: AD_TARGET_BYTES, maxSide: AD_MAX_SIDE });
       if (out.changed) {
         file = new File([out.blob], picked.name.replace(/\.[^.]+$/, '') + (out.blob.type === 'image/webp' ? '.webp' : '.jpg'), { type: out.blob.type });
         note = ` · compressed from ${Math.round(picked.size / 1024)} KB`;
