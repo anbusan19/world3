@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { RegExpMatcher, englishDataset, englishRecommendedTransformers } from 'obscenity';
 import { keccak256, stringToBytes } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
@@ -21,16 +22,28 @@ const safe = (e) => String(e instanceof PassportError ? e.message : (e?.shortMes
 // invites look-alike characters), 3 to 20 long. A short list of names nobody may take: brands we do not own, and names that sound official.
 export const LABEL_RULE = /^[a-z0-9](?:[a-z0-9]|-(?!-)){1,18}[a-z0-9]$/;
 const RESERVED = new Set(['world', 'worldcoin', 'worldid', 'world3', 'wrld3', 'wrld', 'admin', 'administrator', 'root', 'support', 'official', 'staff', 'team', 'help', 'security', 'ens', 'eth', 'ethereum', 'ethglobal', 'arkiv', 'test', 'null', 'undefined', 'www', 'api', 'passport', 'sponsor', 'sponsors']);
-export function checkLabel(raw) {
+// Profanity: a maintained English list that also sees disguised spellings (sh1t, b00bs). A name is checked twice, with its dashes as spaces and
+// with them removed, so "f-u-c-k" and "annashit" are both caught. It is English only and will over-block a few innocent words (a person just picks
+// another name), so the organizer can add words in other languages with PASSPORT_BLOCKED_WORDS (comma separated; matched anywhere in the name).
+const profanity = new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers });
+export const isProfane = (label, extra = []) => {
+  const joined = label.replace(/-/g, '');
+  return profanity.hasMatch(label.replace(/-/g, ' ')) || profanity.hasMatch(joined) || extra.some((w) => w && joined.includes(w));
+};
+const NOT_ALLOWED = 'That name is not allowed. Please pick another.'; // never says which word matched
+
+export function checkLabel(raw, { blocked = [] } = {}) {
   const label = String(raw ?? '').trim().toLowerCase().replace(/\.wrld3\.eth$/, '');
   if (label.length < 3) return { ok: false, reason: 'Use at least 3 characters.' };
   if (label.length > 20) return { ok: false, reason: 'Use at most 20 characters.' };
   if (!LABEL_RULE.test(label)) return { ok: false, reason: 'Use only lowercase letters, numbers and single dashes, starting and ending with a letter or number.' };
   if (RESERVED.has(label) || label.startsWith('xn')) return { ok: false, reason: 'That name is reserved. Please pick another.' };
+  if (isProfane(label, blocked)) return { ok: false, reason: NOT_ALLOWED };
   return { ok: true, label };
 }
 
-export async function createPassports({ dataDir, ens, ownerSeed, captures, publicBase = '', random = Math.random, now = () => Date.now() }) {
+export async function createPassports({ dataDir, ens, ownerSeed, captures, publicBase = '', blockedWords = [], random = Math.random, now = () => Date.now() }) {
+  const blocked = blockedWords.map((w) => String(w).trim().toLowerCase().replace(/[^a-z0-9]/g, '')).filter(Boolean);
   const file = path.join(dataDir, 'passports.json');
   await mkdir(dataDir, { recursive: true });
   const users = existsSync(file) ? JSON.parse(await readFile(file, 'utf8')).users ?? {} : {};
@@ -63,7 +76,7 @@ export async function createPassports({ dataDir, ens, ownerSeed, captures, publi
   async function pickLabel() {
     for (let i = 0; i < 8; i++) {
       const label = Array.from({ length: 6 }, () => ALPHABET[Math.floor(random() * ALPHABET.length)]).join('');
-      if (await ens.isLabelFree(label)) return label;
+      if (!isProfane(label, blocked) && (await ens.isLabelFree(label))) return label; // a random name can be unlucky too
     }
     throw new PassportError('Could not find a free passport name. Try again.');
   }
@@ -102,7 +115,7 @@ export async function createPassports({ dataDir, ens, ownerSeed, captures, publi
 
     // is this name allowed and free? (used while the person types)
     async available(raw) {
-      const c = checkLabel(raw);
+      const c = checkLabel(raw, { blocked });
       if (!c.ok) return c;
       return (await ens.isLabelFree(c.label)) ? { ok: true, label: c.label } : { ok: false, reason: 'That name is taken.' };
     },

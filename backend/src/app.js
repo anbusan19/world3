@@ -98,7 +98,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   // opt-in public passports on ENS (off unless the ENS wallet and the owner seed are configured)
   const ensClient = ensOpts.client ?? (process.env.ENS_PRIVATE_KEY ? await createEns({ privateKey: process.env.ENS_PRIVATE_KEY, rpcUrl: process.env.SEPOLIA_RPC_URL, dataDir }) : null);
   const ownerSeed = ensOpts.ownerSeed ?? process.env.PASSPORT_OWNER_SEED;
-  const passports = ensClient && ownerSeed ? await createPassports({ dataDir, ens: ensClient, ownerSeed, captures, publicBase: ensOpts.publicBase ?? process.env.PUBLIC_BASE_URL ?? '' }) : null;
+  const passports = ensClient && ownerSeed ? await createPassports({ dataDir, ens: ensClient, ownerSeed, captures, publicBase: ensOpts.publicBase ?? process.env.PUBLIC_BASE_URL ?? '', blockedWords: ensOpts.blockedWords ?? (process.env.PASSPORT_BLOCKED_WORDS ?? '').split(',') }) : null;
   const voucherSigner = createVoucherSigner(captureOpts.voucher ?? voucherConfigFromEnv());
   const capture = createCaptureService({ store, captures, world, accounts, voucherSigner, config: captureOpts.config ?? captureConfigFromEnv(), now: captureOpts.now });
   const auth = createAuthService({ world, accounts, action: captureOpts.signinAction ?? process.env.WORLD_ID_SIGNIN_ACTION ?? 'signin', now: captureOpts.now });
