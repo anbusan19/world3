@@ -31,7 +31,7 @@ export function normaliseNullifier(v) {
 }
 
 export function createWorld({ config, fetchImpl = fetch, now = () => Date.now() }) {
-  const c = { environment: 'production', worldBase: 'https://developer.world.org', nonceTtlS: 120, ...config };
+  const c = { environment: 'production', worldBase: 'https://developer.world.org', nonceTtlS: 120, credentials: ['proof_of_human', 'passport', 'selfie'], ...config };
   const pending = new Map(); // nonce -> { action, meta, expiresAt }
   const key = (n) => String(n).toLowerCase();
 
@@ -77,6 +77,9 @@ export function createWorld({ config, fetchImpl = fetch, now = () => Date.now() 
       throw new CaptureError('world_unreachable', 'World ID could not be reached. Try again in a moment.', 502);
     }
     if (result?.success !== true || result?.environment !== c.environment) throw refusal('not_verified');
+    // only the credentials we accept: a client could ask World App for a weaker one than we want
+    const ids = (Array.isArray(idkitResponse.responses) ? idkitResponse.responses : []).map((r) => r?.identifier).filter(Boolean);
+    if (ids.length && !ids.some((id) => c.credentials.includes(id))) throw refusal('not_verified');
     const nullifier = normaliseNullifier(result.nullifier ?? result.results?.[0]?.nullifier);
     if (!nullifier) throw refusal('not_verified');
     return nullifier;
@@ -92,5 +95,6 @@ export function worldConfigFromEnv(env = process.env) {
     signingKey: env.WORLD_ID_SIGNING_KEY,
     environment: env.WORLD_ID_ENV || 'production',
     nonceTtlS: Number(env.NONCE_TTL_SECONDS) || 120,
+    credentials: String(env.WORLD_ID_CREDENTIALS || 'proof_of_human,passport,selfie').split(',').map((s) => s.trim()).filter(Boolean),
   };
 }

@@ -342,12 +342,17 @@ function Ens() {
   );
 }
 
+// the real Arkiv mark: a bracketed A, "[ A ]" (from arkiv.network)
+const ARKIV_PATHS = [
+  'M47.1367 0H53.9847V30.24H47.1367V25.664H49.4407V4.576H47.1367V0Z',
+  'M37.1357 25.1202H31.9837L30.4157 20.2882H23.3117L21.7117 25.1202H16.8477V23.3282L24.2717 2.72021H29.6797L37.1357 23.3282V25.1202ZM28.8797 15.6802L26.8957 9.56822L24.8477 15.6802H28.8797Z',
+  'M6.848 30.24H0V0H6.848V4.576H4.544V25.664H6.848V30.24Z',
+];
 function Arkiv() {
   return (
     <LogoScene sky="#FFE9D6" hill="#F7C59F" hill2="#F2A065">
-      <G transform="translate(35 38) scale(4.1)">
-        <Path d="M12 2.5l8.5 4.9v9.2L12 21.5l-8.5-4.9V7.4z" fill="#F26B21" />
-        <Path d="M3.8 7.6L12 12.4l8.2-4.8M12 12.4v9" stroke="#FFFFFF" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" fill="none" />
+      <G transform="translate(25 55) scale(2.1)">
+        {ARKIV_PATHS.map((d, i) => <Path key={i} d={d} fill="#F26B21" />)}
       </G>
     </LogoScene>
   );

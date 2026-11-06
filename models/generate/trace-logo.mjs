@@ -9,7 +9,8 @@ import { Scene, hex } from './glb.js';
 import { parseGlb } from '../../backend/src/glb.js';
 
 const { PNG } = createRequire(import.meta.url)('../../node_modules/pngjs');
-const [src, out, faceHex = '#F4F1EA', markHex = '#0B0B0F'] = process.argv.slice(2);
+const [src, out, faceHex = '#F4F1EA', markHex = '#0B0B0F', rimArg] = process.argv.slice(2);
+const rimHex = rimArg ?? markHex; // the coin's edge, if it should differ from the raised mark
 if (!src || !out) { console.error('usage: node trace-logo.mjs <logo.png> <out.glb> [face] [mark]'); process.exit(1); }
 
 // ---- 1. the picture as a "how dark is this pixel" field in 0..1 ----------------------------------------------------------
@@ -124,17 +125,17 @@ const THICK = 0.22; const FACE = THICK / 2; const RAISE = 0.045; const SEG = 96;
 const scene = new Scene('coin');
 const bin = (hexColor) => { const c = hex(hexColor); if (!scene.bins.has(c)) scene.bins.set(c, { color: c, pos: [], nor: [] }); return scene.bins.get(c); };
 const tri = (b, a, p, q, n) => { for (const v of [a, p, q]) { b.pos.push(v[0], v[1], v[2]); b.nor.push(n[0], n[1], n[2]); } };
-const mark = bin(markHex); const face = bin(faceHex);
+const mark = bin(markHex); const face = bin(faceHex); const rim = bin(rimHex);
 
 // rim: the black edge of the coin and its two flat caps
 for (let i = 0; i < SEG; i++) {
   const a0 = (i / SEG) * Math.PI * 2, a1 = ((i + 1) / SEG) * Math.PI * 2;
   const p0 = [Math.cos(a0), Math.sin(a0)], p1 = [Math.cos(a1), Math.sin(a1)];
   const nm = [Math.cos((a0 + a1) / 2), Math.sin((a0 + a1) / 2), 0];
-  tri(mark, [p0[0], p0[1], -FACE], [p1[0], p1[1], -FACE], [p1[0], p1[1], FACE], nm); tri(mark, [p0[0], p0[1], -FACE], [p1[0], p1[1], FACE], [p0[0], p0[1], FACE], nm);
+  tri(rim, [p0[0], p0[1], -FACE], [p1[0], p1[1], -FACE], [p1[0], p1[1], FACE], nm); tri(rim, [p0[0], p0[1], -FACE], [p1[0], p1[1], FACE], [p0[0], p0[1], FACE], nm);
   for (const s of [1, -1]) { // cap: a black disc under the cream face
     const z = FACE * s; const n = [0, 0, s];
-    if (s === 1) tri(mark, [0, 0, z], [p0[0], p0[1], z], [p1[0], p1[1], z], n); else tri(mark, [0, 0, z], [p1[0], p1[1], z], [p0[0], p0[1], z], n);
+    if (s === 1) tri(rim, [0, 0, z], [p0[0], p0[1], z], [p1[0], p1[1], z], n); else tri(rim, [0, 0, z], [p1[0], p1[1], z], [p0[0], p0[1], z], n);
     const r = 0.97; const z2 = z + s * 0.004; // the cream face, a hair above the cap
     if (s === 1) tri(face, [0, 0, z2], [p0[0] * r, p0[1] * r, z2], [p1[0] * r, p1[1] * r, z2], n); else tri(face, [0, 0, z2], [p1[0] * r, p1[1] * r, z2], [p0[0] * r, p0[1] * r, z2], n);
   }
