@@ -453,7 +453,7 @@ The React Native / Expo Android app shell exists. The integrations below remain 
 | Mint relay and delayed minting | [ ] |
 | ENSv2 passport name and permissioned stamp records | [ ] |
 | Public passport page | [ ] |
-| Arkiv spot and campaign write and in-app read | [ ] |
+| Arkiv spot write and in-app read | [x] two spots live on Rabdi, shown in the app as "Listed on Arkiv" (campaigns and ads not built) |
 | Geospatial pose and VPS availability check | [ ] roadmap |
 | Web lite capture and photo/memory tier | [ ] roadmap |
 
@@ -493,6 +493,10 @@ Built for **ETHGlobal Mumbai**.
 | **World** | IDKit proof of human on every capture, verified on the backend, with demonstrated refusal paths and an integration debrief |
 | **ENS** | ENSv2 passport on Sepolia: generated subname per traveler, permissioned stamp records with a permission test, live passport page as the demo link |
 | **Arkiv** | Spot and sponsor-campaign entities written to Arkiv testnet by their owners, with an in-app feature that reads them |
+
+**Arkiv, for judges.** Writer wallet: `0xf47cB2e4353F5daF04fA7AF0955551ab7DB74b52` (Rabdi testnet, chain id 7794095). Run one query with no
+World3 server: `cd backend && npm install && node scripts/arkiv-query.mjs`. Details in [`/arkiv`](arkiv/). Sponsor campaigns and ads are planned
+([`docs/ads-and-campaigns.md`](docs/ads-and-campaigns.md)) and are **not built yet**.
 
 Submission checklist:
 
