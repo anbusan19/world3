@@ -362,3 +362,26 @@ img, video, canvas, svg { max-width: 100%; }
   .btn { min-height: 48px; }                 /* comfortable tap targets */
   .nav a, .navlinks a { padding-block: 10px; }
 }
+
+/* ---- step 1 art: the rotating globe with what the map shows around it ---- */
+.goscene { position: absolute; inset: 0; }
+.gs-chip { position: absolute; display: flex; align-items: center; gap: 10px; padding: 9px 16px 9px 10px; border-radius: 999px; background: #fff; font-size: 13px; line-height: 1.25; color: #4B4F59; box-shadow: 0 8px 22px rgba(11, 11, 15, .08); white-space: nowrap; animation: bob 7s ease-in-out infinite alternate; }
+.gs-chip b { display: block; color: #0B0B0F; font-weight: 800; font-size: 14px; letter-spacing: -.01em; }
+.gs-chip i { width: 30px; height: 30px; border-radius: 50%; background: var(--green); display: grid; place-items: center; flex: 0 0 auto; }
+.gs-chip i.live { width: 12px; height: 12px; margin: 0 6px; background: var(--green); box-shadow: 0 0 0 5px rgba(166, 209, 108, .35); animation: pulse2 1.8s ease-in-out infinite; }
+.gs-dist { left: 6%; bottom: 14%; }
+.gs-count { left: 40%; top: 12%; animation-duration: 9s; }
+.gs-coin { right: 5%; bottom: 8%; padding-left: 8px; animation-duration: 8s; background: #fff; }
+.gs-coin svg { flex: 0 0 auto; }
+.gs-radii { position: absolute; left: 6%; top: 9%; width: clamp(120px, 17vw, 190px); aspect-ratio: 1; display: grid; }
+.gs-radii svg { grid-area: 1 / 1; }
+.gs-radii span { position: absolute; left: 50%; font-size: 11px; font-weight: 800; letter-spacing: .02em; color: #0B0B0F; background: rgba(255, 255, 255, .85); padding: 2px 8px; border-radius: 999px; transform: translateX(-50%); white-space: nowrap; }
+.gs-radii span:nth-of-type(1) { top: -12px; color: #0265AD; } .gs-radii span:nth-of-type(2) { bottom: -12px; color: #3F6B0F; }
+.gs-you { animation: walk 5s ease-in-out infinite alternate; }
+.gs-path { position: absolute; left: 20%; top: 44%; width: 34%; height: auto; opacity: .75; pointer-events: none; }
+@keyframes bob { from { transform: translateY(-5px); } to { transform: translateY(7px); } }
+@keyframes pulse2 { 50% { box-shadow: 0 0 0 9px rgba(166, 209, 108, .05); } }
+@keyframes walk { from { transform: translate(0, 0); } to { transform: translate(26px, -26px); } }
+@media (max-width: 900px) { .gs-count { left: auto; right: 6%; top: 8%; } .gs-path { display: none; } }
+@media (max-width: 560px) { .gs-coin { display: none; } .gs-chip { font-size: 12px; } .gs-radii { width: 110px; left: 4%; top: 12%; } .gs-dist { left: 4%; } }
+@media (prefers-reduced-motion: reduce) { .gs-chip, .gs-chip i.live, .gs-you { animation: none; } }
