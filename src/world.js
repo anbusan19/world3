@@ -137,3 +137,23 @@ export async function captureWithWorldId({ spot, user, onStage }) {
   const out = await post('/api/v1/capture/verify', { spotId: spot.id, nonce: req.rp_context.nonce, pose, idkitResponse: result });
   return out.capture;
 }
+
+// ---- sponsor ads ------------------------------------------------------------------------------------------------
+
+// The sponsor ad for a spot, or null. The server only returns one to a signed-in person who has already made a verified
+// capture there, and only from sponsor wallets the organizer approved. A failure here must never get in the way of the stamp.
+export async function fetchAd(spotId) {
+  try {
+    const res = await fetch(`${getFeedBase()}/api/v1/spots/${encodeURIComponent(spotId)}/ad`, { headers: headers() });
+    if (!res.ok) return null;
+    const { ad } = await res.json();
+    return ad ? { ...ad, imageUrl: `${getFeedBase()}${ad.creativeUrl}` } : null;
+  } catch {
+    return null;
+  }
+}
+
+// Tell the server the person really saw it (counted once per person per campaign).
+export function reportImpression(campaignKey) {
+  fetch(`${getFeedBase()}/api/v1/ads/impression`, { method: 'POST', headers: headers(), body: JSON.stringify({ campaign: campaignKey }) }).catch(() => {});
+}

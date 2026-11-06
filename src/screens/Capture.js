@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Easing, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import { Stamp } from '../Stamp';
 import { ArCamera } from './ArCamera';
 import { BackButton, Chip, PrimaryButton } from '../ui';
 import { shortName } from '../spots';
-import { CaptureFailure, captureWithWorldId } from '../world';
+import { CaptureFailure, captureWithWorldId, fetchAd, reportImpression } from '../world';
 import { F, makeStyles, useColors, useTheme } from '../theme';
 
 // The capture flow: camera (ArCamera.js), then World ID and the server's checks (world.js), then the result. Nothing is
@@ -171,6 +171,10 @@ function ResultStep({ spot, result, onRetry, onClose, onViewPassport }) {
   const C = useColors();
   const pop = useRef(new Animated.Value(0)).current;
   const ok = result === 'success';
+  const [ad, setAd] = useState(null);
+  useEffect(() => {
+    if (ok) fetchAd(spot.id).then(setAd);
+  }, [ok, spot.id]);
 
   useEffect(() => {
     Animated.spring(pop, { toValue: 1, friction: 5, tension: 70, useNativeDriver: true }).start();
@@ -203,6 +207,7 @@ function ResultStep({ spot, result, onRetry, onClose, onViewPassport }) {
               <Text style={styles.txLabel}>MINT (PREVIEW)</Text>
               <Text style={styles.mono}>token #{spot.id.padStart(4, '0')} · Sepolia</Text>
             </View>
+            {ad && <SponsorCard ad={ad} />}
             <PrimaryButton label="View passport" icon="person" onPress={onViewPassport} style={{ alignSelf: 'stretch', marginTop: 24 }} />
             <PrimaryButton label="Keep exploring" tone="light" onPress={onClose} style={{ alignSelf: 'stretch', marginTop: 10 }} />
           </>
@@ -226,9 +231,51 @@ function ResultStep({ spot, result, onRetry, onClose, onViewPassport }) {
   );
 }
 
+/* ---------------------------------- Sponsor ---------------------------------- */
+
+// An ad from a sponsor the organizer approved, shown only after a verified capture. Always labelled, links open only after a confirm.
+function SponsorCard({ ad }) {
+  const styles = useStyles();
+  const counted = useRef(false);
+  let host = '';
+  try { host = new URL(ad.clickUrl).host; } catch { /* the server only sends https links */ }
+  const seen = () => {
+    if (counted.current) return;
+    counted.current = true;
+    reportImpression(ad.key);
+  };
+  const open = () =>
+    Alert.alert(`Open ${host}?`, `This is a link from ${ad.sponsor}, a sponsor. It opens in your browser and leaves World3.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Open', onPress: () => Linking.openURL(ad.clickUrl).catch(() => {}) },
+    ]);
+  return (
+    <View style={styles.ad}>
+      <View style={styles.adHead}>
+        <Text style={styles.adTag}>SPONSORED</Text>
+        <Text style={styles.adBy} numberOfLines={1}>{ad.sponsor}</Text>
+      </View>
+      <Image source={{ uri: ad.imageUrl }} style={[styles.adImg, { aspectRatio: ad.width / ad.height }]} resizeMode="cover" accessibilityLabel={ad.alt} onLoad={seen} />
+      <Text style={styles.adTitle}>{ad.headline}</Text>
+      <Pressable onPress={open} style={styles.adBtn} accessibilityRole="link">
+        <Text style={styles.adBtnText}>Learn more</Text>
+        <Ionicons name="open-outline" size={14} color={styles.adBtnText.color} />
+      </Pressable>
+    </View>
+  );
+}
+
 /* --------------------------------- styles -------------------------------- */
 
 const useStyles = makeStyles((C) => ({
+  ad: { alignSelf: 'stretch', marginTop: 22, backgroundColor: C.card, borderRadius: 24, padding: 14 },
+  adHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  adTag: { fontFamily: F.semi, fontSize: 10, letterSpacing: 1.4, color: C.muted },
+  adBy: { fontFamily: F.reg, fontSize: 12, color: C.muted, flexShrink: 1, marginLeft: 12 },
+  adImg: { width: '100%', borderRadius: 16, backgroundColor: C.soft },
+  adTitle: { fontFamily: F.semi, fontSize: 15, color: C.ink, marginTop: 12 },
+  adBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 10, paddingVertical: 6 },
+  adBtnText: { fontFamily: F.semi, fontSize: 13, color: C.blue },
   safe: { flex: 1, backgroundColor: C.bg },
   top: { height: 62, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topTitle: { fontFamily: F.semi, fontSize: 16, color: C.ink },
