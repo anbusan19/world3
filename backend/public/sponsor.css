@@ -100,3 +100,7 @@ td { padding: 12px 10px; border-top: 1px solid var(--line); vertical-align: top;
 .sharebox img { width: min(100%, 600px); height: auto; border-radius: 20px; display: block; background: var(--soft); }
 .sharebox .btn { display: inline-flex; align-items: center; text-decoration: none; color: inherit; }
 .sharebox .btn.green { color: #0B0B0F; }
+
+/* the wallet picker appears only when more than one wallet extension is installed */
+.walletpick { height: 44px; border: 1.5px solid var(--line); border-radius: 22px; padding: 0 14px; background: var(--card); max-width: 200px; }
+.walletpick[hidden] { display: none; }

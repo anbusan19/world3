@@ -172,12 +172,12 @@ main > .hero > *:not(.hero-globe), .xp .intro > *:not(.hero-globe) { position: r
 .cluster > i { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 15px; color: #0B0B0F; background: var(--green, #8CC152); border: 4px solid rgba(255, 255, 255, .92); box-shadow: 0 4px 14px rgba(0, 0, 0, .3), 0 0 0 7px color-mix(in srgb, var(--green, #8CC152) 35%, transparent); animation: pop .35s cubic-bezier(.2, 1.5, .4, 1) backwards; transition: scale .2s; }
 .cluster:hover > i { scale: 1.08; }
 
-/* ---- one header for every organizer page: brand, section tabs, quiet links ---- */
-.top { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; min-height: 56px; padding: 8px 4px; margin: 8px clamp(10px, 2vw, 24px) 4px; }
-.top .brand { gap: 12px; text-decoration: none; color: inherit; flex: 0 0 auto; }
-.top .brand picture img { height: 28px; }
-.top .brand em { position: relative; padding-left: 14px; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.top .brand em::before { content: ''; position: absolute; left: 0; top: 50%; width: 1.5px; height: 18px; margin-top: -9px; background: var(--line, rgba(128, 128, 128, .35)); border-radius: 1px; }
+/* ---- one header for every organizer page (scoped to header.top[data-page] so the public advertiser page keeps its own): brand, section tabs, quiet links ---- */
+.top[data-page] { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; min-height: 56px; padding: 8px 4px; margin: 8px clamp(10px, 2vw, 24px) 4px; }
+.top[data-page] .brand { gap: 12px; text-decoration: none; color: inherit; flex: 0 0 auto; }
+.top[data-page] .brand picture img { height: 28px; }
+.top[data-page] .brand em { position: relative; padding-left: 14px; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.top[data-page] .brand em::before { content: ''; position: absolute; left: 0; top: 50%; width: 1.5px; height: 18px; margin-top: -9px; background: var(--line, rgba(128, 128, 128, .35)); border-radius: 1px; }
 .dnav { display: flex; gap: 3px; padding: 4px; border-radius: 999px; background: color-mix(in srgb, var(--card) 70%, transparent); box-shadow: inset 0 0 0 1.5px var(--line, rgba(128, 128, 128, .2)); }
 .dnav a { padding: 8px 18px; border-radius: 999px; font-size: 13.5px; font-weight: 700; color: var(--muted); text-decoration: none; transition: background .2s, color .2s; white-space: nowrap; }
 .dnav a:hover { color: var(--ink); background: var(--soft); }
@@ -186,19 +186,19 @@ main > .hero > *:not(.hero-globe), .xp .intro > *:not(.hero-globe) { position: r
 .dlinks a { font-size: 12.5px; font-weight: 700; color: var(--muted); text-decoration: none; padding: 8px 10px; border-radius: 999px; transition: color .2s, background .2s; }
 .dlinks a::after { content: ' ↗'; font-weight: 600; opacity: .6; }
 .dlinks a:hover { color: var(--ink); background: var(--soft); }
-.top .status, .top .eventchip { height: 36px; display: inline-flex; align-items: center; padding: 0 14px; font-size: 12.5px; font-weight: 700; border-radius: 999px; }
-.top .status { gap: 8px; }
-.top .status span { white-space: nowrap; }
-.top .eventchip { white-space: nowrap; }
+.top[data-page] .status, .top[data-page] .eventchip { height: 36px; display: inline-flex; align-items: center; padding: 0 14px; font-size: 12.5px; font-weight: 700; border-radius: 999px; }
+.top[data-page] .status { gap: 8px; }
+.top[data-page] .status span { white-space: nowrap; }
+.top[data-page] .eventchip { white-space: nowrap; }
 @media (max-width: 1100px) { .dlinks { display: none; } }
 @media (max-width: 760px) {
-  .top .brand em { display: none; }
+  .top[data-page] .brand em { display: none; }
   .dnav a { padding: 8px 12px; font-size: 13px; }
-  .top .grow { display: none; }
-  .top .status { order: 5; }
+  .top[data-page] .grow { display: none; }
+  .top[data-page] .status { order: 5; }
 }
 
 /* the intro card on the Events and Sponsors pages runs the full width instead of leaving half the row empty */
-body > main:not(.grid):not(.xp) > .hero { grid-column: 1 / -1; min-height: 220px; }
+body:has(.top[data-page]) > main:not(.grid):not(.xp) > .hero { grid-column: 1 / -1; min-height: 220px; }
 .pin > i.logo { padding: 4px; }
 .pin > i.logo img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; display: block; }

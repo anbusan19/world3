@@ -38,6 +38,40 @@ async function getJson(path) {
   return res.json();
 }
 
+// ---- which wallet ---------------------------------------------------------------------------------------------------
+// Several wallet extensions can be installed at once and each one tries to be window.ethereum, so the last one to load (often
+// Binance's) wins and opens instead of MetaMask. Wallets announce themselves separately (EIP-6963), so we list them and use
+// MetaMask unless the person picks another one. The choice is remembered.
+const WALLET_PICK = 'world3.sponsor.wallet';
+const found = new Map(); // rdns -> { info, provider }
+function savedWallet() { try { return localStorage.getItem(WALLET_PICK) || ''; } catch { return ''; } }
+function pickProvider() {
+  const list = [...found.values()];
+  const want = savedWallet();
+  const chosen = list.find((w) => w.info.rdns === want) || list.find((w) => w.info.rdns === 'io.metamask') || (list.length === 1 ? list[0] : null);
+  if (chosen) return chosen.provider;
+  const eth = window.ethereum;
+  if (eth?.providers?.length) return eth.providers.find((p) => p.isMetaMask && !p.isBinance) || eth.providers[0]; // older multi-wallet setups
+  return eth || list[0]?.provider || null;
+}
+function renderWalletPick() {
+  const sel = $('#walletPick');
+  if (!sel) return;
+  const list = [...found.values()];
+  sel.hidden = list.length < 2;
+  const current = list.find((w) => w.provider === pickProvider());
+  sel.replaceChildren(...list.map((w) => node('option', { value: w.info.rdns, selected: current?.info.rdns === w.info.rdns }, w.info.name)));
+}
+window.addEventListener('eip6963:announceProvider', (e) => {
+  const d = e.detail;
+  if (d?.provider && d?.info?.rdns) { found.set(d.info.rdns, d); renderWalletPick(); }
+});
+window.dispatchEvent(new Event('eip6963:requestProvider'));
+document.addEventListener('DOMContentLoaded', () => {
+  renderWalletPick();
+  $('#walletPick')?.addEventListener('change', (ev) => { try { localStorage.setItem(WALLET_PICK, ev.target.value); } catch { /* the choice then lasts for this page view only */ } });
+});
+
 // ---- wallet ---------------------------------------------------------------------------------------------------------
 function chainFor() {
   const key = ($('#rpcKey').value || '').trim();
@@ -45,7 +79,7 @@ function chainFor() {
 }
 
 async function connect() {
-  const provider = window.ethereum;
+  const provider = pickProvider();
   if (!provider) return say($('#connMsg'), 'No browser wallet found. Install MetaMask, then reload this page.', 'bad');
   say($('#connMsg'), 'Waiting for your wallet…');
   try {
@@ -74,7 +108,7 @@ async function connect() {
 
 // ---- testnet setup: add the network to the wallet, and get free test tGLM from the organizer's faucet ------------------
 async function addNetwork() {
-  const provider = window.ethereum;
+  const provider = pickProvider();
   if (!provider) { say($('#netMsg'), 'No browser wallet found. Install MetaMask, then reload this page.', 'bad'); return false; }
   const chain = chainFor();
   try {
