@@ -24,8 +24,10 @@ test('proxy forwards the feed and files only, read-only', async () => {
   assert.equal((await get(port, '/sponsors.html')).status, 404); // the organizer page either
   assert.equal((await get(port, '/api/v1/sponsors/info')).status, 200); // but the advertiser page's read-only facts are
   assert.equal((await get(port, '/sponsor.html')).status, 200);
+  assert.equal((await get(port, '/p/a7k2')).status, 200); // the public passport page
+  assert.equal((await get(port, '/passport.html')).status, 200);
   assert.equal((await get(port, '/api/v1/spots', 'PUT')).status, 405);
   assert.equal((await get(port, '/api/spots', 'POST')).status, 405);
-  assert.equal(seen.length, 4); // the feed, a model file, and the advertiser page's two read-only requests
+  assert.equal(seen.length, 6); // the feed, a model file, the advertiser page's two read-only requests, and the two passport page requests
   proxy.close(); up.close();
 });

@@ -14,6 +14,9 @@ const ALLOWED = [
   // the advertiser page and the two read-only facts it needs. The organizer's approval routes (/api/sponsors) are deliberately not here.
   /^\/(sponsor\.html|sponsor\.css|sponsor\.bundle\.js|logo\.png)$/,
   /^\/api\/v1\/sponsors\/(info|campaigns)$/,
+  // the public passport page (it reads ENS itself; only the spots' names and art come from us)
+  /^\/(passport\.html|passport\.css|passport\.bundle\.js)$/,
+  /^\/p\/[a-z0-9-]{1,32}\/?$/i,
 ];
 
 export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } = {}) {
