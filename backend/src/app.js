@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { Accounts, createAuthService } from './auth.js';
+import { createAds } from './ads.js';
 import { createArkiv, safeMessage } from './arkiv.js';
 import { Captures, captureConfigFromEnv, createCaptureService } from './capture.js';
 import { CaptureError, createWorld, worldConfigFromEnv } from './world.js';
@@ -82,6 +83,13 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   const accounts = new Accounts(dataDir);
   await accounts.init();
   const world = createWorld({ config: captureOpts.worldConfig ?? worldConfigFromEnv(), fetchImpl: captureOpts.fetchImpl, now: captureOpts.now });
+  const ads = await createAds({
+    dataDir, arkiv,
+    allowedOwners: (arkivOpts.sponsors ?? (process.env.ARKIV_SPONSORS ?? '').split(',')).map((a) => a.trim()).filter(Boolean),
+    hasCaptured: (userId, spotId) => captures.items.some((c) => c.userId === userId && c.spotId === spotId),
+    captureCount: (spotId) => captures.items.filter((c) => c.spotId === spotId).length,
+    now: captureOpts.now,
+  });
   const voucherSigner = createVoucherSigner(captureOpts.voucher ?? voucherConfigFromEnv());
   const capture = createCaptureService({ store, captures, world, accounts, voucherSigner, config: captureOpts.config ?? captureConfigFromEnv(), now: captureOpts.now });
   const auth = createAuthService({ world, accounts, action: captureOpts.signinAction ?? process.env.WORLD_ID_SIGNIN_ACTION ?? 'signin', now: captureOpts.now });
@@ -152,6 +160,21 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       return send(res, 200, { owner: arkiv.owner, eventSlug: arkiv.eventSlug, schema: 'world3.spot', spots: await arkiv.list() }, cors);
     }
 
+    // ---- sponsor ads: shown only after a verified capture at that spot ----------------------------------------------
+    const adRoute = p.match(/^\/api\/v1\/spots\/([^/]+)\/ad$/);
+    if (adRoute && method === 'GET') {
+      const user = auth.user(bearer(req));
+      if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
+      return send(res, 200, { ad: await ads.pick(adRoute[1], user).catch(() => null) });
+    }
+    if (p === '/api/v1/ads/impression' && method === 'POST') {
+      const user = auth.user(bearer(req));
+      if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
+      const { campaign } = await readJson(req);
+      return send(res, 200, await ads.record(user, String(campaign ?? '')));
+    }
+    if (p === '/api/v1/ads/stats' && method === 'GET') return send(res, 200, { campaigns: await ads.stats().catch(() => []), rejected: ads.rejected() }, cors);
+
     // ---- sign in with World ID ----------------------------------------------------------------------------------
     if (p === '/api/v1/auth/nonce' && method === 'POST') return send(res, 200, auth.request());
     if (p === '/api/v1/auth/verify' && method === 'POST') return send(res, 200, { ok: true, ...(await auth.verify(await readJson(req))) });
@@ -181,10 +204,10 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     }
 
     // ---- uploaded files -----------------------------------------------------------------------------------------
-    let m = p.match(/^\/files\/(models|images)\/([^/]+)$/);
+    let m = p.match(/^\/files\/(models|images|ads)\/([^/]+)$/);
     if (m && method === 'GET') {
       if (!SAFE_NAME.test(m[2])) throw new HttpError(400, 'Bad file name.');
-      const dir = m[1] === 'models' ? store.modelsDir : store.imagesDir;
+      const dir = m[1] === 'models' ? store.modelsDir : m[1] === 'ads' ? ads.dir : store.imagesDir;
       let buf;
       try { buf = await readFile(path.join(dir, m[2])); } catch { throw new HttpError(404, 'No such file.'); }
       return send(res, 200, buf, { 'content-type': MIME[path.extname(m[2])] ?? 'application/octet-stream', 'cache-control': 'public, max-age=31536000, immutable', ...cors });
@@ -284,5 +307,5 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     log(`${req.method} ${req.url.split('?')[0]} ${res.statusCode} ${Date.now() - started}ms`);
   });
 
-  return { server, store, captures, voucherSigner, arkiv };
+  return { server, store, captures, voucherSigner, arkiv, ads };
 }
