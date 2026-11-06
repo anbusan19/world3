@@ -19,6 +19,7 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /
 apt-get update -y && apt-get install -y caddy
 
 id wrld3 >/dev/null 2>&1 || useradd --system --create-home --shell /usr/sbin/nologin wrld3
+git config --global --add safe.directory "$APP"
 [ -d "$APP/.git" ] || git clone "$REPO" "$APP"
 git -C "$APP" pull --ff-only
 (cd "$APP/backend" && npm ci --omit=dev)
