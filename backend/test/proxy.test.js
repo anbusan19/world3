@@ -57,6 +57,11 @@ test('proxy forwards the feed and files only, read-only', async () => {
   assert.match(seen[seen.length - 2], /^POST \/api\/v1\/capture\/verify/);
   assert.equal((await sendApp('POST', '/api/v1/auth/nonce', { origin: 'https://evil.example' })).status, 403); // browsers are refused
   for (const p of ['/api/spots', '/api/sponsors', '/api/chain/sync', '/api/events']) assert.equal((await sendApp('POST', p)).status, 405); // organizer routes stay closed
+  // a sponsor's ad shows after a capture: the app asks for the ad (signed in) and then loads its picture
+  assert.equal((await sendApp('GET', '/api/v1/spots/02/ad', { authorization: 'Bearer abc' })).status, 200);
+  assert.equal((await get(port, '/files/ads/abc123.webp')).status, 200);
+  assert.match(seen[seen.length - 2], /^GET \/api\/v1\/spots\/02\/ad /);
+  seen.length -= 2; // not counted below
   assert.equal((await sendApp('GET', '/api/v1/ads/stats')).status, 404);
   assert.equal((await sendApp('GET', '/api/spots')).status, 404);
   assert.equal(seen.length, seenBefore + 3); // none of the refused ones reached the server

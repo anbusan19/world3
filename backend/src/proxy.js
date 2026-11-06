@@ -12,7 +12,7 @@ const SITE_HOSTS = String(process.env.PUBLIC_SITE_HOSTS ?? '').split(',').map((s
 const ALLOWED = [
   /^\/api\/health$/,
   /^\/api\/v1\/spots$/,
-  /^\/files\/(models|images)\/[A-Za-z0-9._-]+$/,
+  /^\/files\/(models|images|ads)\/[A-Za-z0-9._-]+$/,
   // the advertiser page and the two read-only facts it needs. The organizer's approval routes (/api/sponsors) are deliberately not here.
   /^\/(sponsor\.html|sponsor\.css|skin\.css|sponsor\.bundle\.js|tour\.js|hero-globe\.bundle\.js|logo\.png|title-light\.png|title-dark\.png)$/,
   /^\/api\/v1\/sponsors\/(info|campaigns)$/,
@@ -30,7 +30,7 @@ const ALLOWED = [
 
 // The phone app's own API. These are the only non-public routes the front forwards, and only with the method listed.
 // The organizer dashboard's routes (/api/spots, /api/events, /api/sponsors, /api/chain/sync, ads stats ...) are NOT here.
-const APP_GET = [/^\/api\/v1\/me$/, /^\/api\/v1\/me\/captures$/, /^\/api\/v1\/passport$/, /^\/api\/v1\/passport\/name$/, /^\/api\/v1\/vouchers$/];
+const APP_GET = [/^\/api\/v1\/spots\/[A-Za-z0-9_-]{1,40}\/ad$/, /^\/api\/v1\/me$/, /^\/api\/v1\/me\/captures$/, /^\/api\/v1\/passport$/, /^\/api\/v1\/passport\/name$/, /^\/api\/v1\/vouchers$/];
 const APP_POST = [/^\/api\/v1\/auth\/(nonce|verify|signout|recovery|restore)$/, /^\/api\/v1\/capture\/(nonce|verify)$/, /^\/api\/v1\/passport(\/public)?$/, /^\/api\/v1\/ads\/impression$/];
 const APP_BODY_MAX = 512 * 1024;
 
