@@ -22,7 +22,7 @@ export function Home({ spots: all, user, collected, openSpot, onFix }) {
   const strip = useRef(null);
 
   // nearest first when we know where you are
-  const ordered = [...spots].sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
+  const ordered = [...spots].sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity)).slice(0, 12); // the 12 nearest keep the strip light
 
   return (
     <View style={StyleSheet.absoluteFill}>
