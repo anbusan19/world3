@@ -14,7 +14,7 @@ const THEMES = {
   ocean: { frame: '#3D8FD0', sky: '#D6EAF8', hill: '#7FB8E3', hill2: '#0265AD', accent: '#0B4F86' },
 };
 const THEME_NAMES = { coral: 'Coral', sky: 'Sky', sun: 'Sun', leaf: 'Leaf', ocean: 'Ocean' };
-const ARTS = [['', 'None (use the model image)'], ['gateway', 'Gateway of India'], ['ethglobal', 'ETHGlobal Mumbai'], ['csmt', 'CSMT station']];
+const ARTS = [['', 'None (use the model image)'], ['gateway', 'Gateway of India'], ['ethglobal', 'ETHGlobal Mumbai'], ['csmt', 'CSMT station'], ['ens', 'ENS logo'], ['arkiv', 'Arkiv logo'], ['world', 'World logo']];
 const FIELDS = ['name', 'label', 'city', 'type', 'kind', 'lat', 'lng', 'captureRadiusM', 'approachRadiusM', 'heading', 'scale', 'heightOffsetM', 'theme', 'art', 'published', 'onArkiv', 'eventId', 'requiresFrom', 'requiresMin'];
 const NUMBERS = new Set(['lat', 'lng', 'captureRadiusM', 'approachRadiusM', 'heading', 'scale', 'heightOffsetM']);
 const DEFAULT_CENTER = [72.8347, 18.9322];

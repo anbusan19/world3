@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Linking, Pressable, Text, TextInput, View } f
 import { Ionicons } from '@expo/vector-icons';
 import { Stamp } from '../Stamp';
 import { eventOf, getEvents, shortName, spots } from '../spots';
+import { eventLine } from '../eventLine';
 import { explorerUrl, fetchExplorer } from '../world';
 import { F, STAMP_THEMES, makeStyles, useColors } from '../theme';
 
@@ -96,16 +97,6 @@ function groupByEvent(list) {
   // live first, and among those the one closing soonest (the limited-time ones) on top; ended memories last
   const end = (e) => (e?.endsAt ? Date.parse(e.endsAt) : Infinity);
   return [...map.values()].sort((a, b) => rank(a.ev) - rank(b.ev) || end(a.ev) - end(b.ev));
-}
-function eventLine(ev) {
-  if (!ev) return '';
-  const d = (iso) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-  if (ev.status === 'ended') return `Ended ${d(ev.endsAt)}`;
-  if (ev.status === 'upcoming') return `Starts ${d(ev.startsAt)}`;
-  if (!ev.endsAt) return 'Always on';
-  const ms = Date.parse(ev.endsAt) - Date.now();
-  const days = Math.floor(ms / 86400000);
-  return days >= 1 ? `Ends in ${days} d` : `Ends in ${Math.max(1, Math.floor(ms / 3600000))} h`;
 }
 
 const ago = (iso) => {

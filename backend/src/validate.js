@@ -4,7 +4,7 @@
 export const TYPES = ['LANDMARK', 'EVENT'];
 export const KINDS = ['geospatial', 'anchor', 'quest']; // quest: claimed from anywhere once its requirements are met
 export const THEMES = ['coral', 'sky', 'sun', 'leaf', 'ocean'];
-export const ARTS = ['gateway', 'ethglobal', 'csmt']; // illustrations bundled inside the app
+export const ARTS = ['gateway', 'ethglobal', 'csmt', 'ens', 'arkiv', 'world']; // illustrations bundled inside the app
 export const ICONS = ['business', 'ticket', 'train', 'location', 'flag', 'home', 'boat', 'flame', 'triangle', 'radio', 'time', 'person', 'grid', 'git-branch'];
 
 const num = (v) => (typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN);

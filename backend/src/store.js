@@ -16,13 +16,16 @@ export class Store {
     this.modelsDir = path.join(dir, 'models');
     this.imagesDir = path.join(dir, 'images');
     this.spots = [];
+    this.counter = 0; // the highest id ever handed out: an id is never reused, even after its spot is deleted
   }
 
   async init(seed = []) {
     await mkdir(this.modelsDir, { recursive: true });
     await mkdir(this.imagesDir, { recursive: true });
     if (existsSync(this.file)) {
-      this.spots = JSON.parse(await readFile(this.file, 'utf8')).spots ?? [];
+      const j = JSON.parse(await readFile(this.file, 'utf8'));
+      this.spots = j.spots ?? [];
+      this.counter = Math.max(Number(j.counter) || 0, ...this.spots.map((x) => parseInt(x.id, 10) || 0));
       return;
     }
     const now = new Date().toISOString();
@@ -36,11 +39,12 @@ export class Store {
       createdAt: now,
       updatedAt: now,
     }));
+    this.counter = this.spots.length;
     await this.#save();
   }
 
   #save() {
-    const data = JSON.stringify({ version: 1, spots: this.spots }, null, 2);
+    const data = JSON.stringify({ version: 2, counter: this.counter, spots: this.spots }, null, 2);
     this.#queue = this.#queue.then(async () => {
       const tmp = `${this.file}.tmp`;
       await writeFile(tmp, data);
@@ -58,8 +62,9 @@ export class Store {
   }
 
   #nextId() {
-    const max = this.spots.reduce((m, s) => Math.max(m, parseInt(s.id, 10) || 0), 0);
-    return String(max + 1).padStart(2, '0');
+    const max = this.spots.reduce((m, s) => Math.max(m, parseInt(s.id, 10) || 0), this.counter);
+    this.counter = max + 1;
+    return String(this.counter).padStart(2, '0');
   }
 
   async create(value) {

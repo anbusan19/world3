@@ -84,3 +84,12 @@ test('a quest spot stays locked until enough of its stamps are collected, and ea
   const bad = await j('/api/spots', { method: 'POST', headers: H, body: JSON.stringify({ name: 'Bad quest', lat: 19, lng: 72.8, requires: { from: [a.id], min: 3 } }) });
   assert.equal(bad.status, 400);
 });
+
+test('a spot id is never reused after its spot is deleted (a stamp must never move to another place)', async () => {
+  const mk = async (name) => (await j('/api/spots', { method: 'POST', headers: H, body: JSON.stringify({ name, lat: 19, lng: 72.8 }) })).body.spot;
+  const a = await mk('First'); const b = await mk('Second');
+  await j(`/api/spots/${b.id}`, { method: 'DELETE', headers: H });
+  const c = await mk('Third');
+  assert.notEqual(c.id, b.id, 'the highest id was freed, but it is not handed out again');
+  assert.ok(Number(c.id) > Number(b.id) && Number(a.id) < Number(b.id));
+});

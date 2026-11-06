@@ -25,6 +25,7 @@ import { Onboarding } from './src/Onboarding';
 import { SignIn } from './src/screens/SignIn';
 import { Home } from './src/screens/Home';
 import { Collection } from './src/screens/Collection';
+import { Events } from './src/screens/Events';
 import { GlobeScreen } from './src/screens/GlobeScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { SpotDetail } from './src/screens/SpotDetail';
@@ -36,6 +37,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 const TABS = [
   { key: 'EXPLORE', icon: 'compass' },
   { key: 'COLLECTION', icon: 'albums' },
+  { key: 'EVENTS', icon: 'trophy' },
   { key: 'GLOBE', icon: 'earth' },
   { key: 'PASSPORT', icon: 'person' },
 ];
@@ -222,6 +224,7 @@ function AppInner() {
             keyboardShouldPersistTaps="handled"
             scrollEnabled={!scrollLock}
           >
+            {tab === 'EVENTS' && <Events collected={collected} openSpot={(s) => push('spot', s)} />}
             {tab === 'COLLECTION' && (
               <Collection collected={collected} openSpot={(s) => push('spot', s)} openStamp={(s) => push('stamp', s)} />
             )}
@@ -229,6 +232,8 @@ function AppInner() {
               <ProfileScreen
                 collected={collected}
                 openStamp={(s) => push('stamp', s)}
+                goStamps={() => setTab('COLLECTION')}
+                goEvents={() => setTab('EVENTS')}
                 profile={profile}
                 setProfile={saveProfile}
                 settings={settings}

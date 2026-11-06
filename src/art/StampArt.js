@@ -1,3 +1,4 @@
+import { WORLD_PATH } from './WorldMark';
 import Svg, { Circle, Defs, Ellipse, G, Line, LinearGradient, Path, Polygon, Rect, Stop } from 'react-native-svg';
 
 // Hand-drawn vector scenes for the stamps. All share one 160 x 180 canvas and are scaled with "slice", so they fill
@@ -316,7 +317,54 @@ function Csmt() {
   );
 }
 
-const ART = { gateway: Gateway, ethglobal: EthGlobal, csmt: Csmt };
+
+/* ------------------------- sponsor anchors: ENS, Arkiv, World ------------------------- */
+
+// One logo, big and centred, on a pastel sky with two hills, in the stamp style.
+function LogoScene({ sky, hill, hill2, children }) {
+  return (
+    <Frame>
+      <Rect width="160" height="180" fill={sky} />
+      <Circle cx="132" cy="30" r="14" fill="#F26B21" />
+      <Ellipse cx="30" cy="190" rx="110" ry="58" fill={hill} />
+      <Ellipse cx="150" cy="196" rx="110" ry="62" fill={hill2} />
+      {children}
+    </Frame>
+  );
+}
+
+const ENS_D = 'M11.725.223 5.107 11.13a.146.146 0 0 1-.237.018c-.583-.692-2.753-3.64-.067-6.327 2.45-2.452 5.572-4.2 6.73-4.804.13-.068.269.08.192.206m-.366 23.747c.132.093.295-.064.206-.2-1.478-2.251-6.392-9.744-7.07-10.869-.67-1.11-1.987-2.953-2.097-4.53-.011-.158-.228-.19-.283-.042a10 10 0 0 0-.27.85c-1.105 4.11.5 8.472 3.985 10.916zm.909-.193 6.618-10.907a.146.146 0 0 1 .237-.018c.582.692 2.753 3.64.067 6.327-2.45 2.452-5.572 4.2-6.73 4.804-.13.068-.269-.08-.192-.206M12.641.028c-.132-.093-.295.065-.206.2 1.478 2.252 6.392 9.745 7.07 10.87.67 1.109 1.987 2.952 2.097 4.53.011.157.228.19.283.041.088-.239.182-.524.27-.85 1.105-4.11-.5-8.472-3.985-10.915z';
+function Ens() {
+  return (
+    <LogoScene sky="#DCEBFA" hill="#9CC8EA" hill2="#6FA9DB">
+      <G transform="translate(36 40) scale(3.55)"><Path d={ENS_D} fill="#0080BC" /></G>
+    </LogoScene>
+  );
+}
+
+function Arkiv() {
+  return (
+    <LogoScene sky="#FFE9D6" hill="#F7C59F" hill2="#F2A065">
+      <G transform="translate(35 38) scale(4.1)">
+        <Path d="M12 2.5l8.5 4.9v9.2L12 21.5l-8.5-4.9V7.4z" fill="#F26B21" />
+        <Path d="M3.8 7.6L12 12.4l8.2-4.8M12 12.4v9" stroke="#FFFFFF" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" fill="none" />
+      </G>
+    </LogoScene>
+  );
+}
+
+function World() {
+  const k = 100 / 528;
+  return (
+    <LogoScene sky="#EAF6EA" hill="#CFE8A8" hill2="#A6D16C">
+      <G transform={`translate(30 36) scale(${k})`}>
+        <G transform="translate(0,528) scale(0.1,-0.1)"><Path d={WORLD_PATH} fill="#0B0B0F" /></G>
+      </G>
+    </LogoScene>
+  );
+}
+
+const ART = { gateway: Gateway, ethglobal: EthGlobal, csmt: Csmt, ens: Ens, arkiv: Arkiv, world: World };
 
 export function hasArt(name) {
   return name != null && ART[name] != null;

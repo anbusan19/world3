@@ -249,4 +249,31 @@ export const LANDMARKS = {
     for (const [x, z] of [[4.3, 0.3], [-4.3, 0.3], [4.3, -8.3], [-4.3, -8.3]]) { let yy = 12.3; for (let i = 0; i < 4; i++) { const w = 3 - i * 0.55; s.frus(K.a, x, yy, z, w, w, w - 0.55, w - 0.55, 1.6); yy += 1.6; } s.cyl(K.b, x, yy, z, 0.8, 0, 1, 8); }
     let z0 = 5; [[10, 8, 5, 2.6], [8, 6, 4, 2.4], [6, 5, 3, 2]].forEach(([w, d, h, th], i) => { s.box(K.a, 0, 4.3, z0 + i * 0 - 5 + (i * 5), w, h, d, {}); s.frus(K.b, 0, 4.3 + h, z0 - 5 + i * 5, w + 0.4, d + 0.4, w * 0.35, d * 0.35, th); });
   },
+
+  // ---- the sponsor logos, in 3D: a cartoon plinth with the mark standing on it ----
+  'ens-logo'(s) {
+    const blue = hex('#0080BC'); const sky = hex('#5298FF'); const base = hex('#DCEBFA');
+    s.cyl(base, 0, 0, 0, 5.2, 4.8, 0.9, 32); s.cyl(hex('#9CC8EA'), 0, 0.9, 0, 4.4, 4.2, 0.3, 32);
+    // the ENS mark: two tall faceted gems leaning against each other
+    const gem = (c, x, y, tilt) => s.at({ x, y: 1.2 + y, rz: tilt }, () => { s.frus(c, 0, 0, 0, 3.2, 3.2, 0, 0, 5.4); s.frus(c, 0, 0, 0, 3.2, 3.2, 0, 0, 5.4, { rx: 180 }); });
+    gem(sky, -1.0, 5.4, 16); gem(blue, 1.0, 3.2, 16);
+    s.ball(blue, 0, 1.2, 0, 0.0001);
+  },
+  'arkiv-logo'(s) {
+    const o = hex('#F26B21'); const o2 = hex('#F9A06A'); const w = hex('#FFFFFF');
+    s.cyl(hex('#FFE9D6'), 0, 0, 0, 5.2, 4.8, 0.9, 32); s.cyl(hex('#F7C59F'), 0, 0.9, 0, 4.4, 4.2, 0.3, 32);
+    // the Arkiv mark: a cube seen corner-on, sitting on a corner so the edges form the hexagon of the logo
+    s.at({ y: 1.2 + 0.9, ry: 45 }, () => {
+      s.box(o, 0, 0, 0, 5.4, 5.4, 5.4); s.box(o2, 0, 5.39, 0, 5.42, 0.12, 5.42);
+      for (const [x, z] of [[2.71, 2.71], [-2.71, 2.71], [2.71, -2.71], [-2.71, -2.71]]) s.box(w, x, 0, z, 0.16, 5.4, 0.16);
+    });
+  },
+  'world-logo'(s) {
+    const k = hex('#0B0B0F'); const w = hex('#F4F1EA'); const g = hex('#8CC152');
+    s.cyl(hex('#EAF6EA'), 0, 0, 0, 5.2, 4.8, 0.9, 32); s.cyl(hex('#CFE8A8'), 0, 0.9, 0, 4.4, 4.2, 0.3, 32);
+    // the World mark: a globe inside a ring
+    s.at({ y: 1.2 + 3.6 }, () => { for (let i = 0; i < 28; i++) s.at({ rz: (i / 28) * 360 }, () => s.at({ y: 3.9 }, () => s.box(k, 0, -0.45, -0.5, 0.95, 0.95, 1.0))); });
+    s.ball(w, 0, 1.2 + 0.9, 0, 2.7, 5.4, 24);
+    s.at({ y: 1.2 + 3.6 }, () => { s.cyl(k, 0, -0.07, 0, 2.74, 2.74, 0.14, 28); s.cyl(g, 0, 0.9, 0, 2.55, 2.55, 0.12, 28); s.cyl(g, 0, -1.0, 0, 2.55, 2.55, 0.12, 28); });
+  },
 };
