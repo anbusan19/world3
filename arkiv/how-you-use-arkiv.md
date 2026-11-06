@@ -24,7 +24,8 @@
 **What is real today:** two spots (Gateway of India, CSMT) written and read back on Rabdi, the dashboard switch, the public
 list route, and the app chip. **Sponsor campaigns:** one demo campaign is on Rabdi, written with the advertiser tool; the server reads it,
 validates it, and the app shows it as a "Sponsored" card on the stamp screen after a verified capture.
-**What is not built:** payouts to stamp holders, Swarm for large images, and campaigns written from a browser wallet (today a sponsor uses the CLI).
+**Advertisers** use a web page (`/sponsor.html`) or a command: they connect their own wallet, publish, and pause or delete their own campaign. The organizer approves wallets on `/sponsors.html`. The browser wallet step has not yet been tested by us with a real wallet.
+**What is not built:** payouts to stamp holders and Swarm for large images.
 
 ## What we kept off Arkiv, and why
 

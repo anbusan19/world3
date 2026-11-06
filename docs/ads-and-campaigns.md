@@ -5,8 +5,13 @@ impression counts). **Layer C (escrow and payouts) is not built.** Large creativ
 built. Testnet only.
 
 Two choices differ from the plan below: the ad is shown **after** a verified capture (on the "Stamp collected" screen), not on the verify
-step, so a sponsor only pays for attention from a verified person who really was there; and advertisers publish with a command-line tool
-(`backend/scripts/campaign-create.mjs`) for now.
+step, so a sponsor only pays for attention from a verified person who really was there; and advertisers publish either from the
+**advertiser page** (`/sponsor.html`: connect a wallet, fill in the campaign, see live status and counts, pause/resume/delete) or with the
+command-line tool (`backend/scripts/campaign-create.mjs`).
+
+The organizer approves sponsor wallets on `/sponsors.html` (or with `ARKIV_SPONSORS`); approvals apply immediately. The advertiser page signs
+everything in the sponsor's own wallet and never sends a key to the server. **Not yet tested by us with a real browser wallet** (the form,
+validation, server endpoints and the organizer page were tested; the MetaMask connect and write steps need a person to approve).
 
 ## The idea
 

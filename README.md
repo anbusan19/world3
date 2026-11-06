@@ -495,7 +495,7 @@ Built for **ETHGlobal Mumbai**.
 | **Arkiv** | Spot and sponsor-campaign entities written to Arkiv testnet by their owners, with an in-app feature that reads them |
 
 **Arkiv, for judges.** Writer wallet: `0xf47cB2e4353F5daF04fA7AF0955551ab7DB74b52` (Rabdi testnet, chain id 7794095). Run one query with no
-World3 server: `cd backend && npm install && node scripts/arkiv-query.mjs`. Details in [`/arkiv`](arkiv/). Sponsor campaigns (ads written by sponsors' own wallets, shown after a verified capture) are built; escrow and payouts are **not**. See
+World3 server: `cd backend && npm install && node scripts/arkiv-query.mjs`. Details in [`/arkiv`](arkiv/). Sponsor campaigns (ads written by sponsors' own wallets from the advertiser page `/sponsor.html`, approved by the organizer on `/sponsors.html`, shown after a verified capture) are built; escrow and payouts are **not**. See
 [`docs/ads-and-campaigns.md`](docs/ads-and-campaigns.md).
 
 Submission checklist:

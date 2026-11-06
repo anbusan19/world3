@@ -35,7 +35,7 @@ lifetime is about 182 days. Unticking the box, unpublishing, or deleting the spo
 **Who can change it:** only the organizer wallet (Arkiv's owner-only rule). Our dashboard is the only thing that holds that key.
 
 ### `world3.campaign` (built)
-A sponsor's ad for one spot. **Written and owned by the sponsor's own wallet**, with `backend/scripts/campaign-create.mjs`. The ad image
+A sponsor's ad for one spot. **Written and owned by the sponsor's own wallet**, from the advertiser page (`/sponsor.html`) or `backend/scripts/campaign-create.mjs`. The ad image
 is stored *inside* the entity (up to ~100 KB), so there is no second storage system and it expires with the campaign.
 
 | Field | Type | Indexed | What it is |
