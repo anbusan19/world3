@@ -2,6 +2,8 @@
 
 > **Go there. Prove it. Keep it.** Proof of Travel: a geopinned 3D collectible you can only capture by standing in the right place, as a verified human, and keep as an onchain passport stamp.
 
+**Live:** [wrld3.vercel.app](https://wrld3.vercel.app) · [advertise](https://wrld3-sponsors.vercel.app) · [download the APK](https://github.com/anbusan19/world3/releases/latest)
+
 Built for **ETHGlobal Mumbai** (Nov 5-7, 2026). Android app (React Native / Expo, AR capture), World ID, ENSv2, Arkiv, and a public web passport page.
 
 > **Status: prototype.** Testnet only (Sepolia for contracts and ENS, Arkiv testnet), not audited. Items in the status table are ticked only after being verified on a real device.
