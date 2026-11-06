@@ -352,7 +352,7 @@ wrld3/
 
 ## Getting started
 
-Target workflow. The commands below describe what the finished repository should support.
+**Just want the app?** Download the APK from the [latest release](../../releases/latest); see [docs/install.md](docs/install.md) for requirements and install steps.
 
 ### Prerequisites
 

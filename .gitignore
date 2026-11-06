@@ -17,3 +17,4 @@ backend/data/
 .agents/
 .claude/skills/
 skills-lock.json
+dist/

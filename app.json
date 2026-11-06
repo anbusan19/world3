@@ -29,8 +29,19 @@
           "imageWidth": 200
         }
       ],
-      ["expo-location", { "locationWhenInUsePermission": "wrld3 uses your location to show nearby spots and check you are really there." }],
-      ["expo-camera", { "cameraPermission": "wrld3 uses the camera to show the stamp in front of you when you capture it, and to scan venue QR codes.", "recordAudioAndroid": false }],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "wrld3 uses your location to show nearby spots and check you are really there."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "wrld3 uses the camera to show the stamp in front of you when you capture it, and to scan venue QR codes.",
+          "recordAudioAndroid": false
+        }
+      ],
       "expo-secure-store",
       "expo-local-authentication",
       "expo-notifications",
@@ -42,8 +53,26 @@
           }
         }
       ],
-      ["@reactvision/react-viro", { "provider": "none", "android": { "xRMode": ["AR"] } }],
-      ["@maplibre/maplibre-react-native", { "android": { "nativeVersion": "13.7.0-pre-globe.0" } }]
+      [
+        "@reactvision/react-viro",
+        {
+          "provider": "none",
+          "android": {
+            "xRMode": [
+              "AR"
+            ]
+          }
+        }
+      ],
+      [
+        "@maplibre/maplibre-react-native",
+        {
+          "android": {
+            "nativeVersion": "13.7.0-pre-globe.0"
+          }
+        }
+      ],
+      "./plugins/release-signing"
     ]
   }
 }

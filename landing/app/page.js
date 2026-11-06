@@ -62,7 +62,7 @@ const NEXT = [
 ];
 
 // The APK lives on the repository's latest GitHub release, under this fixed name; set NEXT_PUBLIC_APK_URL to host it elsewhere.
-const APK_URL = process.env.NEXT_PUBLIC_APK_URL || 'https://github.com/anbusan19/wrld3/releases/latest/download/wrld3.apk';
+const APK_URL = process.env.NEXT_PUBLIC_APK_URL || 'https://github.com/anbusan19/world3/releases/latest/download/wrld3.apk';
 
 export default function Home() {
   return (
