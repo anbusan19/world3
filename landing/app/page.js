@@ -52,6 +52,9 @@ const NEXT = [
   ['ENS passport', 'with permissioned stamp records.'],
 ];
 
+// The APK lives on the repository's latest GitHub release, under this fixed name; set NEXT_PUBLIC_APK_URL to host it elsewhere.
+const APK_URL = process.env.NEXT_PUBLIC_APK_URL || 'https://github.com/anbusan19/world3/releases/latest/download/world3.apk';
+
 export default function Home() {
   return (
     <>
@@ -85,7 +88,7 @@ export default function Home() {
             </div>
             <div className="hero-bottom">
               <div className="cta">
-                <a className="btn solid" href="#launch">
+                <a className="btn solid" href={APK_URL} download>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/sponsors/android.svg" alt="" width="22" height="22" style={{ filter: 'invert(1)', marginRight: 10 }} />
                   Download for Android
@@ -295,6 +298,36 @@ export default function Home() {
               <h3>Still to build</h3>
               <ul>{NEXT.map(([b, t]) => <li key={b}><span className="dotnext" /><span><b>{b}</b> {t}</span></li>)}</ul>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* get the app */}
+      <section className="sec getapp" id="get">
+        <div className="wrap pad">
+          <div className="getcard reveal">
+            <div className="getcopy">
+              <p className="eyebrow">Get the app</p>
+              <h2>Scan it. Install it. Go there.</h2>
+              <p className="lede">World3 is an Android app. Scan the code with your phone, or press the button, to download the APK from our latest GitHub release.</p>
+              <div className="cta">
+                <a className="btn solid" href={APK_URL} download>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/sponsors/android.svg" alt="" width="22" height="22" style={{ filter: 'invert(1)', marginRight: 10 }} />
+                  Download the APK
+                </a>
+              </div>
+              <ul className="getnotes">
+                <li>Android 8 or newer.</li>
+                <li>Android asks to allow installs from your browser the first time. That is normal for apps outside the Play Store.</li>
+                <li>It is a testnet prototype for ETHGlobal Mumbai, not audited.</li>
+              </ul>
+            </div>
+            <figure className="getqr">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/apk-qr.svg" alt="QR code that downloads the World3 APK" width="220" height="220" />
+              <figcaption>Scan to download</figcaption>
+            </figure>
           </div>
         </div>
       </section>

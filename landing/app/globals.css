@@ -295,3 +295,13 @@ footer.site .in { display: grid; gap: 30px; justify-items: start; }
 footer.site .boat { right: 6%; top: 60px; }
 
 .step h3 { color: #0B0B0F; }
+
+/* ---- get the app: button + QR ---- */
+.getapp { background: var(--cream); }
+.getcard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: clamp(24px, 5vw, 72px); align-items: center; background: #fff; border-radius: 44px; padding: clamp(24px, 4vw, 56px); }
+.getcard h2 { margin: 6px 0 14px; }
+.getnotes { margin: 20px 0 0; padding-left: 18px; color: #5B5F69; font-size: 14px; display: grid; gap: 6px; }
+.getqr { margin: 0; text-align: center; }
+.getqr img { display: block; width: clamp(180px, 22vw, 240px); height: auto; border-radius: 28px; padding: 14px; background: #fff; box-shadow: 0 0 0 3px var(--green), 0 18px 40px rgba(11, 11, 15, .1); }
+.getqr figcaption { margin-top: 12px; font-weight: 700; font-size: 13px; color: #5B5F69; }
+@media (max-width: 800px) { .getcard { grid-template-columns: 1fr; } .getqr { justify-self: start; } }
