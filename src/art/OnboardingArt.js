@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { ClipPath, Circle, Defs, Ellipse, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { Stamp } from '../Stamp';
+import { GlobeHero } from './GlobeHero';
 import { F, makeStyles, useColors } from '../theme';
 
 // Hero illustrations for the onboarding slides that are not stamps: the app's map card + a flat globe (slide 1) and a
@@ -138,6 +139,7 @@ const Squiggle = ({ color = '#F6E27A', w = 64 }) => (
 // with a circled arrow, and a few loose squiggles. Flat colour only, same shapes as the website.
 export function IntroHero() {
   const styles = useStyles();
+  const { width } = useWindowDimensions();
   return (
     <View style={styles.intro}>
       <Svg width="100%" height="100%" viewBox="0 0 340 380" preserveAspectRatio="none" style={StyleSheet.absoluteFill}>
@@ -146,11 +148,9 @@ export function IntroHero() {
       </Svg>
       <View style={styles.introSquig1}><Squiggle /></View>
       <View style={styles.introSquig2}><Squiggle color="#FFFFFF" w={48} /></View>
-      <View style={styles.introMap}>
-        <MapHero />
-      </View>
+      <GlobeHero size={Math.min(250, width * 0.66)} />
       <View style={styles.introChip}>
-        <Text style={styles.introChipText}>3 spots near you</Text>
+        <Text style={styles.introChipText}>Spots across India</Text>
         <View style={styles.introChipArrow}>
           <Ionicons name="arrow-forward" size={14} color="#A6D16C" />
         </View>
