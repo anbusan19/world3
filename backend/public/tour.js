@@ -7,6 +7,18 @@
   const $ = (s) => document.querySelector(s);
   const visible = (s) => { const e = $(s); return !!e && !e.hidden && e.offsetParent !== null; };
 
+  // fields the person has to fill in are outlined and tagged while their step is showing
+  const todo = [];
+  function markTodo(sel) {
+    const e = $(sel); if (!e) return;
+    const holder = e.closest('.field') ?? e;
+    if (holder.classList.contains('w3-todo')) return;
+    holder.classList.add('w3-todo');
+    const tag = document.createElement('span'); tag.className = 'w3-tag'; tag.textContent = 'Fill this in';
+    holder.append(tag); todo.push([holder, tag]);
+  }
+  function clearTodo() { while (todo.length) { const [h, t] = todo.pop(); h.classList.remove('w3-todo'); t.remove(); } }
+
   function build() {
     const tour = new window.Shepherd.Tour({
       useModalOverlay: true,
@@ -21,11 +33,11 @@
       { id: 'setup', attach: '#easy', on: 'right', title: '1 · Set up your wallet', text: 'Press “Set me up in one click”. It connects MetaMask, adds the Arkiv testnet and sends you free test tGLM to pay the tiny network fee. No real money is involved.', buttons: [back, next] },
       { id: 'manual', attach: '#addNet', on: 'bottom', title: 'Or do it step by step', text: '“Add testnet to MetaMask” adds the network. “Get free tGLM” asks our faucet for tokens (one drip per wallet per day).', buttons: [back, next] },
       { id: 'approval', attach: '#s-create', on: 'top', title: '2 · Approval', text: 'The organizer must approve your wallet before your ad can show. In hackathon mode that happens automatically. Otherwise, copy your wallet address and send it to the organizer. A note appears here if you are waiting.', buttons: [back, next] },
-      { id: 'spot', attach: '#spot', on: 'bottom', title: '3 · Pick a spot', text: 'Choose the place where your ad appears. People see it only after they capture that spot.', buttons: [back, next] },
-      { id: 'words', attach: '#headline', on: 'bottom', title: 'Your name and headline', text: 'Keep it short: your brand name (40 characters) and one headline (60). The preview on the right updates as you type.', buttons: [back, next] },
-      { id: 'image', attach: '.layout-prompt', on: 'top', title: '4 · Add a 16:9 picture', text: 'Use a 16:9 image or GIF (1280×720 is ideal, up to 100 KB). Keep logos and text inside the dashed box so nothing is trimmed on small phones. Your file shows below straight away, with a note if the shape is off.', buttons: [back, next] },
-      { id: 'link', attach: '#url', on: 'top', title: 'Where it links', text: 'An https link people can open after tapping your ad.', buttons: [back, next] },
-      { id: 'days', attach: '#days', on: 'top', title: 'How long it runs', text: 'Pick a number of days. Your ad always stops when the event ends, even if you choose longer.', buttons: [back, next] },
+      { id: 'spot', fill: true, attach: '#spot', on: 'bottom', title: '3 · Pick a spot', text: 'Choose the place where your ad appears. People see it only after they capture that spot.', buttons: [back, next] },
+      { id: 'words', fill: true, also: ['#sponsor', '#headline'], attach: '#sponsor', on: 'bottom', title: 'Your name and headline', text: 'Keep it short: your brand name (40 characters) and one headline (60). The preview on the right updates as you type.', buttons: [back, next] },
+      { id: 'image', fill: true, also: ['#drop'], attach: '.layout-prompt', on: 'top', title: '4 · Add a 16:9 picture', text: 'Use a 16:9 image or GIF (1280×720 is ideal, up to 100 KB). Keep logos and text inside the dashed box so nothing is trimmed on small phones. Your file shows below straight away, with a note if the shape is off.', buttons: [back, next] },
+      { id: 'link', fill: true, attach: '#url', on: 'top', title: 'Where it links', text: 'An https link people can open after tapping your ad.', buttons: [back, next] },
+      { id: 'days', fill: true, attach: '#days', on: 'top', title: 'How long it runs', text: 'Pick a number of days. Your ad always stops when the event ends, even if you choose longer.', buttons: [back, next] },
       { id: 'preview', attach: '#preview', on: 'left', title: 'What travelers see', text: 'This is your ad exactly as it appears in the app.', buttons: [back, next] },
       { id: 'publish', attach: '#publish', on: 'top', title: '5 · Publish', text: 'Press Publish and confirm in MetaMask. It writes a public record from your wallet, so only you can change or delete it.', buttons: [back, next] },
       { id: 'results', attach: '#s-list', on: 'top', title: '6 · Watch it work', text: 'Your campaigns appear here with live views and captures. Views count people who saw your ad after a verified capture, once each. No names or wallets of travelers are shown.', buttons: [back, { text: 'Done', action: () => tour.complete() }] },
@@ -36,16 +48,40 @@
         id: s.id, title: s.title, text: s.text, buttons: s.buttons,
         ...(el ? { attachTo: { element: el, on: s.on }, canClickTarget: true } : {}),
         // a part of the page that is not on screen (for example, hidden before connecting) is skipped, not shown as a floating box
+        when: {
+          show() {
+            const idx = tour.steps.findIndex((x) => x.id === s.id) + 1;
+            const head = this.getElement()?.querySelector('.shepherd-header');
+            if (head && !head.querySelector('.w3-count')) { const c = document.createElement('span'); c.className = 'w3-count'; c.textContent = `${idx} / ${tour.steps.length}`; head.prepend(c); }
+            clearTodo();
+            if (s.fill) for (const sel of [el, ...(s.also ?? [])]) markTodo(sel);
+          },
+          hide: clearTodo,
+        },
         beforeShowPromise: () => new Promise((resolve) => { if (el && !visible(el)) { setTimeout(() => (tour.getCurrentStep()?.id === s.id ? tour.next() : null), 0); } resolve(); }),
       });
     }
-    tour.on('complete', mark); tour.on('cancel', mark);
+    tour.on('complete', () => { mark(); clearTodo(); }); tour.on('cancel', () => { mark(); clearTodo(); });
     return tour;
   }
 
   function start() { if (!window.Shepherd) return; try { window.__w3tour?.cancel(); } catch { /* none running */ } window.__w3tour = build(); window.__w3tour.start(); }
 
+  // the four things every ad needs are always marked "Required" and turn green once filled
+  function requiredMarks() {
+    const groups = [['#sponsor'], ['#headline'], ['#url'], ['#image']];
+    for (const [sel] of groups) {
+      const input = $(sel); const holder = input?.closest('.field'); if (!holder) continue;
+      holder.classList.add('req');
+      const update = () => holder.classList.toggle('filled', sel === '#image' ? !!$('#dropThumb img') : !!input.value.trim());
+      input.addEventListener('input', update); input.addEventListener('change', update);
+      if (sel === '#image') new MutationObserver(update).observe($('#dropThumb'), { childList: true });
+      update();
+    }
+  }
+
   function ready() {
+    requiredMarks();
     $('#tourBtn')?.addEventListener('click', start);
     if (!seen()) setTimeout(start, 900);
   }

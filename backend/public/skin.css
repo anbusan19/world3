@@ -105,3 +105,22 @@ main > .hero > *:not(.hero-globe), .xp .intro > *:not(.hero-globe) { position: r
 .shepherd-has-title .shepherd-content .shepherd-header { background: transparent !important; }
 .shepherd-has-title .shepherd-content .shepherd-header h3, .w3-tour .shepherd-title { color: var(--ink) !important; }
 .shepherd-element.w3-tour .shepherd-content { border-radius: 24px; }
+
+/* ---- tour: clearer card, an outline on what it points at, and tags on the fields to fill ---- */
+.shepherd-element.w3-tour { border: 2px solid var(--green); box-shadow: 0 0 0 6px color-mix(in srgb, var(--green) 22%, transparent), 0 24px 60px rgba(0, 0, 0, .4); }
+.shepherd-has-title .shepherd-content .shepherd-header { background: var(--green) !important; border-radius: 20px 20px 0 0; padding: 14px 18px !important; display: flex; align-items: center; gap: 10px; }
+.shepherd-has-title .shepherd-content .shepherd-header h3, .w3-tour .shepherd-title { color: #0B0B0F !important; flex: 1; }
+.w3-tour .shepherd-cancel-icon { color: #0B0B0F !important; }
+.w3-tour .shepherd-text { padding: 14px 20px 4px; color: var(--ink); opacity: .85; }
+.w3-count { background: #0B0B0F; color: var(--green); border-radius: 999px; font-size: 11px; font-weight: 800; padding: 3px 9px; letter-spacing: .04em; }
+.w3-tour .shepherd-arrow:before { background: var(--green) !important; }
+.shepherd-target { outline: 3px solid var(--green); outline-offset: 4px; border-radius: 14px; animation: glow 1.6s ease-in-out infinite; }
+@keyframes glow { 0%, 100% { outline-color: var(--green); box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); } 50% { outline-color: #fff; box-shadow: 0 0 0 10px transparent; } }
+.field { position: relative; }
+.field.w3-todo { background: color-mix(in srgb, var(--green) 14%, transparent); outline: 3px solid var(--green); outline-offset: 6px; border-radius: 16px; animation: glow 1.6s ease-in-out infinite; }
+.w3-tag { position: absolute; right: 0; top: -2px; background: var(--green); color: #0B0B0F; border-radius: 999px; font-size: 11px; font-weight: 800; padding: 3px 10px; letter-spacing: .03em; pointer-events: none; }
+.field.req > span:first-of-type::after { content: 'Required'; margin-left: 8px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--orange) 22%, transparent); color: var(--orange); }
+.field.req.filled > span:first-of-type::after { content: 'Done ✓'; background: color-mix(in srgb, var(--green) 30%, transparent); color: var(--ok); }
+@media (prefers-color-scheme: dark) { .field.req.filled > span:first-of-type::after { color: var(--green); } }
+.field.req:not(.filled) input:not([type=file]) { border-color: color-mix(in srgb, var(--orange) 55%, var(--line)); }
+@media (prefers-reduced-motion: reduce) { .shepherd-target, .field.w3-todo { animation: none; } }
