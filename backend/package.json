@@ -17,7 +17,11 @@
   },
   "dependencies": {
     "@arkiv-network/sdk": "^1.0.1",
+    "@noble/hashes": "^2.4.0",
     "@worldcoin/idkit-server": "^1.2.0",
     "viem": "^2.57.16"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
