@@ -16,11 +16,16 @@ test('explorer lists newest first, hides unknown spots and never shows user ids'
   assert.match(r.items[0].who, /^human-[0-9a-f]{4}$/);
   assert.ok(!JSON.stringify(r).includes('u_b'));
 });
-test('a published passport name replaces the anonymous handle; search and paging work', () => {
-  const passportOf = (id) => (id === 'u_a' ? { published: true, name: 'a7k2.wrld3.eth' } : { published: false, name: 'x.wrld3.eth' });
-  const r = explore({ captures: caps, spots, passportOf }, {});
-  assert.equal(r.items.find((i) => i.spotId === '01').who, 'a7k2.wrld3.eth');
-  assert.match(r.items.find((i) => i.spotId === '02').who, /^human-/); // private passport stays anonymous
+test('people are shown by wallet address (never an ENS name); search matches the address', () => {
+  const W = '0x' + 'ab12'.repeat(10);
+  const walletOf = (id) => (id === 'u_a' ? W : null);
+  const r = explore({ captures: caps, spots, walletOf }, {});
+  const a = r.items.find((i) => i.spotId === '01');
+  assert.equal(a.who, `${W.slice(0, 6)}…${W.slice(-4)}`);
+  assert.equal(a.wallet, W);
+  assert.ok(!JSON.stringify(r).includes('.eth'));
+  assert.match(r.items.find((i) => i.spotId === '02').who, /^human-/); // no wallet known: anonymous handle
+  assert.equal(explore({ captures: caps, spots, walletOf }, { q: 'ab12ab' }).total, 1);
   assert.equal(explore({ captures: caps, spots }, { q: 'gateway' }).total, 1);
   assert.equal(explore({ captures: caps, spots }, { spotId: '02' }).total, 1);
   assert.equal(explore({ captures: caps, spots }, { limit: 1, offset: 1 }).items.length, 1);

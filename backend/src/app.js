@@ -186,7 +186,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     // the public explorer: recent stamps across everyone (no personal data), searchable
     if (p === '/api/v1/explorer' && method === 'GET') {
       const q = url.searchParams;
-      return send(res, 200, explore({ captures: captures.items, spots: store.list().filter((s) => s.published), passportOf: (id) => passports?.get(id) ?? null }, { limit: q.get('limit'), offset: q.get('offset'), q: q.get('q') ?? '', spotId: q.get('spot') ?? '' }), cors);
+      return send(res, 200, explore({ captures: captures.items, spots: store.list().filter((s) => s.published), walletOf: (id) => passports?.ownerFor(id) ?? null }, { limit: q.get('limit'), offset: q.get('offset'), q: q.get('q') ?? '', spotId: q.get('spot') ?? '' }), cors);
     }
 
     // the person's own captures (so the app can show their stamps again after a restart or on a new phone)

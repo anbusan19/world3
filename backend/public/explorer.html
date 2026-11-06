@@ -39,7 +39,7 @@
   <main class="xp">
     <section class="intro hero">
       <h1>Every stamp, as it is collected.</h1>
-      <p>Each line is one verified human standing at one spot. Names are anonymous handles unless the person published a passport. Coordinates are never stored.</p>
+      <p>Each line is one verified human standing at one spot. Each person is shown by their wallet address, never a name. Coordinates are never stored.</p>
     </section>
     <section class="stat">
       <div class="tile green"><b id="total">–</b><span>stamps shown</span></div>
@@ -71,7 +71,7 @@
       state.total = r.total;
       $('#total').textContent = r.total; $('#places').textContent = r.spots.length;
       if (reset) $('#list').innerHTML = '';
-      $('#list').insertAdjacentHTML('beforeend', r.items.map((e) => `<div class="item"><div class="av" style="background:${TH[e.theme] || TH.coral}">${esc(e.spotId)}</div><div><b>${esc(e.who)}</b><small>collected ${esc(e.spot)} · ${esc(e.city || '')}</small></div><span class="when">${ago(e.at)}</span></div>`).join(''));
+      $('#list').insertAdjacentHTML('beforeend', r.items.map((e) => `<div class="item"><div class="av" style="background:${TH[e.theme] || TH.coral}">${esc(e.spotId)}</div><div><b title="${esc(e.wallet || '')}">${esc(e.who)}</b><small>collected ${esc(e.spot)} · ${esc(e.city || '')}</small></div><span class="when">${ago(e.at)}</span></div>`).join(''));
       state.offset += r.items.length;
       $('#empty').hidden = state.offset > 0; $('#more').hidden = state.offset >= r.total;
       if (reset) $('#chips').innerHTML = `<button class="chip2 ${state.spot ? '' : 'on'}" data-s="">All</button>` + r.spots.map((s) => `<button class="chip2 ${state.spot === s.id ? 'on' : ''}" data-s="${esc(s.id)}">${esc(s.name)} · ${s.count}</button>`).join('');
