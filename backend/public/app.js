@@ -206,7 +206,15 @@ function setPlacing(on) {
 
 /* ------------------------------------ list ------------------------------------ */
 
+function renderKpis() {
+  const el = $('#kpis'); if (!el) return;
+  const n = state.spots.length, pub = state.spots.filter((s) => s.published).length;
+  const tiles = [[n, 'spots', ''], [pub, 'published', 'green'], [n - pub, 'drafts', ''], [state.spots.filter((s) => s.model).length, 'with a 3D model', ''], [state.spots.filter((s) => s.arkiv).length, 'on Arkiv', '']];
+  el.innerHTML = tiles.map(([v, l, c]) => `<div class="kpi ${c}"><b>${v}</b><span>${l}</span></div>`).join('');
+}
+
 function renderList() {
+  renderKpis();
   const ul = $('#spots');
   if (!state.spots.length) {
     ul.innerHTML = '<li style="cursor:default;color:var(--muted)">No spots yet. Click “New spot”, then click the map.</li>';

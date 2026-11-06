@@ -1,0 +1,44 @@
+/* One skin for every World3 page (organizer dashboard, sponsors, advertiser, passport): warm cream ground, white rounded
+   cards, a floating pill top bar, pill buttons. It loads after each page's own stylesheet and only changes looks. */
+@media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {
+  :root { --bg: #F5F1E4; --soft: #EFEAD9; --line: #E4DDC6; --shadow: 0 10px 30px rgba(60, 50, 20, .09); }
+}
+body { letter-spacing: -.005em; }
+
+/* floating top bar */
+.top { position: sticky; top: 10px; z-index: 20; margin: 10px clamp(10px, 2vw, 24px) 6px; padding: 8px 10px 8px 16px; background: var(--card); border-radius: 999px; box-shadow: var(--shadow, 0 8px 24px rgba(11, 11, 15, .08)); }
+.top .brand img { border-radius: 12px; }
+.top .link, .top .navlink { padding: 8px 15px; border-radius: 999px; background: var(--soft); color: var(--ink); font-weight: 700; font-size: 13px; text-decoration: none; transition: background .15s; }
+.top .link:hover, .top .navlink:hover { background: var(--green); color: #0B0B0F; }
+.top .link.on, .top .navlink.on { background: var(--solid); color: var(--on-solid); }
+.status, .chip { background: var(--soft); }
+
+/* cards and panels */
+.panel, .mapwrap, .card { border-radius: 30px; }
+.panel-head h2, .card h2, .hero h1 { letter-spacing: -.035em; }
+.hero h1 { font-weight: 800; }
+
+/* buttons: pills, with a quiet lift */
+.btn { transition: transform .12s, filter .12s; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn.primary, .btn.dark { box-shadow: 0 6px 16px rgba(11, 11, 15, .16); }
+.btn.green { box-shadow: 0 6px 16px rgba(120, 160, 60, .3); }
+
+/* small numbers strip on the organizer dashboard */
+.kpis { display: flex; gap: 10px; flex-wrap: wrap; padding: 4px clamp(10px, 2vw, 24px) 10px; }
+.kpi { display: flex; align-items: baseline; gap: 8px; background: var(--card); border-radius: 999px; padding: 8px 16px; box-shadow: var(--shadow, none); }
+.kpi b { font-size: 20px; font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.kpi.green b { color: #3B7A12; }
+@media (prefers-color-scheme: dark) { .kpi.green b { color: var(--green); } }
+
+/* spot list: calmer rows */
+.spots li.sel { background: color-mix(in srgb, var(--green) 18%, var(--card)); }
+.tag.pub { background: var(--green); }
+
+/* sponsor + passport pages: bigger, tighter headlines and rounder cover */
+.h1, .name { letter-spacing: -.04em; }
+.cover { border-radius: 40px; }
+
+@media (max-width: 700px) { .top { border-radius: 28px; flex-wrap: wrap; } }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }

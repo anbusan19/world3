@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
   <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/skin.css">
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 </head>
@@ -18,10 +19,12 @@
     <div class="brand"><img src="/logo.png" alt="" width="34" height="34"><span>World3</span><em>Spots</em></div>
     <div class="grow"></div>
     <span id="status" class="status"><i></i><span>Connecting…</span></span>
+    <a class="link on" href="/">Spots</a>
     <a class="link" href="/sponsors.html">Sponsors</a>
     <a class="link" href="/sponsor.html" target="_blank" rel="noopener">Advertiser page</a>
     <a class="link" href="/api/v1/spots" target="_blank" rel="noopener">App feed</a>
   </header>
+  <div class="kpis" id="kpis" aria-live="polite"></div>
 
   <main class="grid">
     <aside class="panel list">
