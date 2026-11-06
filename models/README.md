@@ -45,3 +45,32 @@ The same generator builds a 3D version of each workstation logo, 4 m tall, same 
 | `ens-logo.glb` | ENS diamond |
 | `arkiv-logo.glb` | Arkiv |
 | `world-logo.glb` | The World mark, traced from the real logo image (`ref/world.png`): `node generate/trace-logo.mjs ../ref/world.png world-logo.glb` |
+
+## Sponsor coins (traced from the real logos)
+
+Every sponsor logo is a coin standing on its edge, 4 m across, with the real mark raised on both faces (mirrored on the back so it reads
+correctly). They are made from the logo pictures in `ref/`, not redrawn: `generate/split-colours.py` splits a logo into flat colour
+layers, and `generate/trace-logo.mjs` traces each layer's outline, triangulates it and extrudes it.
+
+| File | Logo |
+|---|---|
+| `world-logo.glb`, `ens-logo.glb`, `arkiv-logo.glb` | World, ENS, Arkiv (Arkiv is the bracketed A) |
+| `0g-logo.glb` | 0G |
+| `1inch-logo.glb` | 1inch |
+| `ethereum-foundation-logo.glb` | Ethereum Foundation |
+| `arc-logo.glb` | Arc |
+| `chainlink-logo.glb` | Chainlink |
+| `definitive-logo.glb` | Definitive |
+| `hedera-logo.glb` | Hedera |
+| `uniswap-logo.glb` | Uniswap |
+| `whitechain-logo.glb` | WhiteChain |
+
+Make another one:
+
+```
+python3 generate/split-colours.py ../ref/<logo>.png /tmp/<name> 3      # 3 = how many flat colours to keep
+node generate/trace-logo.mjs --spec /tmp/<name>/spec.json <name>-logo.glb
+```
+
+For a single dark mark on a transparent background: `node generate/trace-logo.mjs <logo.png> <out.glb> [face] [mark] [rim]`.
+Gradients become a few flat bands, and the Arkiv mascot picture (`ref/arkiv.png`) is a character, not a logo, so it has no coin.
