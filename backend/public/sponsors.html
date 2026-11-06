@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World3 · Sponsors (organizer)</title>
+  <link rel="icon" href="/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/sponsor.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/"><img src="/logo.png" width="34" height="34" alt=""><span>World3 <em>Sponsors</em></span></a>
+    <span class="grow"></span>
+    <a class="btn" href="/" style="display:inline-grid;place-items:center;text-decoration:none">← Spots</a>
+  </header>
+  <main>
+    <section class="hero">
+      <h1>Approve the sponsors who can run ads.</h1>
+      <p>A campaign is shown in the app only if it was written by a wallet on this list (or by your own organizer wallet). Approvals apply immediately. Advertisers publish from <a href="/sponsor.html">the advertiser page</a> and send you their wallet address.</p>
+    </section>
+    <section class="card">
+      <h2>Approved sponsors</h2>
+      <form id="add" class="row" autocomplete="off">
+        <label class="field" style="margin:0;flex:2 1 280px"><span>Wallet address</span><input id="address" placeholder="0x…" spellcheck="false"></label>
+        <label class="field" style="margin:0;flex:1 1 160px"><span>Name <i>(for you)</i></span><input id="name" maxlength="40" placeholder="Acme Coffee"></label>
+        <button class="btn dark" type="submit" style="align-self:end">Approve</button>
+      </form>
+      <p id="msg" class="msg" role="status"></p>
+      <p id="empty" class="muted" hidden>No sponsors approved yet. Your own organizer wallet is always allowed.</p>
+      <div class="tablewrap"><table id="table" hidden>
+        <thead><tr><th>Wallet</th><th>Name</th><th class="num">Campaigns on Arkiv</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+      <p class="fine">Organizer wallet (always approved): <code id="org">–</code></p>
+    </section>
+    <section class="card">
+      <h2>Campaign results</h2>
+      <p class="muted">Live numbers for campaigns currently shown. Views are people who saw the ad after a verified capture (once each).</p>
+      <div class="tablewrap"><table id="stats" hidden>
+        <thead><tr><th>Sponsor</th><th>Headline</th><th>Spot</th><th class="num">Views</th><th class="num">Captures</th></tr></thead>
+        <tbody id="statRows"></tbody>
+      </table></div>
+      <p id="noStats" class="muted">No campaign is being shown right now.</p>
+      <div id="rejected" class="fine"></div>
+    </section>
+  </main>
+  <script src="/sponsors.js"></script>
+</body>
+</html>
