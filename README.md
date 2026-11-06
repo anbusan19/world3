@@ -1,4 +1,4 @@
-# World3
+# wrld3
 
 > **Go there. Prove it. Keep it.** Proof of Travel: a geopinned 3D collectible you can only capture by standing in the right place, as a verified human, and keep as an onchain passport stamp.
 
@@ -10,9 +10,9 @@ Built for **ETHGlobal Mumbai** (Nov 5-7, 2026). Android app (React Native / Expo
 
 ## Table of contents
 
-1. [Why "World3"](#why-world3)
+1. [Why "wrld3"](#why-wrld3)
 2. [The problem](#the-problem)
-3. [What World3 does](#what-world3-does)
+3. [What wrld3 does](#what-wrld3-does)
 4. [Architecture](#architecture)
 5. [Capture flow](#capture-flow)
 6. [Spot states: distance and the capture zone](#spot-states-distance-and-the-capture-zone)
@@ -37,9 +37,9 @@ Built for **ETHGlobal Mumbai** (Nov 5-7, 2026). Android app (React Native / Expo
 
 * * *
 
-## Why "World3"
+## Why "wrld3"
 
-Web3 put ownership on the internet. World3 puts it on the physical world: places you have actually been become things you actually own. It started as POAP (proof of attendance) and grows into proof of **travel**, from a hackathon venue to a tourist landmark anywhere on the map.
+Web3 put ownership on the internet. wrld3 puts it on the physical world: places you have actually been become things you actually own. It started as POAP (proof of attendance) and grows into proof of **travel**, from a hackathon venue to a tourist landmark anywhere on the map.
 
 ## The problem
 
@@ -51,7 +51,7 @@ POAP proved a good idea: a record that you were somewhere. It faded because of t
 
 Any reward tied to being somewhere has the same weakness. If presence can be faked, the collectible means nothing.
 
-## What World3 does
+## What wrld3 does
 
 - **Spots.** A venue, landmark or memorabilia item is pinned in the real world with a 3D model. Spots and sponsor campaigns are published as public Arkiv entities.
 - **Capture.** You walk up to it, see it through your phone camera, and tap to capture it.
@@ -75,7 +75,7 @@ flowchart LR
         P6["Private voucher wallet"]
     end
 
-    subgraph Backend["World3 backend (Node.js)"]
+    subgraph Backend["wrld3 backend (Node.js)"]
         B1["Spot API (reads Arkiv)"]
         B2["Capture verifier"]
         B3["World ID proof check"]
@@ -122,7 +122,7 @@ flowchart LR
 sequenceDiagram
     autonumber
     participant T as Traveler
-    participant App as World3 app
+    participant App as wrld3 app
     participant API as Backend
     participant WID as World ID
     participant Chain as Sepolia
@@ -186,7 +186,7 @@ Details that matter:
 
 ## Proof of presence
 
-GPS alone is not enough. It is typically off by several metres outdoors, worse between tall buildings, and easy to spoof. World3 treats presence as **evidence weighed by the backend**, never a guarantee.
+GPS alone is not enough. It is typically off by several metres outdoors, worse between tall buildings, and easy to spoof. wrld3 treats presence as **evidence weighed by the backend**, never a guarantee.
 
 | Spot type | Used for | How presence is established |
 |---|---|---|
@@ -206,7 +206,7 @@ GPS alone is not enough. It is typically off by several metres outdoors, worse b
 
 ## World ID: one human, one stamp
 
-Bots and farms are the reason location rewards fail. World3 uses **World ID (IDKit)** so each capture belongs to a unique human.
+Bots and farms are the reason location rewards fail. wrld3 uses **World ID (IDKit)** so each capture belongs to a unique human.
 
 - **The trust moment:** the backend must know a real, unique person is claiming a spot before it signs a voucher.
 - **Credential:** Proof of Human, chosen as the **minimum sufficient assurance**. A passport or selfie check would add friction without adding anything this use case needs.
@@ -237,7 +237,7 @@ All of this runs on **ENSv2 on Sepolia** for the hackathon. These choices come f
 
 ## Arkiv: discoverable spots and campaigns
 
-Spots and sponsor campaigns are public entities on **Arkiv testnet**, so any app can discover them without asking World3's backend.
+Spots and sponsor campaigns are public entities on **Arkiv testnet**, so any app can discover them without asking wrld3's backend.
 
 - **Sponsor-owned campaigns.** Each sponsor's own wallet writes its campaign entity. The backend only reads. Campaign windows map to entity expiry, so a campaign ends on schedule.
 - **Spots.** Public spot entities carry a coarse display location, type, title and asset URI.
@@ -245,7 +245,7 @@ Spots and sponsor campaigns are public entities on **Arkiv testnet**, so any app
 - **Never on Arkiv:** user captures, nullifiers, GPS evidence, identity proofs, voucher data or wallet secrets.
 - **In-app feature:** the map and spot list are populated by real Arkiv reads after a real Arkiv write.
 - **Expiry:** entity lifetimes are set longer than the demo, with `expires_at` tracked locally. Renewal behavior is to be confirmed in the docs.
-- **Why Arkiv, not a database:** records are wallet-owned, queryable by anyone including other apps and AI agents, and expire on schedule. If the World3 backend disappears, spots and campaigns remain discoverable.
+- **Why Arkiv, not a database:** records are wallet-owned, queryable by anyone including other apps and AI agents, and expire on schedule. If the wrld3 backend disappears, spots and campaigns remain discoverable.
 
 The required Arkiv documents live in `/arkiv`: `schema.md`, `friction.md`, `reach.md`, `why-arkiv.md`, `how-you-use-arkiv.md`.
 
@@ -265,9 +265,9 @@ The proof is a token, and the chain stays invisible to the user.
 
 ## Privacy
 
-A public travel history reveals where someone lives, when they are away, and their routine. World3 is built around that risk, and is honest about what it cannot hide.
+A public travel history reveals where someone lives, when they are away, and their routine. wrld3 is built around that risk, and is honest about what it cannot hide.
 
-| Leak | How it identifies someone | What World3 does |
+| Leak | How it identifies someone | What wrld3 does |
 |---|---|---|
 | Stamps on a public chain | An address received a stamp for a spot at a time | Private by default; mint on demand |
 | Real-time minting | "This address is at venue X right now" | Delayed, relayed minting |
@@ -333,7 +333,7 @@ iOS is out of scope for the hackathon. Android builds are shared as an APK.
 Planned layout. Adjust as things are built.
 
 ```
-world3/
+wrld3/
 ├── App.js, app.json           # Expo app entry and config
 ├── src/
 │   ├── ArModel.js             # ViroReact AR scene
@@ -495,7 +495,7 @@ Built for **ETHGlobal Mumbai**.
 | **Arkiv** | Spot and sponsor-campaign entities written to Arkiv testnet by their owners, with an in-app feature that reads them |
 
 **Arkiv, for judges.** Writer wallet: `0xf47cB2e4353F5daF04fA7AF0955551ab7DB74b52` (Rabdi testnet, chain id 7794095). Run one query with no
-World3 server: `cd backend && npm install && node scripts/arkiv-query.mjs`. Details in [`/arkiv`](arkiv/). Sponsor campaigns (ads written by sponsors' own wallets from the advertiser page `/sponsor.html`, approved by the organizer on `/sponsors.html`, shown after a verified capture) are built; escrow and payouts are **not**. See
+wrld3 server: `cd backend && npm install && node scripts/arkiv-query.mjs`. Details in [`/arkiv`](arkiv/). Sponsor campaigns (ads written by sponsors' own wallets from the advertiser page `/sponsor.html`, approved by the organizer on `/sponsors.html`, shown after a verified capture) are built; escrow and payouts are **not**. See
 [`docs/ads-and-campaigns.md`](docs/ads-and-campaigns.md).
 
 Submission checklist:
@@ -506,5 +506,5 @@ Submission checklist:
 - `/arkiv/*.md` files and `WORLD_FEEDBACK.md`
 - Clear labels for anything mocked or simulated
 
-World3 is an independent project. It uses World ID but is **not affiliated with World**.
+wrld3 is an independent project. It uses World ID but is **not affiliated with World**.
 

@@ -16,7 +16,7 @@ const { server, store } = await createApp({ dataDir, publicDir, host: HOST, log:
 server.listen(PORT, HOST, () => {
   const base = `http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`;
   console.log(`
-  World3 spots server
+  wrld3 spots server
   -------------------
   Dashboard   ${base}
   App feed    ${base}/api/v1/spots

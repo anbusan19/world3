@@ -2,7 +2,7 @@
 
 **If we swapped Arkiv for Postgres, what would people lose?**
 
-1. **Discovery without us.** Today anyone, including another app or an AI agent, can list World3's spots with one query
+1. **Discovery without us.** Today anyone, including another app or an AI agent, can list wrld3's spots with one query
    (`backend/scripts/arkiv-query.mjs`), without our server, an account, or our permission. With Postgres they could only
    use an API we choose to run and keep running.
 2. **Spots survive the backend.** Our server is a laptop at a hackathon. If it disappears, the public list does not.

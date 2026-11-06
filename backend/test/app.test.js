@@ -11,11 +11,11 @@ import { createApp } from '../src/app.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 let dir, server, store, base, port;
-const H = { 'x-requested-with': 'world3-dashboard' };
+const H = { 'x-requested-with': 'wrld3-dashboard' };
 const json = (extra = {}) => ({ ...H, 'content-type': 'application/json', ...extra });
 
 before(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), 'world3-test-'));
+  dir = await mkdtemp(path.join(tmpdir(), 'wrld3-test-'));
   ({ server, store } = await createApp({ dataDir: dir, publicDir: path.join(here, '..', 'public') }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   port = server.address().port;

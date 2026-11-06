@@ -18,7 +18,7 @@ const ALICE = '0x00000000000000000000000000000000000a11ce';
 let dir, server, store, base, spot, worldAnswer, clock;
 
 before(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), 'world3-voucher-'));
+  dir = await mkdtemp(path.join(tmpdir(), 'wrld3-voucher-'));
   clock = Date.now();
   ({ server, store } = await createApp({
     dataDir: dir,
@@ -40,7 +40,7 @@ after(async () => {
 });
 
 const call = async (method, p, body, tok) => {
-  const r = await fetch(base + p, { method, headers: { 'x-requested-with': 'world3-app', 'content-type': 'application/json', ...(tok ? { authorization: `Bearer ${tok}` } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const r = await fetch(base + p, { method, headers: { 'x-requested-with': 'wrld3-app', 'content-type': 'application/json', ...(tok ? { authorization: `Bearer ${tok}` } : {}) }, body: body ? JSON.stringify(body) : undefined });
   return { status: r.status, body: await r.json() };
 };
 const proofFor = (nonce, action, nullifier) => ({ protocol_version: '4.0', nonce, action, environment: 'staging', responses: [{ identifier: 'proof_of_human', nullifier }] });

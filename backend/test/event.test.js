@@ -8,10 +8,10 @@ import { createApp } from '../src/app.js';
 import { Events } from '../src/events.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const H = { 'x-requested-with': 'world3-dashboard', 'content-type': 'application/json' };
+const H = { 'x-requested-with': 'wrld3-dashboard', 'content-type': 'application/json' };
 
 test('an event is upcoming, live, then ended; it can be moved, have no end, and survives a restart', async () => {
-  const d = await mkdtemp(path.join(tmpdir(), 'world3-ev-'));
+  const d = await mkdtemp(path.join(tmpdir(), 'wrld3-ev-'));
   const c = new Events(d, { endsAt: '2026-11-07T12:30:00Z' });
   await c.init();
   const spot = { eventId: 'ethmumbai' };
@@ -37,7 +37,7 @@ test('an event is upcoming, live, then ended; it can be moved, have no end, and 
 
 let dir, server, base, clock;
 before(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), 'world3-event-'));
+  dir = await mkdtemp(path.join(tmpdir(), 'wrld3-event-'));
   clock = { t: Date.parse('2026-11-06T10:00:00Z') };
   ({ server } = await createApp({ dataDir: dir, publicDir: path.join(here, '..', 'public'), capture: { now: () => clock.t, event: { endsAt: '2026-11-07T12:30:00Z' } } }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));

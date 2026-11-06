@@ -70,7 +70,7 @@ export function buildSampleGlb() {
   }
 
   const json = {
-    asset: { version: '2.0', generator: 'world3 sample generator' },
+    asset: { version: '2.0', generator: 'wrld3 sample generator' },
     scene: 0,
     scenes: [{ nodes: [0] }],
     nodes: [{ mesh: 0, name: 'arch' }],

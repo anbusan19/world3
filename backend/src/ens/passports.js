@@ -21,7 +21,7 @@ const safe = (e) => String(e instanceof PassportError ? e.message : (e?.shortMes
 // What a chosen name may look like. Plain lowercase letters, digits and single dashes only (anything else would need ENS normalisation and
 // invites look-alike characters), 3 to 20 long. A short list of names nobody may take: brands we do not own, and names that sound official.
 export const LABEL_RULE = /^[a-z0-9](?:[a-z0-9]|-(?!-)){1,18}[a-z0-9]$/;
-const RESERVED = new Set(['world', 'worldcoin', 'worldid', 'world3', 'wrld3', 'wrld', 'admin', 'administrator', 'root', 'support', 'official', 'staff', 'team', 'help', 'security', 'ens', 'eth', 'ethereum', 'ethglobal', 'arkiv', 'test', 'null', 'undefined', 'www', 'api', 'passport', 'sponsor', 'sponsors']);
+const RESERVED = new Set(['world', 'worldcoin', 'worldid', 'wrld3', 'wrld3', 'wrld', 'admin', 'administrator', 'root', 'support', 'official', 'staff', 'team', 'help', 'security', 'ens', 'eth', 'ethereum', 'ethglobal', 'arkiv', 'test', 'null', 'undefined', 'www', 'api', 'passport', 'sponsor', 'sponsors']);
 // Profanity: a maintained English list that also sees disguised spellings (sh1t, b00bs). A name is checked twice, with its dashes as spaces and
 // with them removed, so "f-u-c-k" and "annashit" are both caught. It is English only and will over-block a few innocent words (a person just picks
 // another name), so the organizer can add words in other languages with PASSPORT_BLOCKED_WORDS (comma separated; matched anywhere in the name).

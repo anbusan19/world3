@@ -46,7 +46,7 @@ export function SignIn({ onDone }) {
       <View style={styles.copy}>
         <Text style={styles.title}>
           Create Your{'\n'}
-          <Text style={styles.titleLight}>World3 Passport.</Text>
+          <Text style={styles.titleLight}>wrld3 Passport.</Text>
         </Text>
         <Text style={styles.sub}>
           One human, one passport. Sign in with World ID to collect stamps from real places.

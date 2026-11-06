@@ -34,7 +34,7 @@ export function useLocation() {
         const perm = await Location.requestForegroundPermissionsAsync();
         if (cancelled) return;
         if (perm.status !== 'granted') {
-          setState((s) => ({ ...s, status: 'denied', error: 'Location permission is off for World3.' }));
+          setState((s) => ({ ...s, status: 'denied', error: 'Location permission is off for wrld3.' }));
           return;
         }
         if (!(await Location.hasServicesEnabledAsync())) {

@@ -24,7 +24,7 @@ Notes kept as we build, for the World prize. Updated as each step is tried.
 
 ## Confirmed on a real Android phone (sign in with World ID)
 - IDKit's `connectorURI` opens World App directly from a React Native app via `Linking.openURL`. No QR needed on the phone.
-- World App shows "World3 will see these proofs: Unique Human", then "Presenting"; our app got the result back by polling
+- World App shows "wrld3 will see these proofs: Unique Human", then "Presenting"; our app got the result back by polling
   (`pollUntilCompletion`) and the server's `/api/v4/verify/{rp_id}` accepted it on the first try.
 - The `nonce` in the proof result equals the nonce in the RP signature we issued, so we can bind a proof to our request.
 - Used for two actions: `signin` (an account from the nullifier) and `capture` (a fresh check per spot). A proof for one
@@ -36,11 +36,11 @@ Notes kept as we build, for the World prize. Updated as each step is tried.
 - World ID sign-in, then a capture at a spot 3 m away with a ±4 m GPS fix: the server recomputed the distance, World's
   `/api/v4/verify` accepted the per-spot proof (`capture-06`), and the capture was recorded for that account.
 - IDKit surfaced the real reason for failures as `nullifier_replayed` once we logged `completion.error`; World App itself
-  only said "Your credentials don't meet World3's requirements".
+  only said "Your credentials don't meet wrld3's requirements".
 
 ## A mistake that cost us time (worth a doc note)
 - We used one `capture` action for every spot. The first capture worked; the second, on another spot, made World App say
-  "Verification failed. Your credentials don't meet World3's requirements." That message gave no hint that the cause was
+  "Verification failed. Your credentials don't meet wrld3's requirements." That message gave no hint that the cause was
   reusing an action. A nullifier is derived from the person plus the action, so one action means one proof per person.
   Fix: one action per spot (`capture-<spotId>`), created in the portal. Docs should say this next to the nullifier text,
   and World App should say "already used for this action" instead of "credentials don't meet requirements".

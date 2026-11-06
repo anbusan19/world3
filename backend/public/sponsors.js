@@ -1,5 +1,5 @@
 // Organizer page: approve or remove sponsor wallets, and see campaign numbers. Text is only ever set with textContent.
-const H = { 'x-requested-with': 'world3-dashboard', 'content-type': 'application/json' };
+const H = { 'x-requested-with': 'wrld3-dashboard', 'content-type': 'application/json' };
 const $ = (s) => document.querySelector(s);
 const el = (t, props = {}, ...kids) => { const e = Object.assign(document.createElement(t), props); e.append(...kids.map((k) => (k instanceof Node ? k : document.createTextNode(String(k))))); return e; };
 const say = (text, tone = '') => { $('#msg').textContent = text; $('#msg').className = `msg ${tone}`; };

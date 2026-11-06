@@ -249,7 +249,7 @@ function PassportSection({ stats, openStamp, pp, goStamps }) {
 /* ----------------------------- public passport ------------------------------ */
 
 // Opt-in: nothing is public until the person asks. The name lives on ENS (Sepolia testnet) and the stamps are one record on it.
-// For now World3 holds the name for the person, because the app has no wallet yet; the copy says so.
+// For now wrld3 holds the name for the person, because the app has no wallet yet; the copy says so.
 const randomName = () => Array.from({ length: 6 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]).join('');
 
 function PublicPassport({ pp, stamps }) {
@@ -275,7 +275,7 @@ function PublicPassport({ pp, stamps }) {
   const base = getFeedBase();
   const webUrl = p.url ?? (/^https:\/\//i.test(base) && p.label ? `${base}/p/${p.label}` : null);
   const link = webUrl ?? `https://sepolia.app.ens.domains/${p.name}`;
-  const shareText = `My World3 passport: ${link}`;
+  const shareText = `My wrld3 passport: ${link}`;
 
   if (p.status === 'loading') return <View style={styles.pp}><ActivityIndicator color={C.muted} /></View>;
   if (p.status === 'unavailable') return <View style={styles.pp}><Text style={styles.ppBody}>Public passports are not available right now. Check the Spot server setting and that you are signed in.</Text></View>;
@@ -308,11 +308,11 @@ function PublicPassport({ pp, stamps }) {
             <PrimaryButton label="Open" tone="light" icon="open-outline" onPress={() => Linking.openURL(link).catch(() => {})} style={{ flex: 1 }} />
           </View>
         )}
-        {p.published && !webUrl ? <Text style={styles.ppNote}>This link opens your name on the ENS app. For World3's own passport page, give the spot server a public https address (Settings, Developer).</Text> : null}
+        {p.published && !webUrl ? <Text style={styles.ppNote}>This link opens your name on the ENS app. For wrld3's own passport page, give the spot server a public https address (Settings, Developer).</Text> : null}
         <Pressable onPress={() => pp.setPublic(!p.published)} disabled={pp.busy} hitSlop={8}>
           <Text style={styles.ppLink}>{pp.busy ? 'Working…' : p.published ? 'Make private (removes your stamps from ENS)' : 'Make public again'}</Text>
         </Pressable>
-        <Text style={styles.ppNote}>Testnet only. World3 holds this name for you for now. Stamps are evidence you were there, not proof.</Text>
+        <Text style={styles.ppNote}>Testnet only. wrld3 holds this name for you for now. Stamps are evidence you were there, not proof.</Text>
       </View>
     );
   }
@@ -356,7 +356,7 @@ function PublicPassport({ pp, stamps }) {
 
       {pp.error ? <Text style={[styles.ppHint, { color: C.orange }]}>{pp.error}</Text> : null}
       <PrimaryButton label={p.status === 'error' ? 'Try again' : 'Create my public passport'} icon="globe-outline" disabled={!canCreate} onPress={() => pp.create(label)} style={{ marginTop: 14 }} />
-      <Text style={styles.ppNote}>Testnet only. World3 holds the name for you for now.</Text>
+      <Text style={styles.ppNote}>Testnet only. wrld3 holds the name for you for now.</Text>
     </View>
   );
 }
@@ -514,7 +514,7 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
       </Group>
 
       <Group title="About">
-        <Row icon="information-circle-outline" title="Version" sub={`World3 ${version}`} />
+        <Row icon="information-circle-outline" title="Version" sub={`wrld3 ${version}`} />
         <Row icon="git-network-outline" title="Network" sub="Ethereum Sepolia (testnet)" />
         <Row icon="lock-closed-outline" title="Privacy" sub="Stamps never store your coordinates." last />
       </Group>

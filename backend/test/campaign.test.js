@@ -51,12 +51,12 @@ test('too big, wrong type, bad dates, long text and unsafe links are all refused
   for (const url of ['http://acme.example', 'javascript:alert(1)', 'https://user:pw@acme.example', 'https://192.168.1.5/x', 'https://localhost/x', 'ftp://acme.example', 'not a url', 'https://acme.example/' + 'a'.repeat(200)]) {
     assert.throws(() => checkClickUrl(url), CampaignError, url);
   }
-  assert.equal(checkClickUrl('https://acme.example/coffee?ref=world3'), 'https://acme.example/coffee?ref=world3');
+  assert.equal(checkClickUrl('https://acme.example/coffee?ref=wrld3'), 'https://acme.example/coffee?ref=wrld3');
 });
 
 // ---------------------------------------------------------------------------------------------------- what the server shows
 async function setup({ rows, now = () => T0 * 1000, captured = () => true, allowed = [SPONSOR], leaky = false }) {
-  const dir = await mkdtemp(path.join(tmpdir(), 'world3-ads-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'wrld3-ads-'));
   const arkiv = { enabled: true, owner: OWNER, readCampaigns: async (owners) => (leaky ? rows : rows.filter((r) => owners.includes(r.$owner.toLowerCase()))) };
   const ads = await createAds({ dataDir: dir, arkiv, allowedOwners: allowed, hasCaptured: captured, captureCount: () => 7, now, ttlMs: 0 });
   return { ads, dir, done: () => rm(dir, { recursive: true, force: true }) };
@@ -138,7 +138,7 @@ test('an impression counts once per person, and only for someone who really capt
 });
 
 test('if Arkiv is switched off, no ads and no crash', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'world3-ads-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'wrld3-ads-'));
   const ads = await createAds({ dataDir: dir, arkiv: { enabled: false }, hasCaptured: () => true, ttlMs: 0 });
   assert.equal(await ads.pick('05', U1), null);
   assert.deepEqual(await ads.stats(), []);

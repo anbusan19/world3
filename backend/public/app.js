@@ -1,6 +1,6 @@
 import { cartoonStyle, STREETS } from './mapStyle.js';
 
-// World3 Spots dashboard. Plain browser JavaScript, no build step.
+// wrld3 Spots dashboard. Plain browser JavaScript, no build step.
 // Flow: pick or add a spot -> drag its pin / type coordinates -> upload a .glb -> publish -> the app sees it.
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -30,7 +30,7 @@ async function api(method, url, body, headers = {}) {
   const raw = body instanceof Blob;
   const res = await fetch(url, {
     method,
-    headers: { 'x-requested-with': 'world3-dashboard', ...(body !== undefined && !raw ? { 'content-type': 'application/json' } : {}), ...headers },
+    headers: { 'x-requested-with': 'wrld3-dashboard', ...(body !== undefined && !raw ? { 'content-type': 'application/json' } : {}), ...headers },
     body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));

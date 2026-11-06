@@ -5,7 +5,7 @@ import './globals.css';
 const display = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['500', '700', '800'], variable: '--font-display', display: 'swap' });
 
 export const metadata = {
-  title: 'World3 · Go there. Prove it. Keep it.',
+  title: 'wrld3 · Go there. Prove it. Keep it.',
   description: 'A 3D collectible pinned to a real place. Walk up to it through your camera, prove you are really there, and keep it as a stamp in your onchain passport.',
 };
 export const viewport = { themeColor: '#E6F7FB' };

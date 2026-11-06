@@ -28,7 +28,7 @@ const FAILS = {
   locked: { icon: 'lock-closed', title: 'Quest still locked', body: 'Collect the stamps this quest asks for first, then claim this one.' },
   notstarted: { icon: 'hourglass', title: 'Not open yet', body: 'This event has not started. Come back when it opens.' },
   ended: { icon: 'time', title: 'The event has ended', body: 'This stamp could only be collected during the event. Stamps you already collected stay in your passport.' },
-  network: { icon: 'cloud-offline', title: 'Server unreachable', body: 'We could not reach the World3 server. Check the Spot server setting in Passport, then try again.' },
+  network: { icon: 'cloud-offline', title: 'Server unreachable', body: 'We could not reach the wrld3 server. Check the Spot server setting in Passport, then try again.' },
 };
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -250,7 +250,7 @@ function SponsorCard({ ad }) {
     reportImpression(ad.key);
   };
   const open = () =>
-    Alert.alert(`Open ${host}?`, `This is a link from ${ad.sponsor}, a sponsor. It opens in your browser and leaves World3.`, [
+    Alert.alert(`Open ${host}?`, `This is a link from ${ad.sponsor}, a sponsor. It opens in your browser and leaves wrld3.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Open', onPress: () => Linking.openURL(ad.clickUrl).catch(() => {}) },
     ]);

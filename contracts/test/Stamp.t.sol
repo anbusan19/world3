@@ -18,7 +18,7 @@ contract StampTest is Test {
 
     function setUp() public {
         signer = vm.addr(signerKey);
-        stamp = new Stamp(signer, owner, "https://world3.example/stamps/{id}.json");
+        stamp = new Stamp(signer, owner, "https://wrld3.example/stamps/{id}.json");
         vm.warp(1_800_000_000);
         vm.startPrank(owner);
         for (uint256 i = 1; i <= 12; i++) stamp.registerSpot(i, "Spot", "SPOT", 0, 0); // every spot the tests mint is registered

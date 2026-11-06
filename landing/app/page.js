@@ -43,7 +43,7 @@ const NUMS = [
 const BLOCKS = [
   ['/sponsors/world.svg', 'World ID', 'Proves you are one unique human, without telling us who you are.', 'Checked on our server for every capture, and once more to sign in.'],
   ['/sponsors/ens.svg', 'ENS', 'Your passport is a name anyone can look up, like a7k2.wrld3.eth.', 'Your stamps are one record on it. We can write that record and nothing else.'],
-  ['/sponsors/arkiv.svg', 'Arkiv', 'Spots and sponsor ads live as public records, owned by their authors.', 'A sponsor’s ad is a record only their wallet can change or delete. Read them yourself, no World3 server needed.'],
+  ['/sponsors/arkiv.svg', 'Arkiv', 'Spots and sponsor ads live as public records, owned by their authors.', 'A sponsor’s ad is a record only their wallet can change or delete. Read them yourself, no wrld3 server needed.'],
 ];
 
 const DONE = [
@@ -62,7 +62,7 @@ const NEXT = [
 ];
 
 // The APK lives on the repository's latest GitHub release, under this fixed name; set NEXT_PUBLIC_APK_URL to host it elsewhere.
-const APK_URL = process.env.NEXT_PUBLIC_APK_URL || 'https://github.com/anbusan19/world3/releases/latest/download/world3.apk';
+const APK_URL = process.env.NEXT_PUBLIC_APK_URL || 'https://github.com/anbusan19/wrld3/releases/latest/download/wrld3.apk';
 
 export default function Home() {
   return (
@@ -75,7 +75,7 @@ export default function Home() {
         <div className="wrap pad">
           <nav>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="logo" src="/logo-light.png" alt="World3" width="120" height="40" />
+            <img className="logo" src="/logo-light.png" alt="wrld3" width="120" height="40" />
             <div className="nav-r">
               <a className="btn solid" style={{ height: 44, padding: '0 22px', fontSize: 14 }} href="#launch">Try the app</a>
               <NavMenu />
@@ -186,7 +186,7 @@ export default function Home() {
           <div className="split rev">
             <div className="phone-wrap">
               <div className="tile blue" />
-              <AppPhone startPhase="onboarding" label="The World3 app from first launch: onboarding, sign in, then the app" />
+              <AppPhone startPhase="onboarding" label="The wrld3 app from first launch: onboarding, sign in, then the app" />
             </div>
             <div>
               <p className="eyebrow">From the first launch</p>
@@ -215,7 +215,7 @@ export default function Home() {
               <figure className="gif reveal" key={src}>
                 <div className="phone gifphone"><div className="screen">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`/gifs/${src}.gif`} alt={`The ${title.toLowerCase()} screen of the World3 app, recorded on an Android phone`} loading="lazy" />
+                  <img src={`/gifs/${src}.gif`} alt={`The ${title.toLowerCase()} screen of the wrld3 app, recorded on an Android phone`} loading="lazy" />
                 </div></div>
                 <figcaption><b>{title}</b>{body}</figcaption>
               </figure>
@@ -260,7 +260,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <p className="note">A camera fix is a stronger signal than GPS, not a guarantee: someone could point a camera at a screen. World3 weighs presence as evidence and refuses clearly when it is weak. Too far, poor signal, already captured and not verified all end with nothing minted.</p>
+          <p className="note">A camera fix is a stronger signal than GPS, not a guarantee: someone could point a camera at a screen. wrld3 weighs presence as evidence and refuses clearly when it is weak. Too far, poor signal, already captured and not verified all end with nothing minted.</p>
         </div>
       </section>
 
@@ -294,7 +294,7 @@ export default function Home() {
         <div className="wrap pad">
           <div className="split">
             <div className="dash" role="img" aria-label="The spot dashboard: a map with a pin, a capture radius and an approach radius">
-              <div className="top"><i /><i /><i /><span style={{ marginLeft: 6 }}>World3 Spots · local</span></div>
+              <div className="top"><i /><i /><i /><span style={{ marginLeft: 6 }}>wrld3 Spots · local</span></div>
               <div className="body">
                 <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
                   <rect width="400" height="300" fill="#BFE3EC" />
@@ -359,7 +359,7 @@ export default function Home() {
             <div className="getcopy">
               <p className="eyebrow">Get the app</p>
               <h2>Scan it. Install it. Go there.</h2>
-              <p className="lede">World3 is an Android app. Scan the code with your phone, or press the button, to download the APK from our latest GitHub release.</p>
+              <p className="lede">wrld3 is an Android app. Scan the code with your phone, or press the button, to download the APK from our latest GitHub release.</p>
               <div className="cta">
                 <a className="btn solid" href={APK_URL} download>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -375,7 +375,7 @@ export default function Home() {
             </div>
             <figure className="getqr">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/apk-qr.svg" alt="QR code that downloads the World3 APK" width="220" height="220" />
+              <img src="/apk-qr.svg" alt="QR code that downloads the wrld3 APK" width="220" height="220" />
               <figcaption>Scan to download</figcaption>
             </figure>
           </div>
@@ -400,7 +400,7 @@ export default function Home() {
               </ul>
               <ul>
                 <li><a href="#get">Get the app</a></li>
-                <li><a href="https://github.com/anbusan19/world3" target="_blank" rel="noreferrer">GitHub</a></li>
+                <li><a href="https://github.com/anbusan19/wrld3" target="_blank" rel="noreferrer">GitHub</a></li>
                 <li><a href="https://world.org" target="_blank" rel="noreferrer">World ID</a></li>
                 <li><a href="https://ens.domains" target="_blank" rel="noreferrer">ENS</a></li>
                 <li><a href="https://arkiv.network" target="_blank" rel="noreferrer">Arkiv</a></li>
@@ -418,9 +418,9 @@ export default function Home() {
             </div>
           </div>
           <div className="foot-bottom">
-            <span>© 2026 World3. An independent project, not affiliated with World.</span>
+            <span>© 2026 wrld3. An independent project, not affiliated with World.</span>
             <span className="foot-badge">Testnet only</span>
-            <a href="https://github.com/anbusan19/world3" target="_blank" rel="noreferrer">GitHub</a>
+            <a href="https://github.com/anbusan19/wrld3" target="_blank" rel="noreferrer">GitHub</a>
           </div>
         </div>
       </footer>

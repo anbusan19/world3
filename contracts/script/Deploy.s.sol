@@ -12,7 +12,7 @@ import {Stamp} from "../src/Stamp.sol";
 contract Deploy is Script {
     function run() external returns (Stamp stamp) {
         address signer = vm.envAddress("STAMP_SIGNER");
-        string memory uri = vm.envOr("STAMP_URI", string("https://world3.example/stamps/{id}.json"));
+        string memory uri = vm.envOr("STAMP_URI", string("https://wrld3.example/stamps/{id}.json"));
         vm.startBroadcast();
         address owner = vm.envOr("STAMP_OWNER", msg.sender);
         stamp = new Stamp(signer, owner, uri);

@@ -36,7 +36,7 @@ export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } =
       try { if (new URL(req.headers.origin ?? '').host !== req.headers.host) return deny(403, 'Cross-site requests are not allowed.'); } catch { return deny(403, 'Cross-site requests are not allowed.'); }
       let size = 0;
       const up = http.request({ host: upstreamHost, port: upstreamPort, method: 'POST', path: url.pathname, headers: {
-        host: `${upstreamHost}:${upstreamPort}`, 'content-type': 'application/json', 'x-requested-with': 'world3-dashboard',
+        host: `${upstreamHost}:${upstreamPort}`, 'content-type': 'application/json', 'x-requested-with': 'wrld3-dashboard',
         'x-forwarded-for': String(req.headers['cf-connecting-ip'] ?? req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '').split(',')[0].trim(),
       } }, (r) => { res.writeHead(r.statusCode, { 'content-type': r.headers['content-type'] ?? 'application/json', 'access-control-allow-origin': '*' }); r.pipe(res); });
       up.on('error', () => deny(502, 'The spots server is not running.'));

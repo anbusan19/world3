@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>World3 passport</title>
-  <meta name="description" content="A World3 passport: stamps for places a verified human really visited, read live from ENS.">
+  <title>wrld3 passport</title>
+  <meta name="description" content="A wrld3 passport: stamps for places a verified human really visited, read live from ENS.">
   <link rel="icon" href="/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +15,7 @@
 </head>
 <body>
   <header class="top">
-    <a class="brand" href="/passport.html"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="World3"></picture><em>Passport</em></a>
+    <a class="brand" href="/passport.html"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="wrld3"></picture><em>Passport</em></a>
     <span class="grow"></span>
     <span class="chip">Sepolia testnet</span>
   </header>
@@ -34,7 +34,7 @@
 
     <section id="view" hidden>
       <div class="card cover">
-        <p class="kicker">WORLD3 PASSPORT</p>
+        <p class="kicker">WRLD3 PASSPORT</p>
         <h1 class="name" id="name"></h1>
         <div class="row" id="chips"></div>
         <p class="muted" id="intro"></p>
@@ -45,7 +45,7 @@
 
       <details class="card verify" open>
         <summary>How you can check this yourself</summary>
-        <p class="muted">This page asked ENS directly, from your browser. The stamps are one text record on the passport's own resolver. Only the traveler and a single backend permission can change that record; nothing else about the name can be edited by World3.</p>
+        <p class="muted">This page asked ENS directly, from your browser. The stamps are one text record on the passport's own resolver. Only the traveler and a single backend permission can change that record; nothing else about the name can be edited by wrld3.</p>
         <dl>
           <dt>Name</dt><dd><code id="vName"></code> <a id="vApp" target="_blank" rel="noopener noreferrer">Open in the ENS app ↗</a></dd>
           <dt>Resolver</dt><dd><code id="vResolver">–</code></dd>
@@ -59,7 +59,7 @@
       <p class="fine centre">Stamps are private until the traveler chooses to publish them. A stamp means a verified human was at the spot when it was captured. Presence is evidence, not proof. Testnet only, not audited.</p>
     </section>
   </main>
-  <footer class="foot">World3 is an independent prototype. Not affiliated with World or ENS.</footer>
+  <footer class="foot">wrld3 is an independent prototype. Not affiliated with World or ENS.</footer>
   <script type="module" src="/passport.bundle.js"></script>
 </body>
 </html>

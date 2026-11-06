@@ -8,7 +8,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title World3 Stamp
 /// @notice A non-transferable ERC-1155 "I was there" stamp. Each spot is a token id. A stamp is minted only against an
-///         EIP-712 voucher signed by the World3 backend, which has already checked the person's location and their World ID
+///         EIP-712 voucher signed by the wrld3 backend, which has already checked the person's location and their World ID
 ///         proof. The contract trusts that signature and nothing else, so verification can change without redeploying.
 /// @dev    Anyone may submit a voucher (the backend's relayer pays gas); the stamp always goes to the voucher's recipient.
 ///         Exact coordinates never appear here: a stamp is just (recipient, spot id).

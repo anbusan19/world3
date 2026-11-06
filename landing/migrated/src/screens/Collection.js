@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stamp } from '../Stamp';
 import { eventOf, getEvents, shortName, spots } from '../spots';
 import { eventLine } from '../eventLine';
+import { PassportCard, PassportScreen } from './PassportPoster';
 import { explorerUrl, fetchExplorer } from '../world';
 import { F, STAMP_THEMES, makeStyles, useColors } from '../theme';
 
@@ -15,11 +16,14 @@ export function Collection({ collected, openSpot, openStamp }) {
   const [view, setView] = useState('mine');
   const [filter, setFilter] = useState('All');
   const [q, setQ] = useState('');
+  const [passport, setPassport] = useState(false);
   const filters = ['All', 'Landmarks', 'Events', 'Collected', 'To find'];
   const needle = q.trim().toLowerCase();
   const matches = (s) => !needle || `${s.name} ${s.city} ${s.type} ${s.label}`.toLowerCase().includes(needle);
   const shown = spots.filter((s) => matches(s) && (filter === 'All' || (filter === 'Landmarks' ? s.type === 'LANDMARK' : filter === 'Events' ? s.type === 'EVENT' : filter === 'Collected' ? collected[s.id] != null : collected[s.id] == null)));
   const have = spots.filter((s) => collected[s.id] != null).length;
+
+  if (passport) return <PassportScreen collected={collected} onBack={() => setPassport(false)} openSpot={openSpot} openStamp={openStamp} />;
 
   return (
     <>
@@ -40,6 +44,7 @@ export function Collection({ collected, openSpot, openStamp }) {
 
       {view === 'mine' ? (
         <>
+          {!needle ? <PassportCard collected={collected} onOpen={() => setPassport(true)} /> : null}
           <Text style={styles.sub}>{have} of {spots.length} collected. Tap a stamp to open it.</Text>
           <Chips items={filters} value={filter} onChange={setFilter} />
           {shown.length === 0 ? <Text style={styles.empty}>No stamps match.</Text> : null}

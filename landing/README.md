@@ -1,4 +1,4 @@
-# World3 landing page
+# wrld3 landing page
 
 Next.js (App Router). Light mode only, flat pastel colour, no gradients, with hand-drawn nature shapes
 (`components/Nature.js`). Typography is the app's: Plus Jakarta Sans 500 / 700 / 800.

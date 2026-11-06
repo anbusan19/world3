@@ -1,4 +1,4 @@
-# Hosting World3 so anyone can use the app
+# Hosting wrld3 so anyone can use the app
 
 The backend is ONE stateful Node process (`backend/`): sign-ins, captures (the World ID replay protection), passports, sponsors,
 the event clock and the faucet all live in `backend/data/*.json`, and the keys live in `backend/.env`. That shapes every choice.
@@ -10,7 +10,7 @@ the event clock and the faucet all live in `backend/data/*.json`, and the keys l
   public front (`npm run proxy`, port 3001) is exposed.
 
 ## Option A: the Mac mini (fastest, free)
-Cloudflare Tunnel with a *named* tunnel and your domain: `cloudflared tunnel create world3`, route `api.<domain>` to
+Cloudflare Tunnel with a *named* tunnel and your domain: `cloudflared tunnel create wrld3`, route `api.<domain>` to
 `http://127.0.0.1:3001`, run it as a service. Keep the Mac awake (`caffeinate -s`, or Energy Saver "prevent sleeping"), start the
 server and proxy with `launchd` so they restart after a reboot. Weak spots: home power and internet.
 

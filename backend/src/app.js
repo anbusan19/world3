@@ -187,7 +187,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
         if (originHost !== req.headers.host) throw new HttpError(403, 'Cross-site requests are not allowed.');
       }
       // the dashboard and the phone app each send their own marker; a web page on another site cannot set it without a CORS preflight
-      if (!['world3-dashboard', 'world3-app'].includes(req.headers['x-requested-with'])) throw new HttpError(403, 'Missing X-Requested-With header.');
+      if (!['wrld3-dashboard', 'wrld3-app'].includes(req.headers['x-requested-with'])) throw new HttpError(403, 'Missing X-Requested-With header.');
     }
 
     if (p === '/api/health') return send(res, 200, { ok: true, spots: store.list().length });
@@ -264,7 +264,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       const loop = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
       const fwd = loop ? req.headers['x-forwarded-host'] : null;
       const base = (process.env.PUBLIC_BASE_URL || (fwd ? `${req.headers['x-forwarded-proto'] || 'https'}://${fwd}` : `http://${req.headers.host}`)).replace(/\/+$/, '');
-      return send(res, 200, { name: spot.name, description: `A World3 stamp: proof that a verified human was at ${spot.name}${spot.city ? `, ${spot.city}` : ''}. Non-transferable.`, image: `${base}/share/stamp/${spot.id}.png`, external_url: `${base}/share/stamp/${spot.id}`, attributes: [{ trait_type: 'Place', value: spot.name }, { trait_type: 'City', value: spot.city || '' }, { trait_type: 'Event', value: events.of(spot).name }] }, cors);
+      return send(res, 200, { name: spot.name, description: `A wrld3 stamp: proof that a verified human was at ${spot.name}${spot.city ? `, ${spot.city}` : ''}. Non-transferable.`, image: `${base}/share/stamp/${spot.id}.png`, external_url: `${base}/share/stamp/${spot.id}`, attributes: [{ trait_type: 'Place', value: spot.name }, { trait_type: 'City', value: spot.city || '' }, { trait_type: 'Event', value: events.of(spot).name }] }, cors);
     }
 
     // the public explorer: recent stamps across everyone (no personal data), searchable

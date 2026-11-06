@@ -1,4 +1,4 @@
-/* One skin for every World3 page (organizer dashboard, sponsors, advertiser, passport): warm cream ground, white rounded
+/* One skin for every wrld3 page (organizer dashboard, sponsors, advertiser, passport): warm cream ground, white rounded
    cards, a floating pill top bar, pill buttons. It loads after each page's own stylesheet and only changes looks. */
 @media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {
   :root { --bg: #F5F1E4; --soft: #EFEAD9; --line: #E4DDC6; --shadow: 0 10px 30px rgba(60, 50, 20, .09); }

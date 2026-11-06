@@ -1,4 +1,4 @@
-# Schema: what World3 puts on Arkiv
+# Schema: what wrld3 puts on Arkiv
 
 Network: **Arkiv Rabdi testnet**, chain id `7794095`. SDK: `@arkiv-network/sdk` 1.0.1.
 
@@ -60,5 +60,5 @@ schema name, so the tag alone proves nothing. Entities expire 7 days after the c
 cd backend && npm install && node scripts/arkiv-query.mjs
 ```
 
-It reads the spots from Arkiv directly (no World3 server, no key needed, though a free access key avoids rate limits) and
+It reads the spots from Arkiv directly (no wrld3 server, no key needed, though a free access key avoids rate limits) and
 prints the two entities currently live. Current keys: Gateway of India `0x6c5d1391…2e53ce`, CSMT `0xfba0cc6b…31ee7c`.

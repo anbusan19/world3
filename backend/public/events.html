@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>World3 · Events</title>
+  <title>wrld3 · Events</title>
   <link rel="icon" href="/logo.png">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/sponsor.css">
@@ -26,7 +26,7 @@
 </head>
 <body>
   <header class="top">
-    <a class="brand" href="/"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="World3"></picture><em>Events</em></a>
+    <a class="brand" href="/"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="wrld3"></picture><em>Events</em></a>
     <span class="grow"></span>
     <a class="link" href="/">Spots</a>
   </header>
@@ -46,7 +46,7 @@
     </section>
   </main>
   <script>
-    const H = { 'x-requested-with': 'world3-dashboard', 'content-type': 'application/json' };
+    const H = { 'x-requested-with': 'wrld3-dashboard', 'content-type': 'application/json' };
     const $ = (s) => document.querySelector(s);
     const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const say = (t, tone = '') => { $('#msg').textContent = t; $('#msg').className = 'msg ' + tone; };

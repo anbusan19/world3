@@ -250,30 +250,38 @@ export const LANDMARKS = {
     let z0 = 5; [[10, 8, 5, 2.6], [8, 6, 4, 2.4], [6, 5, 3, 2]].forEach(([w, d, h, th], i) => { s.box(K.a, 0, 4.3, z0 + i * 0 - 5 + (i * 5), w, h, d, {}); s.frus(K.b, 0, 4.3 + h, z0 - 5 + i * 5, w + 0.4, d + 0.4, w * 0.35, d * 0.35, th); });
   },
 
-  // ---- the sponsor logos, in 3D: a cartoon plinth with the mark standing on it ----
-  'ens-logo'(s) {
-    const blue = hex('#0080BC'); const sky = hex('#5298FF'); const base = hex('#DCEBFA');
-    s.cyl(base, 0, 0, 0, 5.2, 4.8, 0.9, 32); s.cyl(hex('#9CC8EA'), 0, 0.9, 0, 4.4, 4.2, 0.3, 32);
-    // the ENS mark: two tall faceted gems leaning against each other
-    const gem = (c, x, y, tilt) => s.at({ x, y: 1.2 + y, rz: tilt }, () => { s.frus(c, 0, 0, 0, 3.2, 3.2, 0, 0, 5.4); s.frus(c, 0, 0, 0, 3.2, 3.2, 0, 0, 5.4, { rx: 180 }); });
-    gem(sky, -1.0, 5.4, 16); gem(blue, 1.0, 3.2, 16);
-    s.ball(blue, 0, 1.2, 0, 0.0001);
-  },
-  'arkiv-logo'(s) {
-    const o = hex('#F26B21'); const o2 = hex('#F9A06A'); const w = hex('#FFFFFF');
-    s.cyl(hex('#FFE9D6'), 0, 0, 0, 5.2, 4.8, 0.9, 32); s.cyl(hex('#F7C59F'), 0, 0.9, 0, 4.4, 4.2, 0.3, 32);
-    // the Arkiv mark: a cube seen corner-on, sitting on a corner so the edges form the hexagon of the logo
-    s.at({ y: 1.2 + 0.9, ry: 45 }, () => {
-      s.box(o, 0, 0, 0, 5.4, 5.4, 5.4); s.box(o2, 0, 5.39, 0, 5.42, 0.12, 5.42);
-      for (const [x, z] of [[2.71, 2.71], [-2.71, 2.71], [2.71, -2.71], [-2.71, -2.71]]) s.box(w, x, 0, z, 0.16, 5.4, 0.16);
-    });
-  },
-  'world-logo'(s) {
-    const k = hex('#0B0B0F'); const w = hex('#F4F1EA'); const g = hex('#8CC152');
-    s.cyl(hex('#EAF6EA'), 0, 0, 0, 5.2, 4.8, 0.9, 32); s.cyl(hex('#CFE8A8'), 0, 0.9, 0, 4.4, 4.2, 0.3, 32);
-    // the World mark: a globe inside a ring
-    s.at({ y: 1.2 + 3.6 }, () => { for (let i = 0; i < 28; i++) s.at({ rz: (i / 28) * 360 }, () => s.at({ y: 3.9 }, () => s.box(k, 0, -0.45, -0.5, 0.95, 0.95, 1.0))); });
-    s.ball(w, 0, 1.2 + 0.9, 0, 2.7, 5.4, 24);
-    s.at({ y: 1.2 + 3.6 }, () => { s.cyl(k, 0, -0.07, 0, 2.74, 2.74, 0.14, 28); s.cyl(g, 0, 0.9, 0, 2.55, 2.55, 0.12, 28); s.cyl(g, 0, -1.0, 0, 2.55, 2.55, 0.12, 28); });
-  },
+  // ---- the sponsor logos as coins: a round disc standing on its edge with the mark on both faces ----
+  'ens-logo'(s) { coin(s, '#0A6FA8', '#E8F3FC', (up) => {
+    // the ENS mark: two tall kites leaning against each other
+    const kite = (x, z, tilt, flip) => s.at({ x, y: up, z, ry: tilt }, () => s.at({ sx: 0.55, sz: 1.5 }, () => s.at({ ry: 45 }, () => {
+      s.box(hex(flip ? '#5298FF' : '#0080BC'), 0, 0, 0, 2.2, 0.06, 2.2);
+    })));
+    kite(-0.55, -1.05, 20, false); kite(0.55, 1.05, 20, true);
+  }); },
+  'arkiv-logo'(s) { coin(s, '#E0601A', '#FFF1E4', (up) => {
+    // the Arkiv mark: an orange hexagon with a white Y inside
+    s.cyl(hex('#F26B21'), 0, up, 0, 3.2, 3.2, 0.06, 6, { ry: 30 });
+    const bar = (ry) => s.at({ y: up + 0.06, ry }, () => s.box(hex('#FFFFFF'), 1.0, 0, 0, 2.0, 0.05, 0.34));
+    bar(0); bar(120); bar(240);
+  }); },
+  'world-logo'(s) { coin(s, '#15151B', '#F4F1EA', (up) => {
+    // the World mark: a ring around a globe
+    const k = hex('#0B0B0F'); const w = hex('#F4F1EA'); const h = 0.04;
+    s.cyl(k, 0, up, 0, 3.6, 3.6, h, 40); s.cyl(w, 0, up + h, 0, 3.15, 3.15, h, 40);
+    s.cyl(k, 0, up + 2 * h, 0, 2.1, 2.1, h, 40); s.cyl(w, 0, up + 3 * h, 0, 1.8, 1.8, h, 40);
+    s.at({ sx: 0.42 }, () => { s.cyl(k, 0, up + 4 * h, 0, 2.1, 2.1, h, 40); s.cyl(w, 0, up + 5 * h, 0, 1.8, 1.8, h, 40); });
+    s.box(k, 0, up + 6 * h, 0, 4.2, h, 0.3); s.box(k, 0, up + 6 * h, 0, 0.3, h, 4.2);
+  }); },
 };
+
+// a coin 10 wide, 1 thick, standing on its edge, facing the viewer; draw(up) paints the mark at height `up` on a face.
+function coin(s, rim, face, draw) {
+  s.at({ rx: 90 }, () => {
+    s.cyl(hex(rim), 0, -0.5, 0, 5, 5, 1, 48);
+    for (const side of [1, -1]) s.at({ rx: side === 1 ? 0 : 180 }, () => {
+      s.cyl(hex(rim), 0, 0.5, 0, 4.7, 4.7, 0.08, 48); // raised lip
+      s.cyl(hex(face), 0, 0.5, 0, 4.2, 4.2, 0.14, 48); // the face
+      draw(0.64);
+    });
+  });
+}

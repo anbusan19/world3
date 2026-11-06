@@ -9,7 +9,7 @@ import { http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { CampaignSchema } from './campaign.js';
 
-// Spots as public Arkiv entities, so anyone can discover them without asking the World3 backend, and they disappear on
+// Spots as public Arkiv entities, so anyone can discover them without asking the wrld3 backend, and they disappear on
 // their own when the event is over. The organizer's wallet owns and writes them; this server only reads them back.
 //
 // What is public: the name, type, rounded location (about 100 m) and radii. What is NOT: exact coordinates, the 3D model,

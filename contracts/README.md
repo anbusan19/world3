@@ -1,4 +1,4 @@
-# World3 stamp contract
+# wrld3 stamp contract
 
 `src/Stamp.sol`: a **non-transferable ERC-1155**. Each spot is a token id; capturing mints one stamp to the traveler.
 

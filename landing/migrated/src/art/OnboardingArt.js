@@ -220,7 +220,7 @@ function PassportSvg() {
 
         {/* title */}
         <SvgText x="141" y="124" fill={INK_BLUE} fontSize="18" fontFamily={F.black} fontWeight="bold" textAnchor="middle" letterSpacing="2">
-          WORLD3
+          WRLD3
         </SvgText>
         <SvgText x="141" y="143" fill={INK_BLUE} fontSize="11" fontFamily={F.bold} fontWeight="bold" textAnchor="middle" letterSpacing="3.5">
           PASSPORT

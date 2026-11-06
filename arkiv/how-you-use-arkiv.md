@@ -1,4 +1,4 @@
-# How World3 uses Arkiv
+# How wrld3 uses Arkiv
 
 **Filters, owner, expiry: do they fit?**
 

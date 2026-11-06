@@ -1,4 +1,4 @@
-// Anyone can run this: it reads World3's public spots straight from Arkiv, without asking our server.
+// Anyone can run this: it reads wrld3's public spots straight from Arkiv, without asking our server.
 //   cd backend && npm install && node scripts/arkiv-query.mjs
 // Optional: ARKIV_ACCESS_KEY=... (free, https://hub.arkiv.network/access-keys) if the public RPC rate-limits you.
 import { createPublicClient } from '@arkiv-network/sdk';
@@ -7,8 +7,8 @@ import { eq } from '@arkiv-network/sdk/query';
 import { defineSchema, i32, str, bool } from '@arkiv-network/sdk/schema';
 import { http } from 'viem';
 
-const OWNER = process.env.WORLD3_OWNER ?? '0xf47cB2e4353F5daF04fA7AF0955551ab7DB74b52'; // the wallet that wrote them
-const EVENT = process.env.WORLD3_EVENT ?? 'ethglobal-mumbai-2026';
+const OWNER = process.env.WRLD3_OWNER ?? '0xf47cB2e4353F5daF04fA7AF0955551ab7DB74b52'; // the wallet that wrote them
+const EVENT = process.env.WRLD3_EVENT ?? 'ethglobal-mumbai-2026';
 
 const Spot = defineSchema('world3.spot', {
   eventSlug: str().indexed(), spotId: str().indexed(), name: str(), label: str(), city: str().optional(), type: str().indexed(),

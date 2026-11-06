@@ -1,9 +1,9 @@
 {
-  "name": "world3-backend",
+  "name": "wrld3-backend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Local spots server and dashboard for World3: place 3D models (.glb) on the map.",
+  "description": "Local spots server and dashboard for wrld3: place 3D models (.glb) on the map.",
   "engines": {
     "node": ">=22"
   },

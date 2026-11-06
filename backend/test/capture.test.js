@@ -11,7 +11,7 @@ import { distanceMeters } from '../src/capture.js';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const KEY = '0x' + randomBytes(32).toString('hex'); // a throwaway signing key, never a real one
 let dir, server, store, base, spot, worldCalls = [], worldAnswer, clock;
-const H = { 'x-requested-with': 'world3-app', 'content-type': 'application/json' };
+const H = { 'x-requested-with': 'wrld3-app', 'content-type': 'application/json' };
 
 // stands in for World's verify endpoint, so the tests never touch the network
 const fakeWorld = async (url, init) => {
@@ -20,7 +20,7 @@ const fakeWorld = async (url, init) => {
 };
 
 before(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), 'world3-capture-'));
+  dir = await mkdtemp(path.join(tmpdir(), 'wrld3-capture-'));
   clock = Date.now();
   ({ server, store } = await createApp({
     dataDir: dir,

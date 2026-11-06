@@ -1,4 +1,4 @@
-# World3 spots dashboard
+# wrld3 spots dashboard
 
 A local dashboard for pinning 3D models (.glb) to real-world locations, plus the small server the app reads them from. No dependencies, Node 20+.
 
@@ -31,7 +31,7 @@ Data lives in `backend/data/` (git-ignored): `spots.json`, `models/`, `images/`.
 ## Security notes
 
 - No login. The server binds to `127.0.0.1` and only accepts loopback Host headers. Do not expose it (HOST=0.0.0.0 prints a warning) until auth is added.
-- Write requests need a same-origin request and the `X-Requested-With: world3-dashboard` header.
+- Write requests need a same-origin request and the `X-Requested-With: wrld3-dashboard` header.
 - The feed currently exposes exact coordinates. The product spec wants only coarse locations before a user is close, so that needs to change before a real release.
 
 ## Not done yet

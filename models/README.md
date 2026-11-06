@@ -8,7 +8,7 @@ Upload a model to a spot in the dashboard (`backend`, `npm start`), then set its
 
 ## Landmark models (generated)
 
-Cartoon models of famous Indian landmarks, made for World3 by `models/generate/` (original work, no third-party assets; use them freely).
+Cartoon models of famous Indian landmarks, made for wrld3 by `models/generate/` (original work, no third-party assets; use them freely).
 They are built from simple solids in the real buildings' proportions (storeys, minarets, domes, arches) in a flat pastel palette,
 each scaled to 4 m tall, standing on y = 0 and centred. Rebuild with `cd models/generate && node build.mjs [slug...]`; look at them
 with `python3 -m http.server 8099` in `models/` and open `preview.html?set=0`.

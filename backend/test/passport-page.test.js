@@ -9,7 +9,7 @@ import { createApp } from '../src/app.js';
 const here = path.dirname(fileURLToPath(import.meta.url));
 let dir, server, base;
 before(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), 'world3-passport-'));
+  dir = await mkdtemp(path.join(tmpdir(), 'wrld3-passport-'));
   ({ server } = await createApp({ dataDir: dir, publicDir: path.join(here, '..', 'public') }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -20,7 +20,7 @@ test('the share link /p/<label> serves the public passport page', async () => {
   const r = await fetch(`${base}/p/a7k2`);
   assert.equal(r.status, 200);
   assert.match(r.headers.get('content-type'), /text\/html/);
-  assert.match(await r.text(), /World3 passport/);
+  assert.match(await r.text(), /wrld3 passport/);
   assert.equal((await fetch(`${base}/p/a7k2/`)).status, 200);
   assert.equal((await fetch(`${base}/passport.html`)).status, 200);
 });

@@ -55,14 +55,14 @@ test('the public form rounds the location to about 100 m and leaves out everythi
 });
 
 test('without a wallet key the adapter is simply off', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'world3-arkiv-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'wrld3-arkiv-'));
   const a = await createArkiv({ dataDir: dir, config: { eventSlug: 'e', ttlDays: 1 } });
   assert.equal(a.enabled, false);
   await rm(dir, { recursive: true, force: true });
 });
 
 test('publishing creates once, then updates and renews instead of duplicating; unpublishing deletes', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'world3-arkiv-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'wrld3-arkiv-'));
   const chain = fakeChain();
   const a = await createArkiv({ dataDir: dir, config: { eventSlug: 'evt', ttlDays: 30 }, clients: chain, now: () => 1_800_000_000_000 });
   const first = await a.publish(SPOT);
@@ -89,7 +89,7 @@ test('error text never carries the access key or the RPC URL', () => {
 });
 
 test('every write carries an explicit gas limit and writes never overlap', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'world3-arkiv-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'wrld3-arkiv-'));
   const chain = fakeChain();
   let running = 0, overlapped = false;
   for (const k of ['createEntity', 'patchEntity', 'extendEntity', 'deleteEntity']) {
@@ -111,11 +111,11 @@ test('every write carries an explicit gas limit and writes never overlap', async
 
 // ---- through the dashboard API --------------------------------------------------------------------------------------
 let dir, server, store, base, chain;
-const H = { 'x-requested-with': 'world3-dashboard', 'content-type': 'application/json' };
+const H = { 'x-requested-with': 'wrld3-dashboard', 'content-type': 'application/json' };
 const put = async (id, body) => (await fetch(`${base}/api/spots/${id}`, { method: 'PUT', headers: H, body: JSON.stringify(body) })).json();
 
 before(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), 'world3-arkiv-api-'));
+  dir = await mkdtemp(path.join(tmpdir(), 'wrld3-arkiv-api-'));
   chain = fakeChain();
   ({ server, store } = await createApp({ dataDir: dir, publicDir: path.join(here, '..', 'public'), arkiv: { clients: chain, config: { eventSlug: 'evt', ttlDays: 30 } } }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));

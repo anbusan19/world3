@@ -36,14 +36,14 @@ const KIND_BY_CODE = {
 // The signed-in session: a random token the server gave us after a World ID proof. Kept in the phone's secure store.
 const TOKEN_KEY = 'world3.session';
 let token = null;
-const headers = () => ({ 'content-type': 'application/json', 'x-requested-with': 'world3-app', ...(token ? { authorization: `Bearer ${token}` } : {}) });
+const headers = () => ({ 'content-type': 'application/json', 'x-requested-with': 'wrld3-app', ...(token ? { authorization: `Bearer ${token}` } : {}) });
 
 async function post(path, body) {
   let res;
   try {
     res = await fetch(`${getFeedBase()}${path}`, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
   } catch {
-    throw new CaptureFailure('network', 'Could not reach the World3 server.');
+    throw new CaptureFailure('network', 'Could not reach the wrld3 server.');
   }
   let data = null;
   try { data = await res.json(); } catch { /* not JSON */ }
@@ -67,7 +67,7 @@ async function askWorldId(req, signal) {
       },
       allow_legacy_proofs: false,
       environment: req.environment,
-      return_to: 'world3://verify',
+      return_to: 'wrld3://verify',
     }).preset(proofOfHuman({ signal }));
     await Linking.openURL(request.connectorURI);
     completion = await request.pollUntilCompletion({ timeout: 3 * 60 * 1000 });
@@ -120,7 +120,7 @@ export async function signInWithWorldId({ onStage = () => {} } = {}) {
 export async function signOut() {
   const old = token;
   await clearToken();
-  if (old) { try { await fetch(`${getFeedBase()}/api/v1/auth/signout`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'world3-app', authorization: `Bearer ${old}` }, body: '{}' }); } catch { /* the token is gone from the phone either way */ } }
+  if (old) { try { await fetch(`${getFeedBase()}/api/v1/auth/signout`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'wrld3-app', authorization: `Bearer ${old}` }, body: '{}' }); } catch { /* the token is gone from the phone either way */ } }
 }
 
 // ---- capture ----------------------------------------------------------------------------------------------------

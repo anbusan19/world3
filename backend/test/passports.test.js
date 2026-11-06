@@ -29,7 +29,7 @@ function fakeEns({ taken = [], gas = 10n ** 18n } = {}) {
 }
 const caps = (...pairs) => ({ items: pairs.map(([userId, spotId]) => ({ userId, spotId })) });
 async function make(over = {}) {
-  const dir = await mkdtemp(path.join(tmpdir(), 'world3-pp-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'wrld3-pp-'));
   const ens = over.ens ?? fakeEns();
   const captures = over.captures ?? caps(['u1', '06'], ['u1', '05']);
   const svc = await createPassports({ dataDir: dir, ens, ownerSeed: SEED, captures, publicBase: 'https://w3.example/', random: over.random });
@@ -172,7 +172,7 @@ test('innocent words that merely contain a bad one are still allowed', () => {
 });
 
 test('the organizer can block more words, in any language, and they match anywhere in a name', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'world3-pp-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'wrld3-pp-'));
   const svc = await createPassports({ dataDir: dir, ens: fakeEns(), ownerSeed: SEED, captures: caps(), blockedWords: [' Mango ', ''] });
   assert.equal((await svc.available('my-mango-trip')).ok, false);
   assert.equal((await svc.available('MANGO')).ok, false);
@@ -247,9 +247,9 @@ test('state survives a restart', async () => {
 let dir, server, store, base, ens, clock, passportsSvc;
 const WORLD_KEY = '0x' + randomBytes(32).toString('hex');
 let worldAnswer;
-const H = { 'x-requested-with': 'world3-app', 'content-type': 'application/json' };
+const H = { 'x-requested-with': 'wrld3-app', 'content-type': 'application/json' };
 before(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), 'world3-pp-api-'));
+  dir = await mkdtemp(path.join(tmpdir(), 'wrld3-pp-api-'));
   ens = fakeEns(); clock = Date.now();
   ({ server, store, passports: passportsSvc } = await createApp({
     dataDir: dir, publicDir: path.join(here, '..', 'public'),

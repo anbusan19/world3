@@ -11,7 +11,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const ORG = '0x00000000000000000000000000000000000a11ce';
 const ACME = '0x00000000000000000000000000000000000b0b0b';
 const NOBODY = '0x00000000000000000000000000000000000dead1';
-const H = { 'x-requested-with': 'world3-dashboard', 'content-type': 'application/json' };
+const H = { 'x-requested-with': 'wrld3-dashboard', 'content-type': 'application/json' };
 
 // a fake Arkiv whose campaign read returns one row for ACME and nothing for anyone else
 const row = { $key: '0xcamp1', $expiresAt: '1565066', spotId: '05', status: 'active', startsAt: '1', endsAt: '9999999999', sponsor: 'Acme', headline: 'Free coffee', clickUrl: 'https://acme.example', mime: 'image/png', width: 640, height: 360, sha256: '0x00' };
@@ -23,7 +23,7 @@ function fakeClients() {
 
 let dir, server, store, base, sponsors;
 before(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), 'world3-sponsors-'));
+  dir = await mkdtemp(path.join(tmpdir(), 'wrld3-sponsors-'));
   ({ server, store, sponsors } = await createApp({ dataDir: dir, publicDir: path.join(here, '..', 'public'), arkiv: { clients: fakeClients(), config: { eventSlug: 'evt', ttlDays: 30 }, sponsors: [] } }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -35,7 +35,7 @@ after(async () => {
 const j = async (p, init) => { const r = await fetch(base + p, init); return { status: r.status, body: await r.json() }; };
 
 test('the store accepts real addresses only, in any case, and approvals apply immediately', async () => {
-  const d = await mkdtemp(path.join(tmpdir(), 'world3-sp-'));
+  const d = await mkdtemp(path.join(tmpdir(), 'wrld3-sp-'));
   const s = new Sponsors(d, [NOBODY]);
   await s.init();
   await assert.rejects(() => s.add('0x123', 'x'), /not a wallet address/);

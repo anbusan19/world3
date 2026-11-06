@@ -50,7 +50,7 @@ Arkiv limits that shape the design (from docs.arkiv.network, checked today):
 - only the **owner** can change or delete; **anyone** can write the same schema tag, so always filter by owner;
 - 100 rows per page; the public RPC is rate limited (get a free access key).
 
-Entities (schema tags `world3.*`):
+Entities (schema tags `wrld3.*`):
 
 | Entity | Owner (writer) | Key fields | Expires |
 |---|---|---|---|

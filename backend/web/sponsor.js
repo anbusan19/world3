@@ -1,5 +1,5 @@
 // The advertiser page. Everything that costs money or changes a campaign is signed by the sponsor's own wallet; this page and the
-// World3 server never hold a key. Source for public/sponsor.bundle.js (build: npm run build:web).
+// wrld3 server never hold a key. Source for public/sponsor.bundle.js (build: npm run build:web).
 import { ExpirationTime, createWalletClient } from '@arkiv-network/sdk';
 import { rabdi } from '@arkiv-network/sdk/chains';
 import { custom, isAddress } from 'viem';
@@ -97,7 +97,7 @@ async function getTglm() {
   const btn = $('#faucet'); btn.disabled = true;
   say($('#netMsg'), 'Sending you test tGLM…');
   try {
-    const res = await fetch('/api/v1/faucet', { method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'world3-dashboard' }, body: JSON.stringify({ address: S.account }) });
+    const res = await fetch('/api/v1/faucet', { method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'wrld3-dashboard' }, body: JSON.stringify({ address: S.account }) });
     const out = await res.json().catch(() => ({}));
     if (!res.ok) { say($('#netMsg'), out.error ?? out.message ?? 'The faucet said no.', 'bad'); return false; }
     say($('#netMsg'), `Sent ${out.amount}. It lands in a few seconds.`, 'ok');
@@ -376,7 +376,7 @@ function init() {
   ['dragover', 'dragenter'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', (e) => { const f = e.dataTransfer?.files?.[0]; if (f) chooseImage(f); });
-  refreshInfo().then(validate).catch(() => { $('#problem').textContent = 'Could not reach the World3 server.'; });
+  refreshInfo().then(validate).catch(() => { $('#problem').textContent = 'Could not reach the wrld3 server.'; });
   validate(); renderCampaigns();
 }
 init();

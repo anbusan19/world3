@@ -1,4 +1,4 @@
-// Cartoon map style for MapLibre, painted in the World3 logo palette.
+// Cartoon map style for MapLibre, painted in the wrld3 logo palette.
 // Data: OpenFreeMap vector tiles (OpenMapTiles schema, no API key). Credit "OpenFreeMap / OpenMapTiles /
 // OpenStreetMap" is shown by the map's attribution control and must stay visible.
 // No text layers on purpose: labels would need a glyph server, and the app draws its own chunky labels.
@@ -66,7 +66,7 @@ const roadLayers = (name, classes, color, edge, w) => [
 function buildCartoon(PALETTE) {
   return {
   version: 8,
-  name: 'World3 Cartoon',
+  name: 'wrld3 Cartoon',
   sources: {
     [SRC]: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' },
   },
@@ -114,7 +114,7 @@ export const getCartoonStyle = (dark) => (dark ? darkCartoonStyle : cartoonStyle
 // green, deserts are sand, polar ice is white, and country borders are thin white lines.
 export const globeStyle = {
   ...cartoonStyle,
-  name: 'World3 Globe',
+  name: 'wrld3 Globe',
   projection: { type: 'globe' },
   layers: [
     ...cartoonStyle.layers

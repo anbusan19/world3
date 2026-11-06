@@ -225,7 +225,7 @@ function PermissionCard({ perm, onAllow, onSkip }) {
       </View>
       <Text style={styles.permTitle}>Let the stamp appear in front of you</Text>
       <Text style={styles.permBody}>
-        World3 uses the camera so the stamp floats in your view, and to scan the QR code at venues. Nothing is recorded or saved.
+        wrld3 uses the camera so the stamp floats in your view, and to scan the QR code at venues. Nothing is recorded or saved.
       </Text>
       {denied ? (
         <Pressable style={styles.permBtn} onPress={() => Linking.openSettings()}>

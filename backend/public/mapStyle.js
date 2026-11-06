@@ -16,7 +16,7 @@ export function cartoonStyle(dark) {
   const P = dark ? PALETTES.dark : PALETTES.light;
   return {
     version: 8,
-    name: 'World3 Cartoon',
+    name: 'wrld3 Cartoon',
     sources: { [SRC]: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' } },
     layers: [
       { id: 'land', type: 'background', paint: { 'background-color': P.land } },

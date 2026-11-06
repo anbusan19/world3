@@ -50,7 +50,7 @@ async function show(label) {
   $('#lookup').hidden = true;
   $('#view').hidden = false;
   const full = `${label}.${PARENT}`;
-  document.title = `${full} · World3 passport`;
+  document.title = `${full} · wrld3 passport`;
   $('#name').textContent = full;
   $('#vName').textContent = full;
   $('#vApp').href = `https://sepolia.app.ens.domains/${full}`;

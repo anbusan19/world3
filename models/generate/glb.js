@@ -111,7 +111,7 @@ export class Scene {
       prims.push({ attributes: { POSITION: accessors.length - 2, NORMAL: accessors.length - 1 }, material: materials.length - 1, mode: 4 });
     }
     const bin = Buffer.concat(chunks);
-    const json = { asset: { version: '2.0', generator: 'World3 landmark generator' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0, name: this.name }], meshes: [{ name: this.name, primitives: prims }], materials, accessors, bufferViews: views, buffers: [{ byteLength: bin.length }] };
+    const json = { asset: { version: '2.0', generator: 'wrld3 landmark generator' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0, name: this.name }], meshes: [{ name: this.name, primitives: prims }], materials, accessors, bufferViews: views, buffers: [{ byteLength: bin.length }] };
     let j = Buffer.from(JSON.stringify(json)); while (j.length % 4) j = Buffer.concat([j, Buffer.from(' ')]);
     let bb = bin; while (bb.length % 4) bb = Buffer.concat([bb, Buffer.from([0])]);
     const head = Buffer.alloc(12); head.write('glTF', 0); head.writeUInt32LE(2, 4); head.writeUInt32LE(12 + 8 + j.length + 8 + bb.length, 8);
