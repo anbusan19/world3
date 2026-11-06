@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stamp3D } from '../Stamp3D';
 import { BackButton, Chip, InfoRow, PrimaryButton } from '../ui';
+import { shareStamp } from '../world';
 import { F, makeStyles } from '../theme';
 
 const fmtDate = (ms) =>
@@ -38,7 +39,7 @@ export function StampDetail({ spot, collectedAt, onBack }) {
 
         <InfoRow icon="information-circle-outline" title="Why can’t I send it?" body="A stamp means “I was there”. It stays with the person who captured it." />
 
-        <PrimaryButton label="Share stamp" icon="share-outline" onPress={() => {}} style={{ marginTop: 14 }} />
+        <PrimaryButton label="Share on X" icon="share-social" onPress={() => shareStamp(spot)} style={{ marginTop: 14 }} />
         <PrimaryButton label="View on explorer" tone="light" icon="open-outline" onPress={() => {}} style={{ marginTop: 10 }} />
       </ScrollView>
     </SafeAreaView>

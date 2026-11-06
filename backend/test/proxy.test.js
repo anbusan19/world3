@@ -30,11 +30,13 @@ test('proxy forwards the feed and files only, read-only', async () => {
   assert.equal((await get(port, '/sponsor.html')).status, 200);
   assert.equal((await get(port, '/p/a7k2')).status, 200); // the public passport page
   assert.equal((await get(port, '/passport.html')).status, 200);
+  assert.equal((await get(port, '/share/stamp/01')).status, 200); // share cards are public
+  assert.equal((await get(port, '/share/stamp/01.png')).status, 200);
   assert.equal((await get(port, '/explorer.html')).status, 200); // the public explorer page
   assert.equal((await get(port, '/api/v1/explorer')).status, 200);
   assert.equal((await get(port, '/api/v1/spots', 'PUT')).status, 405);
   assert.equal((await get(port, '/api/spots', 'POST')).status, 405);
-  assert.equal(seen.length, 8); // the feed, a model file, the advertiser page's two read-only requests, the two passport page requests and the two explorer requests
+  assert.equal(seen.length, 10); // the feed, a model file, the advertiser page's two read-only requests, the two passport page requests, the two share-card requests and the two explorer requests
   // the faucet is the one POST the public front forwards, and only from its own page
   const before = seen.length;
   assert.equal((await post(port, '/api/v1/faucet', { origin: `http://127.0.0.1:${port}` })).status, 200);

@@ -109,6 +109,14 @@ export async function createAds({ dataDir, arkiv, allowedOwners = [], hasCapture
       if (c) return { shown: true, impressions: countFor(key), captures: captureCount(c.spotId) };
       return { shown: false, reason: rejected.find((r) => r.key === key)?.reason ?? null, impressions: countFor(key), captures: null };
     },
+    // one active, validated campaign by key (for its share card). Looks again at most every 10 s if the key is not known yet,
+    // because a campaign published a moment ago may not be in the list.
+    async get(key) {
+      await fresh();
+      let c = active.find((x) => x.key === key);
+      if (!c && now() - loadedAt > 10_000) { loadedAt = 0; await fresh(); c = active.find((x) => x.key === key); }
+      return c ?? null;
+    },
     isApprovedOwner: (address) => owners().includes(String(address).toLowerCase()),
     dir,
   };

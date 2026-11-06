@@ -7,7 +7,7 @@ import { Stamp } from '../Stamp';
 import { ArCamera } from './ArCamera';
 import { BackButton, Chip, PrimaryButton } from '../ui';
 import { shortName } from '../spots';
-import { CaptureFailure, captureWithWorldId, fetchAd, reportImpression } from '../world';
+import { CaptureFailure, captureWithWorldId, fetchAd, reportImpression, shareStamp } from '../world';
 import { F, makeStyles, useColors, useTheme } from '../theme';
 
 // The capture flow: camera (ArCamera.js), then World ID and the server's checks (world.js), then the result. Nothing is
@@ -209,7 +209,8 @@ function ResultStep({ spot, result, onRetry, onClose, onViewPassport }) {
               <Text style={styles.mono}>token #{spot.id.padStart(4, '0')} · Sepolia</Text>
             </View>
             {ad && <SponsorCard ad={ad} />}
-            <PrimaryButton label="View passport" icon="person" onPress={onViewPassport} style={{ alignSelf: 'stretch', marginTop: 24 }} />
+            <PrimaryButton label="Share on X" icon="share-social" tone="green" onPress={() => shareStamp(spot)} style={{ alignSelf: 'stretch', marginTop: 24 }} />
+            <PrimaryButton label="View passport" icon="person" tone="light" onPress={onViewPassport} style={{ alignSelf: 'stretch', marginTop: 10 }} />
             <PrimaryButton label="Keep exploring" tone="light" onPress={onClose} style={{ alignSelf: 'stretch', marginTop: 10 }} />
           </>
         ) : (

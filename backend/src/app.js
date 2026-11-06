@@ -15,6 +15,7 @@ import { GlbError, LIMITS, parseGlb } from './glb.js';
 import { SEED } from './seed.js';
 import { explore } from './explorer.js';
 import { EventClock } from './event.js';
+import { adCardSvg, sharePage, stampCardSvg, toPng } from './share.js';
 import { FaucetError, createFaucet } from './faucet.js';
 import { Store, toPublic } from './store.js';
 import { validateSpot } from './validate.js';
@@ -186,6 +187,31 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       const ip = (loop ? String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim() : '') || req.socket.remoteAddress || '';
       try { return send(res, 200, await faucet.drip(address, ip), cors); }
       catch (e) { if (e instanceof FaucetError) throw new HttpError(e.status, e.message); console.error('faucet', e?.shortMessage ?? e?.name); throw new HttpError(502, 'The faucet could not send right now. Try again in a minute.'); }
+    }
+
+    // ---- share cards: a picture and a small page whose tags make X show it (public, read-only, nothing personal) ----------
+    const shareRoute = p.match(/^\/share\/(ad|stamp)\/([A-Za-z0-9._-]{1,80}?)(\.png)?$/);
+    if (shareRoute && method === 'GET') {
+      const [, kind, id, png] = shareRoute;
+      const loop = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+      const fwdHost = loop ? req.headers['x-forwarded-host'] : null;
+      const base = (process.env.PUBLIC_BASE_URL || (fwdHost ? `${req.headers['x-forwarded-proto'] || 'https'}://${fwdHost}` : `http://${req.headers.host}`)).replace(/\/+$/, '');
+      const eventName = events.name;
+      let svg, title, description;
+      if (kind === 'ad') {
+        const c = await ads.get(id).catch(() => null);
+        if (!c) throw new HttpError(404, 'This campaign is not live (yet).');
+        let creative = null; try { creative = await readFile(path.join(ads.dir, c.file)); } catch { /* no picture */ }
+        svg = adCardSvg({ sponsor: c.sponsor, headline: c.headline, creative, mime: c.mime, eventName });
+        title = `${c.sponsor} is live on WRLD³`; description = `${c.headline} · Seen by verified humans at ${eventName}.`;
+      } else {
+        const spot = store.list().find((x) => x.id === id && x.published);
+        if (!spot) throw new HttpError(404, 'No such spot.');
+        svg = stampCardSvg({ spot, eventName });
+        title = `I collected ${spot.name} on WRLD³`; description = `A stamp you can only get by being there, proved with World ID. ${eventName}.`;
+      }
+      if (png) return send(res, 200, toPng(svg), { 'content-type': 'image/png', 'cache-control': 'public, max-age=300', ...cors });
+      return send(res, 200, sharePage({ title, description, image: `${base}/share/${kind}/${id}.png`, url: `${base}/share/${kind}/${id}` }), { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300', ...cors });
     }
 
     // the public explorer: recent stamps across everyone (no personal data), searchable

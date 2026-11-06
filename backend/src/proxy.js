@@ -19,6 +19,7 @@ const ALLOWED = [
   /^\/p\/[a-z0-9-]{1,32}\/?$/i,
   // the explorer: recent stamps across everyone, no personal data
   /^\/(explorer\.html|skin\.css|hero-globe\.bundle\.js|logo\.png|title-light\.png|title-dark\.png)$/,
+  /^\/share\/(ad|stamp)\/[A-Za-z0-9._-]{1,80}$/, // share cards (picture + the page X reads)
   /^\/api\/v1\/explorer$/,
   /^\/api\/v1\/faucet\/info$/,
 ];
@@ -44,7 +45,7 @@ export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } =
     if (req.method !== 'GET' && req.method !== 'HEAD') return deny(405, 'Read-only.');
     if (!ALLOWED.some((re) => re.test(url.pathname))) return deny(404, 'Not found.');
 
-    const headers = { host: `${upstreamHost}:${upstreamPort}` };
+    const headers = { host: `${upstreamHost}:${upstreamPort}`, 'x-forwarded-host': String(req.headers['x-forwarded-host'] ?? req.headers.host ?? ''), 'x-forwarded-proto': String(req.headers['x-forwarded-proto'] ?? 'https').split(',')[0] };
     for (const h of ['if-none-match', 'accept', 'range']) if (req.headers[h]) headers[h] = req.headers[h];
     const up = http.request({ host: upstreamHost, port: upstreamPort, method: req.method, path: url.pathname, headers }, (r) => {
       res.writeHead(r.statusCode, r.headers);

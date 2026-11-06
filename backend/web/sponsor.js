@@ -341,8 +341,17 @@ async function publish(ev) {
     const res = await S.wallet.createEntity(CampaignSchema, values, { expiration: ExpirationTime.fromDays(days + 7) }, await txParams());
     say(out, 'Published.', 'ok');
     result.hidden = false;
+    const card = `${location.origin}/share/ad/${res.entityKey}`;
+    const post = `https://x.com/intent/post?text=${encodeURIComponent(`We're live on WRLD³ at ${S.info?.event?.name ?? 'the event'}: ${$('#sponsor').value}. ${$('#headline').value}`)}&url=${encodeURIComponent(card)}`;
+    const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
     result.replaceChildren(node('b', {}, 'Your campaign is on Arkiv.'), node('br'), 'Entity ', node('code', {}, res.entityKey), node('br'),
-      S.info?.approved ? 'Your wallet is approved, so it should appear in the app within a minute.' : 'Next step: send the organizer your wallet address so they can approve it. It is shown in step 2.');
+      S.info?.approved ? 'Your wallet is approved, so it should appear in the app within a minute.' : 'Next step: send the organizer your wallet address so they can approve it. It is shown in step 2.',
+      node('div', { className: 'sharebox' },
+        node('img', { src: `${card}.png`, alt: 'Your share card', width: 600, height: 315, onerror: (e) => { e.target.replaceWith(node('p', { className: 'fine' }, 'The share card appears once your campaign is approved and live (about a minute). Reload this page then.')); } }),
+        node('div', { className: 'row' },
+          node('a', { className: 'btn green', href: post, target: '_blank', rel: 'noopener noreferrer' }, 'Share on X'),
+          node('a', { className: 'btn', href: `${card}.png`, download: 'wrld3-live.png' }, 'Download the image')),
+        local ? node('p', { className: 'fine' }, 'Open this page from the public link (not localhost) so X can fetch the picture.') : node('p', { className: 'fine' }, 'X shows this picture with your post.')));
     await refreshCampaigns();
   } catch (e) {
     say(out, friendly(e), 'bad');
