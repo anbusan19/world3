@@ -7,7 +7,8 @@ import { Stamp } from '../Stamp';
 import { ArCamera } from './ArCamera';
 import { BackButton, Chip, PrimaryButton } from '../ui';
 import { shortName } from '../spots';
-import { CaptureFailure, captureWithWorldId, fetchAd, reportImpression, shareStamp } from '../world';
+import { SponsorCard } from '../SponsorCard';
+import { CaptureFailure, captureWithWorldId, fetchAd, shareStamp } from '../world';
 import { F, makeStyles, useColors, useTheme } from '../theme';
 
 // The capture flow: camera (ArCamera.js), then World ID and the server's checks (world.js), then the result. Nothing is
@@ -233,40 +234,6 @@ function ResultStep({ spot, result, onRetry, onClose, onViewPassport }) {
         )}
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-/* ---------------------------------- Sponsor ---------------------------------- */
-
-// An ad from a sponsor the organizer approved, shown only after a verified capture. Always labelled, links open only after a confirm.
-function SponsorCard({ ad }) {
-  const styles = useStyles();
-  const counted = useRef(false);
-  let host = '';
-  try { host = new URL(ad.clickUrl).host; } catch { /* the server only sends https links */ }
-  const seen = () => {
-    if (counted.current) return;
-    counted.current = true;
-    reportImpression(ad.key);
-  };
-  const open = () =>
-    Alert.alert(`Open ${host}?`, `This is a link from ${ad.sponsor}, a sponsor. It opens in your browser and leaves wrld3.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Open', onPress: () => Linking.openURL(ad.clickUrl).catch(() => {}) },
-    ]);
-  return (
-    <View style={styles.ad}>
-      <View style={styles.adHead}>
-        <Text style={styles.adTag}>SPONSORED</Text>
-        <Text style={styles.adBy} numberOfLines={1}>{ad.sponsor}</Text>
-      </View>
-      <Image source={{ uri: ad.imageUrl }} style={[styles.adImg, { aspectRatio: ad.width / ad.height }]} resizeMode="cover" accessibilityLabel={ad.alt} onLoad={seen} />
-      <Text style={styles.adTitle}>{ad.headline}</Text>
-      <Pressable onPress={open} style={styles.adBtn} accessibilityRole="link">
-        <Text style={styles.adBtnText}>Learn more</Text>
-        <Ionicons name="open-outline" size={14} color={styles.adBtnText.color} />
-      </Pressable>
-    </View>
   );
 }
 

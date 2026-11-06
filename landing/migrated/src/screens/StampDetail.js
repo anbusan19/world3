@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stamp3D } from '../Stamp3D';
 import { BackButton, Chip, InfoRow, PrimaryButton } from '../ui';
-import { shareStamp } from '../world';
+import { SponsorCard } from '../SponsorCard';
+import { fetchAd, shareStamp } from '../world';
 import { F, makeStyles } from '../theme';
 
 const fmtDate = (ms) =>
@@ -18,6 +19,9 @@ export function StampDetail({ spot, collectedAt, onBack, mintUrl = null, onRefre
     const t = setInterval(onRefresh, 6000);
     return () => clearInterval(t);
   }, [mintUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the sponsor's ad for this spot (only from an approved sponsor, and only while the event runs)
+  const [ad, setAd] = useState(null);
+  useEffect(() => { let live = true; fetchAd(spot.id).then((a) => live && setAd(a)); return () => { live = false; }; }, [spot.id]);
   const styles = useStyles();
   const tokenId = `#${spot.id.padStart(4, '0')}`;
   return (
@@ -47,6 +51,7 @@ export function StampDetail({ spot, collectedAt, onBack, mintUrl = null, onRefre
 
         <InfoRow icon="information-circle-outline" title="Why can’t I send it?" body="A stamp means “I was there”. It stays with the person who captured it." />
 
+        {ad ? <SponsorCard ad={ad} /> : null}
         <PrimaryButton label="Share on X" icon="share-social" onPress={() => shareStamp(spot)} style={{ marginTop: 14 }} />
         <PrimaryButton label="View on Sepolia" tone="light" icon="open-outline" disabled={!mintUrl} onPress={() => mintUrl && Linking.openURL(mintUrl).catch(() => {})} style={{ marginTop: 10 }} />
       </ScrollView>
