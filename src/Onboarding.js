@@ -3,7 +3,7 @@ import { Animated, BackHandler, PanResponder, Pressable, StyleSheet, Text, View,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Stamp } from './Stamp';
-import { MapHero, PassportHero } from './art/OnboardingArt';
+import { IntroHero, PassportHero } from './art/OnboardingArt';
 import { ACCENT, F, makeStyles, useColors } from './theme';
 
 // Frontend only: three slides, buttons just move forward. Nothing is saved.
@@ -50,7 +50,7 @@ const SLIDES = [
 function Art({ slide }) {
   const styles = useStyles();
   const C = useColors();
-  if (slide.hero === 'globe') return <View style={[styles.art, styles.artCenter]}><MapHero /></View>;
+  if (slide.hero === 'globe') return <View style={styles.art}><IntroHero /></View>;
   if (slide.hero === 'passport') return <View style={[styles.art, styles.artCenter]}><PassportHero /></View>;
   return (
     <View style={styles.art}>
@@ -89,8 +89,9 @@ const Page = memo(function Page({ slide, width }) {
   const styles = useStyles();
   return (
     <View style={[styles.page, { width }]}>
+      {slide.hero === 'globe' && <Text style={styles.eyebrow}>YOUR WORLD, COLLECTED</Text>}
       <Art slide={slide} />
-      <Text style={styles.title}>
+      <Text style={[styles.title, slide.hero === 'globe' && styles.titleBig]}>
         {slide.title}
         {'\n'}
         <Text style={styles.titleLight}>{slide.titleLight}</Text>
@@ -232,6 +233,8 @@ const useStyles = makeStyles((C) => ({
   badge: { position: 'absolute', width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   arc: { position: 'absolute', width: 96, height: 96, borderRadius: 48, borderWidth: 1.5, borderBottomColor: 'transparent', borderLeftColor: 'transparent' },
 
+  eyebrow: { fontFamily: F.semi, fontSize: 11, letterSpacing: 1.6, color: C.info, marginBottom: 12 },
+  titleBig: { fontSize: 46, lineHeight: 48, letterSpacing: -2 },
   title: { fontFamily: F.bold, fontSize: 34, lineHeight: 39, letterSpacing: -0.8, color: C.ink },
   titleLight: { fontFamily: F.reg },
   copy: { fontFamily: F.reg, fontSize: 14, lineHeight: 20, color: C.muted, marginTop: 10, maxWidth: 320 },

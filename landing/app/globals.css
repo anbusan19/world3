@@ -294,13 +294,4 @@ footer.site .in { display: grid; gap: 30px; justify-items: start; }
 .foot-notes strong { color: #0B0B0F; font-size: 22px; letter-spacing: -0.03em; }
 footer.site .boat { right: 6%; top: 60px; }
 
-/* ---- the green ribbon that flows from the hero to the footer (components/Flow.js) ---- */
-body { position: relative; }
-.flow { position: absolute; left: 0; top: 0; width: 100%; z-index: 6; pointer-events: none; overflow: visible; mix-blend-mode: multiply; }
-.flow-glow { opacity: 0.22; filter: blur(18px); }
-.flow-main { opacity: 0.5; }
-@media (max-width: 900px) { .flow-main { opacity: 0.38; } .flow-glow { opacity: 0.16; } }
-@media print { .flow { display: none; } }
 .step h3 { color: #0B0B0F; }
-.flow-main { opacity: 0.42; }
-.flow-glow { opacity: 0.18; }

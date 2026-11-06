@@ -1,4 +1,4 @@
-import { AppPhone, Flow, HeroGlobe, OnboardingArts, PassportBook } from '@/components/Rn';
+import { AppPhone, HeroGlobe, OnboardingArts, PassportBook } from '@/components/Rn';
 import NavMenu from '@/components/NavMenu';
 import { Walk } from '@/components/Walk';
 import DitherField from '@/components/DitherField';
@@ -56,7 +56,6 @@ export default function Home() {
   return (
     <>
       <Reveal />
-      <Flow />
       {/* hero */}
       <div className="hero-track" id="top">
       <header className="hero sky">

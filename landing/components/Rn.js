@@ -8,4 +8,3 @@ export const PassportBook = dynamic(() => import('./PassportBook'), { ssr: false
 export const OnboardingArts = dynamic(() => import('./OnboardingArts'), { ssr: false, loading });
 export const WalkPhone = dynamic(() => import('./WalkPhone'), { ssr: false, loading });
 export const HeroGlobe = dynamic(() => import('./HeroGlobe'), { ssr: false, loading: () => null });
-export const Flow = dynamic(() => import('./Flow'), { ssr: false, loading: () => null });

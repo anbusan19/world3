@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Camera, Map, ViewAnnotation } from '@maplibre/maplibre-react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,6 +44,16 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
   const shown = nearby.length ? nearby : spots;
   const selected = spots.find((s) => s.id === selectedId) ?? spots[0];
 
+  // zoomed far out, spots that sit close together are drawn as ONE pin with a count; zoom in and they separate
+  const [zoom, setZoom] = useState(WIDE_ZOOM);
+  const cell = zoom >= 11.5 ? 0 : 0.9 / 2 ** (zoom - 7); // grid size in degrees (about 100 km / 2^(zoom-7) across)
+  const groups = [];
+  for (const sp of shown) {
+    const g = cell > 0 && groups.find((x) => Math.abs(x.lng - sp.coord[0]) < cell / 4 && Math.abs(x.lat - sp.coord[1]) < cell / 4);
+    if (g) g.items.push(sp);
+    else groups.push({ lng: sp.coord[0], lat: sp.coord[1], items: [sp] });
+  }
+
   const centred = useRef(false);
   useEffect(() => {
     if (user.coords && !centred.current) {
@@ -72,17 +82,37 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
         touchPitch={false}
         touchRotate={false}
         attributionPosition={{ bottom: 6, right: 6 }}
+        onRegionDidChange={(e) => {
+          const z = e.nativeEvent?.zoom;
+          if (typeof z === 'number') setZoom((old) => (Math.abs(old - z) > 0.25 ? z : old));
+        }}
       >
         <Camera ref={camera} initialViewState={{ center: user.coords ?? MUMBAI, zoom: WIDE_ZOOM }} minZoom={5} maxZoom={17} />
 
-        {shown.map((s) => {
-          const on = s.id === selected.id;
+        {groups.map((g) => {
+          const s = g.items.find((x) => x.id === selected.id) ?? g.items[0];
+          const on = g.items.some((x) => x.id === selected.id);
           const w = on ? 54 : 44;
+          const many = g.items.length > 1;
           return (
-            <ViewAnnotation key={s.id} id={`spot-${s.id}`} lngLat={s.coord} anchor="bottom" onPress={() => onSelect(s.id)}>
+            <ViewAnnotation
+              key={g.items.map((x) => x.id).join('+')}
+              id={`spot-${g.items.map((x) => x.id).join('-')}`}
+              lngLat={[g.lng, g.lat]}
+              anchor="bottom"
+              onPress={() => {
+                onSelect(s.id);
+                if (many) camera.current?.flyTo({ center: [g.lng, g.lat], zoom: Math.min(13, zoom + 3.5), duration: 800 });
+              }}
+            >
               <View style={styles.pinWrap}>
                 <View style={[styles.pin, on && styles.pinSelected]}>
                   <Stamp theme={s.theme} art={s.art} icon={s.icon} label={shortName(s)} iconSize={16} labelSize={5.5} style={{ width: w }} />
+                  {many && (
+                    <View style={styles.count}>
+                      <Text style={styles.countText}>{g.items.length}</Text>
+                    </View>
+                  )}
                 </View>
                 <View style={[styles.pinTip, on && styles.pinTipSelected]} />
               </View>
@@ -132,6 +162,8 @@ const useStyles = makeStyles((C) => ({
   pinWrap: { alignItems: 'center' },
   pin: { padding: 3, borderRadius: 5, backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 4, elevation: 4 },
   pinSelected: { backgroundColor: '#F26B21' },
+  count: { position: 'absolute', top: 6, right: 6, minWidth: 20, height: 20, borderRadius: 10, backgroundColor: '#0B0B0F', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  countText: { fontFamily: FONT.bold, fontSize: 11, color: '#fff' },
   pinTip: { width: 0, height: 0, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: C.card },
   pinTipSelected: { borderTopColor: '#F26B21' },
   meRing: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#0265AD55', alignItems: 'center', justifyContent: 'center' },

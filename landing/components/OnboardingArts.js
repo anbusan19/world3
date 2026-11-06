@@ -7,7 +7,7 @@ import { Art, SLIDES } from '@/migrated/src/Onboarding';
 export default function OnboardingArts({ index }) {
   return (
     <ThemeProvider>
-      <View style={{ height: 340, width: '100%', alignItems: 'stretch' }}>
+      <View style={{ height: 340, width: index === 0 ? 330 : '100%', maxWidth: '100%', marginHorizontal: 'auto', alignItems: 'stretch' }}>
         <Art slide={SLIDES[index]} />
       </View>
     </ThemeProvider>
