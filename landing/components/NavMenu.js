@@ -4,9 +4,12 @@ import { useEffect, useState } from 'react';
 const ITEMS = [
   ['#steps', 'How it works'],
   ['#capture', 'Capture'],
+  ['#real', 'On a phone'],
+  ['#events', 'Events'],
   ['#proof', 'Proof'],
   ['#passport', 'Passport'],
   ['#organizers', 'Organizers'],
+  ['#get', 'Get the app'],
 ];
 
 // Collapsible header menu: a round button that opens a small card with the section links.

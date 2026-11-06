@@ -14,6 +14,13 @@ const Tick = () => (
   <span className="tick"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7.4l2.8 2.8L11 4.6" fill="none" stroke="#0B0B0F" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
 );
 
+const GIFS = [
+  ['explore', 'Explore', 'A full-screen map that opens on you, with an altitude readout and spots grouped as you zoom.'],
+  ['globe', 'Globe', 'Stamps blink on the globe where they were collected. The feed in this recording is simulated.'],
+  ['stamps', 'Stamps', 'Your stamps by event, with limited-time events first and finished ones kept as memories.'],
+  ['passport', 'Passport', 'Your name, your achievements and an optional public passport on ENS.'],
+];
+
 const STEPS = [
   ['Go there.', 'Prove it.', 'Visit real landmarks and event spots around you. The map shows what is nearby and how far it is.'],
   ['Capture stamps.', 'Be really there.', 'Stand in the right place and the stamp unlocks. It is checked against where you really are.'],
@@ -21,35 +28,37 @@ const STEPS = [
 ];
 
 const CHECKS = [
-  ['Where', 'A camera-based location fix', 'Not raw GPS alone. The phone sends evidence of where it is and the backend recomputes the distance itself.', 'M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Zm0-8.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z'],
-  ['Who', 'One human, one stamp', 'World ID proves you are a unique person, tied to the spot, so a farm of bots can’t collect it twice.', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0'],
-  ['Decision', 'The server signs, the chain obeys', 'The contract mints only against a signed, expiring voucher. Verification can change without redeploying.', 'M5 12.5l4.5 4.5L19 7.5'],
-  ['Privacy', 'No coordinates onchain', 'Location evidence is discarded after checking. Passports are private unless you share them.', 'M5 11h14v9H5Zm3 0V8a4 4 0 0 1 8 0v3'],
+  ['Where', 'A fresh, accurate location', 'The phone sends its position and how sure it is. The backend recomputes the distance itself and refuses an old or fuzzy reading.', 'M12 21s7-6.2 7-11.2A7 7 0 0 0 5 9.8C5 14.8 12 21 12 21Zm0-8.6a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6Z'],
+  ['Who', 'One human, one stamp', 'World ID proves you are a unique person, tied to the spot, so a farm of bots can’t collect it twice.', 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0'],
+  ['Decision', 'The server decides', 'Your phone only sends evidence. Every check runs on the server, and a refusal says plainly why.', 'M5 12.5l4 4 10-10'],
+  ['Privacy', 'No coordinates stored', 'Location evidence is discarded after checking. A stamp records the place’s name and the time, never where you stood.', 'M5 11h14v9H5Zm3 0V8a4 4 0 0 1 8 0v3'],
 ];
 
 const NUMS = [
   [1, '', 'human per stamp, per spot. World ID makes it one.'],
   [0, '', 'exact coordinates on a public chain. Spots are shown rounded.'],
-  [3, '', 'checks on every capture: where you are, that you are a person, and that the request is fresh.'],
+  [81, '', 'stamps to find: 65 landmarks across India, the venue and its tracks, and the Aqua Line stations.'],
   [80, ' s', 'to create a public passport on ENS, from one tap.'],
 ];
 const BLOCKS = [
   ['/sponsors/world.svg', 'World ID', 'Proves you are one unique human, without telling us who you are.', 'Checked on our server for every capture, and once more to sign in.'],
   ['/sponsors/ens.svg', 'ENS', 'Your passport is a name anyone can look up, like a7k2.wrld3.eth.', 'Your stamps are one record on it. We can write that record and nothing else.'],
-  ['/sponsors/arkiv.svg', 'Arkiv', 'Spots and sponsor ads live as public records, owned by their authors.', 'Read them yourself, no World3 server needed.'],
+  ['/sponsors/arkiv.svg', 'Arkiv', 'Spots and sponsor ads live as public records, owned by their authors.', 'A sponsor’s ad is a record only their wallet can change or delete. Read them yourself, no World3 server needed.'],
 ];
 
 const DONE = [
-  ['Android app', 'with map, spot list, passport and settings, in light and dark.'],
-  ['AR capture', 'with a real 3D model placed at the spot’s coordinate, growing as you walk up to it.'],
-  ['Capture zone', 'that unlocks the button from live GPS distance.'],
-  ['Spot dashboard', 'for pinning and publishing models, feeding the app.'],
+  ['Android app', 'with a full-screen map, a globe, your stamps, events, a public passport and settings, in light and dark.'],
+  ['Sign in and capture with World ID', 'one verified human per stamp, checked on our server for every capture.'],
+  ['Events and quests', 'spots that open and close on their own clock, and stamps you earn by finishing a quest.'],
+  ['Public passport on ENS', 'opt-in, with a name you choose, on Sepolia, written with permissions that only allow the stamps record.'],
+  ['Sponsor ads on Arkiv', 'a sponsor publishes from their own wallet and the ad shows after a verified capture. Share cards for X.'],
+  ['Organizer dashboard', 'for spots, 3D models, events, quests, sponsors and a public explorer of recent stamps.'],
 ];
 const NEXT = [
-  ['World ID', 'check on every capture, verified on the server.'],
-  ['Backend verifier', 'that recomputes distance and refuses weak evidence.'],
-  ['Stamp mint', 'on Sepolia with a signed voucher.'],
-  ['ENS passport', 'with permissioned stamp records.'],
+  ['Onchain stamp mint', 'the non-transferable stamp contract is written and tested, not deployed yet.'],
+  ['Sponsor payouts', 'splitting a sponsor’s stake between the people who collected is designed, not built.'],
+  ['Production hosting', 'one stable server for everyone, with a signed release APK.'],
+  ['iOS', 'the app is Android only for now.'],
 ];
 
 // The APK lives on the repository's latest GitHub release, under this fixed name; set NEXT_PUBLIC_APK_URL to host it elsewhere.
@@ -184,11 +193,50 @@ export default function Home() {
               <h2 style={{ marginTop: 14 }}>Swipe through, sign in, start exploring.</h2>
               <p className="lede" style={{ marginTop: 18 }}>This is the real onboarding and sign-in from the app, running in your browser. Swipe the slides or tap Next, then pick a way to continue and you are in. Nothing here is saved.</p>
               <div className="list">
-                <div><Tick /><span><b>No wallet to set up.</b> Email, Google or a passkey. Minting is gasless.</span></div>
-                <div><Tick /><span><b>Camera and location, explained.</b> Each permission asks with a plain reason first.</span></div>
+                <div><Tick /><span><b>Sign in with World ID.</b> One verified human, no password, no wallet to set up.</span></div>
+                <div><Tick /><span><b>Location and camera, explained.</b> Each permission asks with a plain reason first.</span></div>
                 <div><Tick /><span><b>Light and dark.</b> The app follows your phone, or you can pick.</span></div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* on a real phone */}
+      <section className="sec sky" id="real">
+        <Wave color="#FFF7D1" flip />
+        <div className="wrap pad">
+          <div className="head reveal">
+            <p className="eyebrow">On a real phone</p>
+            <h2>This is the app, recorded as it runs.</h2>
+          </div>
+          <div className="gifs">
+            {GIFS.map(([src, title, body]) => (
+              <figure className="gif reveal" key={src}>
+                <div className="phone gifphone"><div className="screen">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/gifs/${src}.gif`} alt={`The ${title.toLowerCase()} screen of the World3 app, recorded on an Android phone`} loading="lazy" />
+                </div></div>
+                <figcaption><b>{title}</b>{body}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* events and quests */}
+      <section className="sec peach" id="events">
+        <Wave color="#E6F7FB" flip />
+        <div className="wrap pad">
+          <div className="head reveal">
+            <p className="eyebrow">Limited time</p>
+            <h2>Events open, run and close. Stamps stay as memories.</h2>
+            <p className="lede">Every spot belongs to an event with its own start and end. When it ends nothing more can be collected, ads stop, and the stamps you earned stay in your passport.</p>
+          </div>
+          <div className="bento">
+            <div className="b big"><h3>ETHGlobal Mumbai</h3><p>The venue stamp is open to everyone. Visit any two of the three track anchors (ENS, Arkiv, World) and a bonus <b>Mumbai Builder</b> quest stamp unlocks.</p></div>
+            <div className="b"><h3>Aqua Line Passport</h3><p>An independent event for Mumbai Metro Line 3’s ten passport stations, with a finale stamp for all ten. Not run by or affiliated with MMRC.</p></div>
+            <div className="b"><h3>India Landmarks</h3><p>Sixty-five famous places from the Taj Mahal to the Golden Temple, always on, with cartoon 3D models for twenty of them.</p></div>
           </div>
         </div>
       </section>
@@ -273,7 +321,9 @@ export default function Home() {
               <ul className="org-list">
                 <li><b>Checks your model.</b> Size, triangle count, units and a base that floats above the ground are flagged before you publish.</li>
                 <li><b>Two radii.</b> Where the model starts to appear, and where capture unlocks.</li>
-                <li><b>Venues and landmarks.</b> GPS spots outdoors, or a printed QR anchor where GPS and VPS don’t reach.</li>
+                <li><b>Venues and landmarks.</b> GPS spots outdoors, or a printed QR anchor indoors.</li>
+                <li><b>Events and quests.</b> Each spot belongs to an event that opens and closes on its own clock. A quest stamp unlocks after a few others, like any two of three sponsor tracks.</li>
+                <li><b>Sponsors, hands off.</b> They connect MetaMask, get free test tokens and publish an ad in a guided tour.</li>
               </ul>
             </div>
           </div>
@@ -287,7 +337,7 @@ export default function Home() {
           <div className="head reveal">
             <p className="eyebrow">Where it stands</p>
             <h2>A prototype, built in the open.</h2>
-            <p className="lede">Made for ETHGlobal Mumbai. The capture experience runs on a real phone. The verification and onchain parts are next.</p>
+            <p className="lede">Made for ETHGlobal Mumbai. Capture, sign-in, passports and sponsor ads run end to end on a real phone and a testnet. What is left is minting on a contract and paying sponsors out.</p>
           </div>
           <div className="status">
             <div className="col">
