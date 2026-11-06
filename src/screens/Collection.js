@@ -18,7 +18,7 @@ export function Collection({ collected, openSpot, openStamp }) {
   const needle = q.trim().toLowerCase();
   const matches = (s) => !needle || `${s.name} ${s.city} ${s.type} ${s.label}`.toLowerCase().includes(needle);
   const shown = spots.filter((s) => matches(s) && (filter === 'All' || (filter === 'Landmarks' ? s.type === 'LANDMARK' : filter === 'Events' ? s.type === 'EVENT' : filter === 'Collected' ? collected[s.id] != null : collected[s.id] == null)));
-  const have = Object.keys(collected).length;
+  const have = spots.filter((s) => collected[s.id] != null).length;
 
   return (
     <>
@@ -93,7 +93,9 @@ function groupByEvent(list) {
   const rank = (e) => (e?.status === 'live' ? 0 : e?.status === 'upcoming' ? 1 : 2);
   const map = new Map();
   for (const s of list) { const id = s.eventId ?? 'ethmumbai'; if (!map.has(id)) map.set(id, { id, ev: eventOf(s), items: [] }); map.get(id).items.push(s); }
-  return [...map.values()].sort((a, b) => rank(a.ev) - rank(b.ev));
+  // live first, and among those the one closing soonest (the limited-time ones) on top; ended memories last
+  const end = (e) => (e?.endsAt ? Date.parse(e.endsAt) : Infinity);
+  return [...map.values()].sort((a, b) => rank(a.ev) - rank(b.ev) || end(a.ev) - end(b.ev));
 }
 function eventLine(ev) {
   if (!ev) return '';

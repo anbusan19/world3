@@ -135,8 +135,9 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp, 
           </>
         )}
 
-        <Text style={styles.section}>How we know you were here</Text>
-        <InfoRow
+        <Text style={styles.section}>{isQuest ? 'How this stamp works' : 'How we know you were here'}</Text>
+        {isQuest && <InfoRow icon="trophy-outline" title="Earned, not visited" body="This stamp is proof you finished the quest. There is no place to stand: the server checks your other stamps." />}
+        {!isQuest && <InfoRow
           icon={spot.kind === 'anchor' ? 'qr-code-outline' : 'camera-outline'}
           title={spot.kind === 'anchor' ? 'Scan the QR at the venue' : 'Camera-based location fix'}
           body={
@@ -144,9 +145,9 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp, 
               ? 'Indoors, a rotating code at the venue places you. A photo of yesterday’s code will not work.'
               : 'GPS blended with the camera image, which is far harder to fake than GPS alone.'
           }
-        />
+        />}
         <InfoRow icon="shield-checkmark-outline" title="World ID: one human, one stamp" body="Proves you are a unique person without revealing who you are." />
-        <InfoRow icon="server-outline" title="The backend decides" body="Your phone only sends evidence. The server re-checks distance, accuracy and the proof." />
+        <InfoRow icon="server-outline" title="The backend decides" body={isQuest ? 'The server counts your verified stamps itself. Nothing is taken on trust from the phone.' : 'Your phone only sends evidence. The server re-checks distance, accuracy and the proof.'} />
         <InfoRow icon="eye-off-outline" tint={C.orange} title="Exact coordinates never go onchain" body="Only the spot name and time are stored with your stamp." />
       </ScrollView>
     </SafeAreaView>
