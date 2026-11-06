@@ -258,7 +258,7 @@ html.js .reveal.in { opacity: 1; transform: none; }
 .num + .num { padding-left: 24px; }
 .num:last-child { border-right: 0; }
 .num b { font-size: clamp(76px, 11vw, 190px); line-height: .9; font-weight: 700; letter-spacing: -0.06em; color: #0B0B0F; font-variant-numeric: tabular-nums; }
-.num span { color: #4B4F59; font-size: clamp(15px, 1.25vw, 19px); max-width: 26ch; }
+.num > span { color: #4B4F59; font-size: clamp(15px, 1.25vw, 19px); max-width: 26ch; }
 @media (max-width: 900px) { .nums { grid-template-columns: 1fr 1fr; } .num:nth-child(2) { border-right: 0; } .num:nth-child(3) { padding-left: 0; } }
 @media (max-width: 520px) { .nums { grid-template-columns: 1fr; } .num, .num + .num { padding-left: 0; border-right: 0; border-bottom: 1.5px solid var(--line); padding-bottom: 22px; } }
 
@@ -293,3 +293,14 @@ footer.site .in { display: grid; gap: 30px; justify-items: start; }
 .foot-notes { display: grid; gap: 8px; margin-top: 30px; color: #24330C; font-size: 14px; }
 .foot-notes strong { color: #0B0B0F; font-size: 22px; letter-spacing: -0.03em; }
 footer.site .boat { right: 6%; top: 60px; }
+
+/* ---- the green ribbon that flows from the hero to the footer (components/Flow.js) ---- */
+body { position: relative; }
+.flow { position: absolute; left: 0; top: 0; width: 100%; z-index: 6; pointer-events: none; overflow: visible; mix-blend-mode: multiply; }
+.flow-glow { opacity: 0.22; filter: blur(18px); }
+.flow-main { opacity: 0.5; }
+@media (max-width: 900px) { .flow-main { opacity: 0.38; } .flow-glow { opacity: 0.16; } }
+@media print { .flow { display: none; } }
+.step h3 { color: #0B0B0F; }
+.flow-main { opacity: 0.42; }
+.flow-glow { opacity: 0.18; }

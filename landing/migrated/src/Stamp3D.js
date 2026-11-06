@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, PanResponder, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, PanResponder, StyleSheet, Text, View } from 'react-native';
 import { Stamp, StampOutline } from './Stamp';
 import { shortName } from './spots';
 import { F, STAMP_THEMES } from './theme';
@@ -10,12 +10,15 @@ import { F, STAMP_THEMES } from './theme';
 // All the motion runs on the native thread.
 
 const SLABS = 5; // edge layers that give the card its thickness
-const SWEEP = [-360, -270, -180, -90, 0, 90, 180, 270, 360];
-const sine = (k) => [0, k, 0, -k, 0, k, 0, -k, 0]; // sin(angle) sampled every 90 degrees
-const squash = [1, 0.28, 1, 0.28, 1, 0.28, 1, 0.28, 1]; // |cos(angle)|: how wide the card looks
+const RANGE = 900; // the angle is kept inside +-RANGE degrees so every lookup table below covers it
+const SWEEP = Array.from({ length: (RANGE * 2) / 90 + 1 }, (_, i) => -RANGE + i * 90);
+const sine = (k) => SWEEP.map((a) => Math.round(Math.sin((a * Math.PI) / 180)) * k); // sin(angle) sampled every 90 degrees
+const squash = SWEEP.map((a) => (Math.abs(Math.round(Math.cos((a * Math.PI) / 180))) === 1 ? 1 : 0.28)); // how wide the card looks
 // 0 while the card faces you, rising to 1 once it is clearly turned (sampled every 15 degrees)
-const FINE = Array.from({ length: 49 }, (_, i) => -360 + i * 15);
+const FINE = Array.from({ length: (RANGE * 2) / 15 + 1 }, (_, i) => -RANGE + i * 15);
 const EDGE = FINE.map((a) => Math.min(1, Math.max(0, (Math.abs(Math.sin((a * Math.PI) / 180)) - 0.25) / 0.45)));
+const LOGO = require('../assets/stamplogo-dark.png');
+const rand = (a, b) => a + Math.random() * (b - a);
 
 function Back({ w, h, spot }) {
   const t = STAMP_THEMES[spot.theme] ?? STAMP_THEMES.coral;
@@ -24,9 +27,7 @@ function Back({ w, h, spot }) {
     <View style={{ width: w, height: h }}>
       <StampOutline w={w} h={h} color="#F3E8CF" />
       <View style={[styles.backInner, { left: pad, top: pad, right: pad, bottom: pad, borderColor: t.frame }]}>
-        <View style={[styles.postmark, { width: w * 0.36, height: w * 0.36, borderRadius: w * 0.18 }]}>
-          <Text style={[styles.postmarkText, { fontSize: w * 0.12 }]}>W³</Text>
-        </View>
+        <Image source={LOGO} style={{ width: w * 0.46, height: w * 0.46 }} resizeMode="contain" />
         <Text style={[styles.backNo, { fontSize: w * 0.062, color: t.accent }]}>STAMP #{spot.id.padStart(4, '0')}</Text>
         <Text style={[styles.backName, { fontSize: w * 0.05 }]} numberOfLines={2}>{spot.name}</Text>
         <Text style={[styles.backFine, { fontSize: w * 0.034 }]}>NON-TRANSFERABLE · SEPOLIA</Text>
@@ -44,6 +45,7 @@ export function Stamp3D({ spot, width = 220, onPress }) {
   const startAt = useRef(0);
   const moved = useRef(false);
   const idle = useRef(null);
+  const touching = useRef(false);
 
   useEffect(() => {
     const id = rot.addListener(({ value }) => { cur.current = value; });
@@ -63,12 +65,37 @@ export function Stamp3D({ spot, width = 220, onPress }) {
   };
   // after a spin, glide to the nearest face-on position, then sway again
   const settle = () => {
-    const base = Math.round(cur.current / 360) * 360;
+    const base = Math.round(cur.current / 180) * 180; // either face can be left showing
     Animated.spring(rot, { toValue: base, bounciness: 3, speed: 9, useNativeDriver: true }).start(() => sway(base));
+  };
+
+  // every few seconds, flip over by a random number of half turns so the back (with the logo) gets shown too
+  const flipTimer = useRef(null);
+  const scheduleFlip = () => {
+    clearTimeout(flipTimer.current);
+    flipTimer.current = setTimeout(() => {
+      if (touching.current) return scheduleFlip();
+      idle.current?.stop();
+      rot.stopAnimation((v) => {
+        // keep the angle in a range the lookup tables cover: wrap by whole turns, which looks identical
+        let from = v;
+        while (from > 180) from -= 360;
+        while (from < -180) from += 360;
+        rot.setValue(from);
+        const turns = Math.ceil(rand(0.4, 2.4)); // 1, 2 or 3 half turns, so it lands on the back about half the time
+        const to = Math.round(from / 180) * 180 + (Math.random() < 0.5 ? -1 : 1) * turns * 180;
+        Animated.timing(rot, { toValue: to, duration: 700 + turns * 380, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }).start(({ finished }) => {
+          if (!finished) return;
+          sway(to);
+          scheduleFlip();
+        });
+      });
+    }, rand(2600, 5200));
   };
 
   useEffect(() => {
     sway(0);
+    scheduleFlip();
     const hover = Animated.loop(
       Animated.sequence([
         Animated.timing(bob, { toValue: 1, duration: 1700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
@@ -76,7 +103,7 @@ export function Stamp3D({ spot, width = 220, onPress }) {
       ]),
     );
     hover.start();
-    return () => { idle.current?.stop(); hover.stop(); };
+    return () => { idle.current?.stop(); hover.stop(); clearTimeout(flipTimer.current); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const press = useRef(onPress);
@@ -86,6 +113,8 @@ export function Stamp3D({ spot, width = 220, onPress }) {
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
+        touching.current = true;
+        clearTimeout(flipTimer.current);
         idle.current?.stop();
         rot.stopAnimation();
         startAt.current = cur.current;
@@ -96,19 +125,21 @@ export function Stamp3D({ spot, width = 220, onPress }) {
         rot.setValue(startAt.current + g.dx * 0.8);
       },
       onPanResponderRelease: (_, g) => {
+        touching.current = false;
         if (!moved.current) {
           settle();
+          scheduleFlip();
           press.current?.();
           return;
         }
-        Animated.decay(rot, { velocity: g.vx * 0.8, deceleration: 0.996, useNativeDriver: true }).start(() => settle());
+        Animated.decay(rot, { velocity: g.vx * 0.8, deceleration: 0.996, useNativeDriver: true }).start(() => { settle(); scheduleFlip(); });
       },
-      onPanResponderTerminate: () => settle(),
+      onPanResponderTerminate: () => { touching.current = false; settle(); scheduleFlip(); },
     }),
   ).current;
 
-  const spin = rot.interpolate({ inputRange: [-360, 360], outputRange: ['-360deg', '360deg'], extrapolate: 'extend' });
-  const spinBack = rot.interpolate({ inputRange: [-360, 360], outputRange: ['-180deg', '540deg'], extrapolate: 'extend' });
+  const spin = rot.interpolate({ inputRange: [-RANGE, RANGE], outputRange: [`${-RANGE}deg`, `${RANGE}deg`], extrapolate: 'extend' });
+  const spinBack = rot.interpolate({ inputRange: [-RANGE, RANGE], outputRange: [`${-RANGE + 180}deg`, `${RANGE + 180}deg`], extrapolate: 'extend' });
   const hoverY = bob.interpolate({ inputRange: [0, 1], outputRange: [-8, 8] });
   const shadowW = rot.interpolate({ inputRange: SWEEP, outputRange: squash, extrapolate: 'extend' });
   const edge = Array.from({ length: SLABS }, (_, i) =>
@@ -150,8 +181,6 @@ const styles = StyleSheet.create({
   slab: { position: 'absolute', left: 0, top: 0 },
   shadow: { height: 12, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.26)', marginTop: 34 },
   backInner: { position: 'absolute', borderRadius: 3, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', padding: 8 },
-  postmark: { borderWidth: 3, borderColor: '#F26B21', alignItems: 'center', justifyContent: 'center', opacity: 0.85, transform: [{ rotate: '-12deg' }] },
-  postmarkText: { fontFamily: F.black, color: '#F26B21' },
   backNo: { fontFamily: F.black, letterSpacing: 1.5, marginTop: 14 },
   backName: { fontFamily: F.med, color: '#8A7F68', marginTop: 4, textAlign: 'center' },
   backFine: { fontFamily: F.bold, letterSpacing: 1, color: '#B7AA8E', marginTop: 12 },

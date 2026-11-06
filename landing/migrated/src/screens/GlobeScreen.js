@@ -3,26 +3,23 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Camera, GeoJSONSource, Layer, Map } from '@maplibre/maplibre-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { globeStyle } from '../mapStyle';
-import { EMPTY, buildFeedGeoJSON } from '../globeFeed';
-import { HUB, ago, useCaptureFeed } from '../demoFeed';
+import { BLINK_SECONDS, EMPTY, buildFeedGeoJSON } from '../globeFeed';
+import { ago, useCaptureFeed } from '../demoFeed';
 import { F, STAMP_THEMES, makeStyles, useColors } from '../theme';
 
-// The real MapLibre map shown as a 3D globe in the cartoon style. Every capture on the network flies in as an arc
-// to the event hub. The events are SIMULATED (see demoFeed.js) and labelled as such.
+// The real MapLibre map shown as a 3D globe in the cartoon style. Every capture on the network blinks at the
+// coordinates where the stamp was minted. The events are SIMULATED (see demoFeed.js) and labelled as such.
 
-const HUB_COORD = [HUB.lng, HUB.lat];
 const wrapLng = (lng) => ((((lng + 180) % 360) + 360) % 360) - 180;
-
-const HUB_POINT = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: HUB_COORD } }] };
 
 export function GlobeScreen({ setScrollLock }) {
   const styles = useStyles();
   const C = useColors();
   const camera = useRef(null);
-  const center = useRef([HUB.lng - 8, 16]);
+  const center = useRef([72.8, 16]);
   const pausedUntil = useRef(0);
   const events = useRef([]);
-  const [geo, setGeo] = useState({ arcs: EMPTY, points: EMPTY });
+  const [geo, setGeo] = useState({ points: EMPTY });
   const [, setNow] = useState(0);
 
   const { items, total } = useCaptureFeed((ev) => {
@@ -30,12 +27,12 @@ export function GlobeScreen({ setScrollLock }) {
     if (events.current.length > 12) events.current.shift();
   });
 
-  // animate the arcs and pulses (about 10 frames a second is plenty on a globe)
+  // animate the blinks (about 10 frames a second is plenty on a globe)
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now();
-      events.current = events.current.filter((e) => now - e.t0 < 3400);
-      setGeo((prev) => (events.current.length === 0 && prev.arcs.features.length === 0 && prev.points.features.length === 0 ? prev : buildFeedGeoJSON(events.current, now, HUB_COORD)));
+      events.current = events.current.filter((e) => now - e.t0 < BLINK_SECONDS * 1000);
+      setGeo((prev) => (events.current.length === 0 && prev.points.features.length === 0 ? prev : buildFeedGeoJSON(events.current, now)));
     }, 100);
     return () => clearInterval(id);
   }, []);
@@ -63,7 +60,7 @@ export function GlobeScreen({ setScrollLock }) {
   return (
     <>
       <Text style={styles.title}>Globe</Text>
-      <Text style={styles.sub}>Every stamp captured on the network, landing at the ETHGlobal Mumbai hub.</Text>
+      <Text style={styles.sub}>Every stamp captured on the network blinks here, right where it was minted.</Text>
 
       <View
         style={styles.card}
@@ -86,11 +83,6 @@ export function GlobeScreen({ setScrollLock }) {
         >
           <Camera ref={camera} initialViewState={{ center: center.current, zoom: 1.35 }} minZoom={0.6} maxZoom={9} />
 
-          <GeoJSONSource id="feed-arcs" data={geo.arcs}>
-            <Layer id="feed-arc-halo" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#FFFFFF', 'line-width': 6, 'line-opacity': ['*', 0.85, ['get', 'o']] }} />
-            <Layer id="feed-arc" type="line" layout={{ 'line-cap': 'round', 'line-join': 'round' }} paint={{ 'line-color': '#F26B21', 'line-width': 3, 'line-opacity': ['get', 'o'] }} />
-          </GeoJSONSource>
-
           <GeoJSONSource id="feed-points" data={geo.points}>
             <Layer
               id="feed-ring"
@@ -102,13 +94,10 @@ export function GlobeScreen({ setScrollLock }) {
               id="feed-dot"
               type="circle"
               filter={['==', ['get', 'kind'], 'dot']}
-              paint={{ 'circle-radius': ['get', 'r'], 'circle-color': '#FFFFFF', 'circle-opacity': ['get', 'o'], 'circle-stroke-color': '#F26B21', 'circle-stroke-width': 2.5, 'circle-stroke-opacity': ['get', 'o'] }}
+              paint={{ 'circle-radius': ['get', 'r'], 'circle-color': '#FFFFFF', 'circle-opacity': ['get', 'o'], 'circle-stroke-color': '#F26B21', 'circle-stroke-width': 3, 'circle-stroke-opacity': ['get', 'o'] }}
             />
           </GeoJSONSource>
 
-          <GeoJSONSource id="hub" data={HUB_POINT}>
-            <Layer id="hub-dot" type="circle" paint={{ 'circle-radius': 8, 'circle-color': '#F26B21', 'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': 3 }} />
-          </GeoJSONSource>
         </Map>
 
         <View style={styles.topRow} pointerEvents="none">

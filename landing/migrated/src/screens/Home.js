@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MapCard } from '../MapCard';
+import { Meadow } from '../art/Nature';
 import { Stamp } from '../Stamp';
 import { formatDistance } from '../geo';
 import { CAPTURE_M, NEAR_METERS, shortName } from '../spots';
@@ -23,6 +24,8 @@ export function Home({ spots, user, collected, openSpot, setScrollLock }) {
         Go there.{'\n'}
         <Text style={styles.titleLight}>Prove it.</Text>
       </Text>
+
+      <Meadow />
 
       <View style={styles.heading}>
         <Text style={styles.headingTitle}>Around you</Text>
