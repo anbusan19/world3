@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World3 · Advertise</title>
+  <link rel="icon" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/sponsor.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/sponsor.html"><img src="/logo.png" width="34" height="34" alt=""><span>World3 <em>Advertise</em></span></a>
+    <span class="grow"></span>
+    <span id="chip" class="chip" hidden></span>
+    <button id="connectTop" class="btn dark" type="button">Connect wallet</button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Put your brand in front of verified people who are really there.</h1>
+      <p>Your ad appears on the “Stamp collected” screen right after someone captures a spot at the event. Each person sees it once, and only after World ID has checked they are a unique human standing there. Your campaign is an Arkiv record owned by <b>your wallet</b>: World3 can decline to show it, but cannot change it, and you can pause or delete it yourself.</p>
+    </section>
+
+    <section class="card" id="s-connect">
+      <h2><span class="n">1</span> Connect your wallet</h2>
+      <p class="muted">Use a wallet on the <b>Arkiv Rabdi testnet</b> (chain 7794095, gas token tGLM). You pay a tiny amount of tGLM for each write; get some free at the <a href="https://hub.arkiv.network/faucet" target="_blank" rel="noopener noreferrer">Arkiv faucet</a>. No real money is involved.</p>
+      <label class="field"><span>Your own Arkiv access key <i>(optional, free)</i></span>
+        <input id="rpcKey" type="password" autocomplete="off" spellcheck="false" placeholder="ark_live_…">
+        <small>Avoids the public network's rate limit. It stays in this browser and in your wallet's network settings. <a href="https://hub.arkiv.network/access-keys" target="_blank" rel="noopener noreferrer">Get one</a>. Never share it.</small></label>
+      <div class="row"><button id="connect" class="btn dark" type="button">Connect wallet</button><span id="connMsg" class="msg" role="status"></span></div>
+    </section>
+
+    <section class="card" id="s-approval" hidden>
+      <h2><span class="n">2</span> Organizer approval</h2>
+      <p id="approvalText" class="muted"></p>
+      <div class="row"><code id="addr" class="addr"></code><button id="copy" class="btn" type="button">Copy address</button></div>
+    </section>
+
+    <section class="card" id="s-create">
+      <h2><span class="n">3</span> Create a campaign</h2>
+      <div class="two">
+        <form id="form" autocomplete="off" novalidate>
+          <label class="field"><span>Spot</span><select id="spot"></select></label>
+          <label class="field"><span>Your name</span><input id="sponsor" maxlength="40" placeholder="Acme Coffee"><small class="count" data-for="sponsor"></small></label>
+          <label class="field"><span>Headline</span><input id="headline" maxlength="60" placeholder="Free coffee for verified humans"><small class="count" data-for="headline"></small></label>
+          <label class="field"><span>Link <i>(https only)</i></span><input id="url" inputmode="url" placeholder="https://acme.example/coffee"></label>
+          <label class="field"><span>Image</span>
+            <input id="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+            <small>PNG, JPEG, WebP or GIF, up to <b id="maxKb">100</b> KB and 1280 px. A 640×360 WebP is usually 20–60 KB.</small></label>
+          <label class="field"><span>Image description <i>(for screen readers)</i></span><input id="alt" maxlength="100" placeholder="A cup of coffee"></label>
+          <label class="field"><span>Runs for</span>
+            <select id="days"><option value="1">1 day</option><option value="2" selected>2 days</option><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option></select></label>
+          <p id="problem" class="problem" role="alert"></p>
+          <div class="row"><button id="publish" class="btn dark" type="submit" disabled>Publish campaign</button><span id="pubMsg" class="msg" role="status"></span></div>
+          <p class="fine">Publishing writes a public record from your wallet (your wallet asks you to confirm). Anyone can read it. Don't include anything private.</p>
+        </form>
+        <div>
+          <p class="label">What travelers see</p>
+          <div class="ad" id="preview" aria-live="polite">
+            <div class="ad-head"><b>SPONSORED</b><span id="pvSponsor">Your name</span></div>
+            <div class="ad-img" id="pvImg"><span>Your image</span></div>
+            <p class="ad-title" id="pvHead">Your headline</p>
+            <span class="ad-btn">Learn more ↗</span>
+          </div>
+          <p class="fine">Shown on the “Stamp collected” screen after a verified capture at your spot. One view per person is counted.</p>
+        </div>
+      </div>
+      <div id="result" class="result" hidden></div>
+    </section>
+
+    <section class="card" id="s-list">
+      <h2><span class="n">4</span> Your campaigns</h2>
+      <p id="listEmpty" class="muted">Connect your wallet to see your campaigns.</p>
+      <div class="tablewrap"><table id="table" hidden>
+        <thead><tr><th>Campaign</th><th>Spot</th><th>Status</th><th>Runs</th><th class="num">Views</th><th class="num">Captures</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+      <p class="fine">Views count people who saw your ad after a verified capture (once each). Captures are all verified captures at the spot. No names or wallets of travelers are ever shown.</p>
+    </section>
+  </main>
+
+  <footer class="foot">World3 is a prototype on a test network. Not audited. Not affiliated with World or Arkiv.</footer>
+  <script type="module" src="/sponsor.bundle.js"></script>
+</body>
+</html>

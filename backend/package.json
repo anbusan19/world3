@@ -13,7 +13,8 @@
     "test": "node --test",
     "sample": "node scripts/make-sample-glb.mjs",
     "share": "node scripts/share.mjs",
-    "proxy": "node src/proxy.js"
+    "proxy": "node src/proxy.js",
+    "build:web": "node scripts/build-web.mjs"
   },
   "dependencies": {
     "@arkiv-network/sdk": "^1.0.1",
