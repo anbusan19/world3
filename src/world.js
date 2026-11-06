@@ -157,3 +157,35 @@ export async function fetchAd(spotId) {
 export function reportImpression(campaignKey) {
   fetch(`${getFeedBase()}/api/v1/ads/impression`, { method: 'POST', headers: headers(), body: JSON.stringify({ campaign: campaignKey }) }).catch(() => {});
 }
+
+// ---- public passport (opt-in, on ENS) ---------------------------------------------------------------------------
+
+// { passport: { status: 'none'|'creating'|'ready'|'error', name?, path?, url?, published?, stamps?, error? }, parent } or null when the
+// server has no passports or the person is signed out.
+export async function getPassport() {
+  try {
+    const res = await fetch(`${getFeedBase()}/api/v1/passport`, { headers: headers() });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+// Asking for a passport is the consent to publish: creation takes about a minute and runs on the server.
+export async function startPassport() {
+  return post('/api/v1/passport', {});
+}
+
+export async function setPassportPublic(flag) {
+  return post('/api/v1/passport/public', { public: !!flag });
+}
+
+// The spots this person has captured, from the server: [{ spotId, at }]. The app keeps stamps in memory, so after a restart it asks again.
+export async function fetchMyCaptures() {
+  try {
+    const res = await fetch(`${getFeedBase()}/api/v1/me/captures`, { headers: headers() });
+    return res.ok ? (await res.json()).captures : [];
+  } catch {
+    return [];
+  }
+}

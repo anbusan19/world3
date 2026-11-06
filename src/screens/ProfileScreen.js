@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, Share, Switch, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { Stamp } from '../Stamp';
 import { PrimaryButton } from '../ui';
+import { usePassport } from '../usePassport';
 import { getFeedBase, refreshSpots, setFeedBase, shortName, spots } from '../spots';
 import { DARK, F, LIGHT, STAMP_THEMES, makeStyles, useColors, useTheme } from '../theme';
 
 // Profile tab = a header (avatar, name, passport name, stats) plus two sections: Passport and Settings.
-// FRONTEND ONLY: the name, avatar and switches live in memory (app state) and reset on restart. Only the colour theme is
-// remembered on the device. The passport name, email and wallet shown here are previews, nothing is connected yet.
+// The name, avatar and switches live in memory (app state) and reset on restart; only the colour theme is remembered on the device.
+// The public passport is real: it is created on ENS by the server when the person asks for it (see usePassport).
 
 const AVATARS = ['sky', 'coral', 'sun', 'leaf', 'ocean'];
 const slug = (name) => (name || '').toLowerCase().replace(/[^a-z0-9]/g, '') || 'explorer';
@@ -32,13 +33,14 @@ function statsOf(collected) {
 }
 
 export function ProfileScreen({ collected, openStamp, profile, setProfile, settings, updateSetting, onSignOut }) {
+  const pp = usePassport();
   const styles = useStyles();
   const [section, setSection] = useState('passport');
   const stats = statsOf(collected);
 
   return (
     <>
-      <Header profile={profile} stats={stats} />
+      <Header profile={profile} stats={stats} passport={pp.passport} />
 
       <View style={styles.segment}>
         {[
@@ -52,7 +54,7 @@ export function ProfileScreen({ collected, openStamp, profile, setProfile, setti
       </View>
 
       {section === 'passport' ? (
-        <PassportSection stats={stats} openStamp={openStamp} settings={settings} goSettings={() => setSection('settings')} />
+        <PassportSection stats={stats} openStamp={openStamp} pp={pp} />
       ) : (
         <SettingsSection profile={profile} setProfile={setProfile} settings={settings} updateSetting={updateSetting} onSignOut={onSignOut} />
       )}
@@ -83,8 +85,9 @@ export function Avatar({ name, theme, size = 84 }) {
   );
 }
 
-function Header({ profile, stats }) {
+function Header({ profile, stats, passport }) {
   const styles = useStyles();
+  const ready = passport?.status === 'ready';
   return (
     <>
       <Text style={styles.title}>Profile</Text>
@@ -93,7 +96,7 @@ function Header({ profile, stats }) {
           <Avatar name={profile.name} theme={profile.avatar} />
           <View style={{ flex: 1 }}>
             <Text style={styles.name} numberOfLines={1}>{profile.name || 'Explorer'}</Text>
-            <Text style={styles.ens} numberOfLines={1}>{slug(profile.name)}.world3.eth</Text>
+            <Text style={styles.ens} numberOfLines={1}>{ready ? passport.name : 'No public passport yet'}</Text>
             <View style={styles.badges}>
               <View style={[styles.pill, { backgroundColor: '#A6D16C' }]}>
                 <Ionicons name="shield-checkmark" size={12} color="#0B0B0F" />
@@ -102,7 +105,7 @@ function Header({ profile, stats }) {
             </View>
           </View>
         </View>
-        <Text style={styles.preview}>Passport name is a preview. Nothing is registered yet.</Text>
+        <Text style={styles.preview}>{ready ? (passport.published ? 'Your stamps are public on ENS.' : 'Your passport exists but is private.') : 'Your stamps are private. Create a public passport below if you want to share them.'}</Text>
       </View>
 
       <View style={styles.stats}>
@@ -126,7 +129,7 @@ function Stat({ value, label }) {
 
 /* -------------------------------- passport --------------------------------- */
 
-function PassportSection({ stats, openStamp, settings, goSettings }) {
+function PassportSection({ stats, openStamp, pp }) {
   const styles = useStyles();
   const C = useColors();
   return (
@@ -163,14 +166,73 @@ function PassportSection({ stats, openStamp, settings, goSettings }) {
         })}
       </View>
 
-      <Text style={styles.section}>Share</Text>
-      <PrimaryButton label="Share passport" icon="share-outline" disabled={!settings.publicPassport} onPress={() => {}} />
-      {!settings.publicPassport && (
-        <Pressable onPress={goSettings} hitSlop={8}>
-          <Text style={styles.hint}>Your passport is private. Turn on “Public passport” in Settings to share it.</Text>
-        </Pressable>
-      )}
+      <Text style={styles.section}>Public passport</Text>
+      <PublicPassport pp={pp} stamps={stats.n} />
     </>
+  );
+}
+
+/* ----------------------------- public passport ------------------------------ */
+
+// Opt-in: nothing is public until the person asks. The name lives on ENS (Sepolia testnet) and the stamps are one record on it.
+// For now World3 holds the name for the person, because the app has no wallet yet; the copy says so.
+function PublicPassport({ pp, stamps }) {
+  const styles = useStyles();
+  const C = useColors();
+  const p = pp.passport;
+  const shareText = p.url ? `My World3 passport: ${p.url}` : `My World3 passport: ${p.name}`;
+
+  if (p.status === 'loading') return <View style={styles.pp}><ActivityIndicator color={C.muted} /></View>;
+  if (p.status === 'unavailable') return <View style={styles.pp}><Text style={styles.ppBody}>Public passports are not available right now. Check the Spot server setting and that you are signed in.</Text></View>;
+
+  if (p.status === 'creating') {
+    return (
+      <View style={styles.pp}>
+        <View style={styles.ppRow}><ActivityIndicator color={C.ink} /><Text style={styles.ppTitle}>Creating your passport…</Text></View>
+        <Text style={styles.ppBody}>This sets up your name and its permissions on ENS and takes about a minute. You can leave this screen; it keeps going.</Text>
+      </View>
+    );
+  }
+
+  if (p.status === 'ready') {
+    return (
+      <View style={styles.pp}>
+        <View style={styles.ppRow}>
+          <Ionicons name={p.published ? 'globe-outline' : 'lock-closed-outline'} size={20} color={C.ink} />
+          <Text style={styles.ppTitle}>{p.published ? 'Public on ENS' : 'Private'}</Text>
+        </View>
+        <Text style={styles.ppName} selectable>{p.name}</Text>
+        <Text style={styles.ppBody}>
+          {p.published
+            ? `${p.stamps} of your ${stamps} stamp${stamps === 1 ? '' : 's'} published. New captures are added automatically. Anyone with the link can see them; the page reads straight from ENS.`
+            : 'Your stamps are not published. Make it public again whenever you like.'}
+        </Text>
+        {p.published && (
+          <View style={styles.ppButtons}>
+            <PrimaryButton label="Share link" icon="share-outline" onPress={() => Share.share({ message: shareText }).catch(() => {})} style={{ flex: 1 }} />
+            {p.url ? <PrimaryButton label="Open" tone="light" icon="open-outline" onPress={() => Linking.openURL(p.url).catch(() => {})} style={{ flex: 1 }} /> : null}
+          </View>
+        )}
+        {p.published && !p.url ? <Text style={styles.ppNote}>The share link needs this server to have a public address. The name above works on ENS regardless.</Text> : null}
+        <Pressable onPress={() => pp.setPublic(!p.published)} disabled={pp.busy} hitSlop={8}>
+          <Text style={styles.ppLink}>{pp.busy ? 'Working…' : p.published ? 'Make private (removes your stamps from ENS)' : 'Make public again'}</Text>
+        </Pressable>
+        <Text style={styles.ppNote}>Testnet only. World3 holds this name for you for now. Stamps are evidence you were there, not proof.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.pp}>
+      <Text style={styles.ppTitle}>{p.status === 'error' ? 'That did not finish' : 'Share where you have been'}</Text>
+      <Text style={styles.ppBody}>
+        {p.status === 'error'
+          ? `${p.error} Your progress is kept, so trying again continues where it stopped.`
+          : 'Create a public passport: a name on ENS like k7m2qx.wrld3.eth that lists your stamps. It is your choice. Until you create it, nothing about your captures is public. You can make it private again at any time.'}
+      </Text>
+      <PrimaryButton label={p.status === 'error' ? 'Try again' : 'Create my public passport'} icon="globe-outline" disabled={pp.busy} onPress={pp.create} style={{ marginTop: 14 }} />
+      <Text style={styles.ppNote}>Testnet only. World3 holds the name for you for now.</Text>
+    </View>
   );
 }
 
@@ -326,8 +388,8 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
         <Row icon="phone-portrait-outline" tint={C.info} title="Haptics" sub="A small tap when you switch tabs" right={<Toggle value={settings.haptics} onChange={(v) => updateSetting('haptics', v)} />} last />
       </Group>
 
-      <Group title="Privacy" note="Stamps record the spot and time, never your coordinates. Location evidence is discarded after verification.">
-        <Row icon="eye-outline" tint={C.info} title="Public passport" sub={settings.publicPassport ? 'Anyone with your passport name can see your stamps' : 'Private. Only you can see your stamps'} right={<Toggle value={settings.publicPassport} onChange={(v) => updateSetting('publicPassport', v)} />} last />
+      <Group title="Privacy" note="Stamps record the spot and time, never your coordinates. Location evidence is discarded after verification. To publish your stamps, create a public passport on the Passport tab.">
+        <Row icon="eye-outline" tint={C.info} title="Public passport" sub="Manage it on the Passport tab" right={<Ionicons name="chevron-forward" size={18} color={C.muted} />} last />
       </Group>
 
       <Group title="Account">
@@ -353,6 +415,14 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
 }
 
 const useStyles = makeStyles((C) => ({
+  pp: { backgroundColor: C.card, borderRadius: 24, padding: 18, gap: 8 },
+  ppRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ppTitle: { fontFamily: F.bold, fontSize: 17, color: C.ink },
+  ppName: { fontFamily: F.mono, fontSize: 15, color: C.ink, marginTop: 2 },
+  ppBody: { fontFamily: F.reg, fontSize: 14, lineHeight: 21, color: C.muted },
+  ppButtons: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  ppLink: { fontFamily: F.semi, fontSize: 13, color: C.blue, marginTop: 10 },
+  ppNote: { fontFamily: F.reg, fontSize: 12, lineHeight: 18, color: C.muted, marginTop: 6 },
   title: { fontFamily: F.bold, fontSize: 30, color: C.ink, letterSpacing: -0.8, marginBottom: 16 },
 
   card: { backgroundColor: C.blue, borderRadius: 28, padding: 20 },
