@@ -27,6 +27,15 @@ test('sends a small drip once per wallet and per network address per day', async
   tick(86_400_001);
   assert.equal((await f.drip(A, '1.1.1.1')).tx, '0xtx2'); // next day it works again
 });
+test('a shared network (venue wifi) can fund several wallets, up to the limit, and still one drip per wallet', async () => {
+  const D = '0x' + 'd'.repeat(40);
+  const { f } = await (async () => { const sent = []; const chain = { send: async () => '0xtx' + (sent.push(1)), balanceOf: async () => 0n, ownBalance: async () => 10n ** 19n };
+    return { f: await createFaucet({ dataDir: await mkdtemp(path.join(os.tmpdir(), 'faucet-')), chain, config: { ...cfg, dailyCap: 10n ** 18n, perIp: 3 }, now: () => 1_000_000 }) }; })();
+  await f.drip(A, '9.9.9.9'); await f.drip(B, '9.9.9.9'); await f.drip(C, '9.9.9.9');
+  await assert.rejects(f.drip(D, '9.9.9.9'), /network already got tGLM today \(up to 3 wallets/); // the 4th from the same wifi
+  await assert.rejects(f.drip(A, '8.8.8.8'), /wallet already got/); // a wallet still only once
+  assert.ok((await f.drip(D, '8.8.8.8')).tx); // a different network is not affected
+});
 test('refuses bad addresses, wallets that have enough, an empty faucet and the daily cap', async () => {
   await assert.rejects((await make()).f.drip('nope'), /not a wallet address/);
   await assert.rejects((await make({ balanceOf: async () => 10n ** 18n })).f.drip(A), /already has enough/);

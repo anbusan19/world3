@@ -4,7 +4,7 @@ import path from 'node:path';
 
 // A tiny testnet faucet for the hackathon: it sends a small amount of tGLM (a worthless test token) from the server's own
 // Arkiv wallet to any address that asks, so a sponsor can run an ad without visiting a faucet. It is deliberately stingy:
-// one drip per address and per network address per day, a daily total cap, and nothing for an address that already has enough.
+// one drip per address per day, a few per network address per day (a venue's wifi is one address for everybody), a daily total cap, and nothing for an address that already has enough.
 //   chain: { send(to, value) -> txHash, balanceOf(address) -> bigint, ownBalance() -> bigint }
 
 const ONE = 10n ** 18n;
@@ -19,6 +19,9 @@ export function faucetConfigFromEnv(env = process.env) {
     amount: toWei(env.FAUCET_AMOUNT_TGLM ?? '0.05'),
     dailyCap: toWei(env.FAUCET_DAILY_CAP_TGLM ?? '2'),
     cooldownMs: Number(env.FAUCET_COOLDOWN_HOURS ?? 24) * 3_600_000,
+    // how many different wallets one network address may fund per cooldown. At an event everyone shares the venue's wifi (one public
+    // address), so 1 would let a single person per day through. The daily cap and one drip per wallet still stop farming.
+    perIp: Math.max(1, Number(env.FAUCET_PER_IP ?? 10) || 1),
   };
 }
 
@@ -43,7 +46,8 @@ export async function createFaucet({ dataDir, chain, config = faucetConfigFromEn
         const addr = address.toLowerCase();
         const r = recent();
         if (r.some((d) => d.address === addr)) throw new FaucetError('cooldown', 'This wallet already got tGLM today. Try again tomorrow.', 429);
-        if (ip && r.some((d) => d.ip === ip)) throw new FaucetError('cooldown', 'This network already got tGLM today. Try again tomorrow.', 429);
+        const perIp = config.perIp ?? 1;
+        if (ip && r.filter((d) => d.ip === ip).length >= perIp) throw new FaucetError('cooldown', `This network already got tGLM today (up to ${perIp} wallet${perIp === 1 ? '' : 's'} per network). Try again tomorrow, or use the Arkiv faucet at hub.arkiv.network/faucet.`, 429);
         if (spentToday() + config.amount > config.dailyCap) throw new FaucetError('daily_cap', 'The faucet is out of tGLM for today. Ask the organizer.', 503);
         if ((await chain.balanceOf(address)) >= config.amount * 2n) throw new FaucetError('has_enough', 'This wallet already has enough tGLM to run an ad.');
         if ((await chain.ownBalance()) < config.amount + ONE / 100n) throw new FaucetError('empty', 'The faucet wallet is empty. Ask the organizer to top it up.', 503);

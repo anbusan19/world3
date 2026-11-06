@@ -104,3 +104,6 @@ td { padding: 12px 10px; border-top: 1px solid var(--line); vertical-align: top;
 /* the wallet picker appears only when more than one wallet extension is installed */
 .walletpick { height: 44px; border: 1.5px solid var(--line); border-radius: 22px; padding: 0 14px; background: var(--card); max-width: 200px; }
 .walletpick[hidden] { display: none; }
+
+/* a link that looks like the buttons next to it (the Arkiv faucet) */
+a.btn { display: inline-flex; align-items: center; text-decoration: none; color: inherit; }
