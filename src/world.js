@@ -54,10 +54,10 @@ async function post(path, body) {
 }
 
 // Which World ID credentials are accepted. "proof_of_human" is Orb-verified and the strongest; "passport" (NFC document) and "selfie"
-// (Selfie Check) let people who never visited an Orb in. Only Orb would turn away most attendees ("credentials don't meet the
+// (Selfie Check, a preview feature), "mnc" (national ID document) let people who never visited an Orb in. Only Orb would turn away most attendees ("credentials don't meet the
 // requirements" in World App), so all three are accepted by default. The server enforces the same list (WORLD_ID_CREDENTIALS).
 // Narrow it with EXPO_PUBLIC_WORLD_CREDENTIALS="proof_of_human" at build time (and the server setting) for the strictest mode.
-const CREDENTIALS = String(process.env.EXPO_PUBLIC_WORLD_CREDENTIALS || 'proof_of_human,passport,selfie').split(',').map((s) => s.trim()).filter(Boolean);
+const CREDENTIALS = String(process.env.EXPO_PUBLIC_WORLD_CREDENTIALS || 'proof_of_human,passport,mnc,selfie').split(',').map((s) => s.trim()).filter(Boolean);
 
 // Open World App with a signed request and wait for the person to approve or decline. Resolves with World's result.
 async function askWorldId(req, signal) {
