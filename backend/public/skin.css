@@ -81,6 +81,9 @@ main > :nth-child(2) { animation-delay: .08s; } main > :nth-child(3) { animation
 .pin { animation: pop .45s cubic-bezier(.2, 1.5, .4, 1) backwards; }
 .status.ok i { animation: breathe 2.2s infinite; }
 main > .hero, .xp .intro { position: relative; overflow: hidden; }
-main > .hero::after, .xp .intro::after { content: ''; position: absolute; right: -90px; top: -90px; width: 300px; height: 300px; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cdefs%3E%3CclipPath%20id%3D%22c%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22/%3E%3C/clipPath%3E%3C/defs%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22%230265AD%22/%3E%3Cg%20clip-path%3D%22url%28%23c%29%22%20fill%3D%22%23CFE8A8%22%3E%3Cpath%20d%3D%22M30%2022C48%2010%2076%2014%2088%2032%2094%2046%2086%2056%2072%2056%2062%2060%2054%2050%2044%2052%2034%2048%2022%2036%2030%2022Z%22/%3E%3Cpath%20d%3D%22M50%2054C60%2056%2066%2062%2064%2072%2062%2080%2058%2086%2056%2090%2051%2084%2047%2074%2047%2064%2047%2058%2048%2055%2050%2054Z%22/%3E%3Cpath%20d%3D%22M6%2044C18%2036%2030%2044%2032%2056%2032%2068%2026%2076%2018%2086%208%2084%202%2072%202%2060Z%22/%3E%3Cpath%20d%3D%22M68%2078C80%2072%2094%2078%2094%2088%2086%2096%2072%2094%2066%2086Z%22/%3E%3C/g%3E%3Ccircle%20cx%3D%2258%22%20cy%3D%2256%22%20r%3D%224.5%22%20fill%3D%22%23F26B21%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222%22/%3E%3C/svg%3E") center / contain no-repeat; animation: drift 9s ease-in-out infinite; pointer-events: none; }
+main .hero-globe, main .hero-globe.maplibregl-map { position: absolute !important; right: -150px; top: -150px; width: 420px; height: 420px; pointer-events: none; z-index: 0; }
+.hero-globe canvas { border-radius: 50%; }
+main > .hero > *:not(.hero-globe), .xp .intro > *:not(.hero-globe) { position: relative; z-index: 1; }
 .card:hover, .tile:hover { transform: translateY(-2px); transition: transform .2s; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+.xp .intro p { max-width: 44ch; }
