@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Camera, Map, ViewAnnotation } from '@maplibre/maplibre-react-native';
+import { pinLogo } from './pinLogos';
 import { Ionicons } from '@expo/vector-icons';
 import { getCartoonStyle } from './mapStyle';
 import { formatDistance } from './geo';
@@ -51,6 +52,9 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock, fill
 
   // zoomed far out, spots that sit close together are drawn as ONE pin with a count; zoom in and they separate
   const [zoom, setZoom] = useState(() => zoomForKm(50, (user.coords ?? MUMBAI)[1], win.width));
+  const [logoTick, setLogoTick] = useState(0);
+  const logosSeen = useRef(new Set());
+  const logoLoaded = (name) => { if (logosSeen.current.has(name)) return; logosSeen.current.add(name); setLogoTick((n) => n + 1); };
   const cell = zoom >= 11.5 ? 0 : 0.45 / 2 ** (zoom - 8); // grid size in degrees (about 100 km / 2^(zoom-7) across)
   const groups = [];
   for (const sp of shown) {
@@ -112,7 +116,7 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock, fill
           const t = STAMP_THEMES[s.theme] ?? STAMP_THEMES.coral;
           return (
             <ViewAnnotation
-              key={g.items.map((x) => x.id).join('+')}
+              key={g.items.map((x) => x.id).join('+') + `:${logoTick}`}
               id={`spot-${g.items.map((x) => x.id).join('-')}`}
               lngLat={[g.lng, g.lat]}
               anchor="bottom"
@@ -132,8 +136,10 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock, fill
                     <Text style={styles.clusterText}>{g.items.length}</Text>
                   </View>
                 ) : (
-                  <View style={[styles.medal, { backgroundColor: t.frame }, on && styles.medalOn]}>
-                    <Ionicons name={s.icon} size={on ? 22 : 18} color={t.accent} />
+                  <View style={[styles.medal, { backgroundColor: pinLogo(s.name) ? '#FFFFFF' : t.frame }, on && styles.medalOn]}>
+                    {pinLogo(s.name)
+                      ? <Image source={pinLogo(s.name)} style={{ width: on ? 34 : 28, height: on ? 34 : 28 }} resizeMode="contain" fadeDuration={0} onLoad={() => logoLoaded(s.name)} />
+                      : <Ionicons name={s.icon} size={on ? 22 : 18} color={t.accent} />}
                   </View>
                 )}
                 <View style={[styles.pinTip, { borderTopColor: many ? GREEN : '#FFFFFF' }]} />

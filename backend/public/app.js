@@ -31,11 +31,19 @@ const dark = matchMedia('(prefers-color-scheme: dark)').matches;
 
 async function api(method, url, body, headers = {}) {
   const raw = body instanceof Blob;
-  const res = await fetch(url, {
-    method,
-    headers: { 'x-requested-with': 'wrld3-dashboard', ...(body !== undefined && !raw ? { 'content-type': 'application/json' } : {}), ...headers },
-    body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
-  });
+  // a request that never answers must not leave the page "busy" with Save disabled: give up after 90 seconds
+  const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 90_000);
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: { 'x-requested-with': 'wrld3-dashboard', ...(body !== undefined && !raw ? { 'content-type': 'application/json' } : {}), ...headers },
+      body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
+      signal: ctl.signal,
+    });
+  } catch (e) {
+    throw new Error(e?.name === 'AbortError' ? 'The server took too long to answer. Reload the page to see whether it saved.' : e.message);
+  } finally { clearTimeout(timer); }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(data.error || `Request failed (${res.status})`);
@@ -168,6 +176,10 @@ function updateRadii() {
   src.setData({ type: 'FeatureCollection', features });
 }
 
+// a sponsor, track or event spot shows its logo on the map instead of its number (matched on the spot's name)
+const PIN_LOGOS = [[/\b0g\b/i, '0g'], [/\b1inch\b/i, '1inch'], [/ethereum foundation/i, 'ef'], [/\barc\b/i, 'arc'], [/chainlink/i, 'chainlink'], [/definitive/i, 'definitive'], [/hedera/i, 'hedera'], [/uniswap/i, 'uniswap'], [/whitechain/i, 'whitechain'], [/\bworld\b/i, 'world'], [/\bens\b/i, 'ens'], [/arkiv/i, 'arkiv'], [/ethglobal/i, 'ethmumbai']];
+const pinLogo = (name) => { const hit = PIN_LOGOS.find(([re]) => re.test(String(name ?? ''))); return hit ? `/pins/${hit[1]}.png` : null; };
+
 function syncMarkers() {
   const ids = new Set(state.spots.map((s) => s.id));
   for (const [id, m] of markers) if (!ids.has(id)) { m.remove(); markers.delete(id); }
@@ -198,8 +210,15 @@ function syncMarkers() {
     // CSS scale or animation on the moved element multiplies its map position and the pin drifts off its place
     let face = el.firstElementChild;
     if (!face) { face = document.createElement('i'); el.replaceChildren(face); }
-    face.style.background = theme.frame;
-    face.textContent = s.id;
+    const logo = pinLogo(view.name);
+    if (logo) {
+      face.className = 'logo'; face.style.background = '#fff';
+      let img = face.firstElementChild;
+      if (!img || img.tagName !== 'IMG') { img = document.createElement('img'); img.alt = ''; face.replaceChildren(img); }
+      if (img.getAttribute('src') !== logo) img.src = logo;
+    } else {
+      face.className = ''; face.style.background = theme.frame; face.textContent = s.id;
+    }
     el.title = `${s.name}${s.published ? '' : ' (draft)'}`;
     const lat = Number(view.lat), lng = Number(view.lng);
     if (Number.isFinite(lat) && Number.isFinite(lng)) m.setLngLat([lng, lat]).addTo(map);

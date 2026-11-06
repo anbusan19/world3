@@ -200,3 +200,5 @@ main > .hero > *:not(.hero-globe), .xp .intro > *:not(.hero-globe) { position: r
 
 /* the intro card on the Events and Sponsors pages runs the full width instead of leaving half the row empty */
 body > main:not(.grid):not(.xp) > .hero { grid-column: 1 / -1; min-height: 220px; }
+.pin > i.logo { padding: 4px; }
+.pin > i.logo img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; display: block; }

@@ -57,5 +57,5 @@ for (const f of files) {
 }
 // images the app needs
 mkdirSync(path.join(out, 'assets'), { recursive: true });
-for (const a of readdirSync(path.join(root, 'assets'))) copyFileSync(path.join(root, 'assets', a), path.join(out, 'assets', a));
+cpSync(path.join(root, 'assets'), path.join(out, 'assets'), { recursive: true }); // includes assets/pins
 console.log(`synced ${n} files from the app into landing/migrated`);

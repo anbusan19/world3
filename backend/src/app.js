@@ -163,8 +163,14 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   async function syncArkiv(spot) {
     if (!arkiv.enabled) return null;
     try {
-      if (spot.onArkiv && spot.published) await arkiv.publish(spot);
-      else if (arkiv.status(spot.id)) await arkiv.unpublish(spot.id);
+      // Arkiv writes wait for the chain, which can be slow (or stuck behind an earlier transaction). A dashboard save must never hang on it,
+      // so after 45 seconds the save returns and the write carries on in the background; saving again retries it.
+      const work = spot.onArkiv && spot.published ? arkiv.publish(spot) : arkiv.status(spot.id) ? arkiv.unpublish(spot.id) : null;
+      if (work) {
+        work.catch((e) => console.error('arkiv sync failed (late):', safeMessage(e)));
+        const done = await Promise.race([work.then(() => true), new Promise((r) => setTimeout(() => r(false), 45_000))]);
+        if (!done) return 'Arkiv is slow right now. Your change is saved and is still being written to Arkiv; save again if it does not show up.';
+      }
       return null;
     } catch (e) {
       console.error('arkiv sync failed:', safeMessage(e));

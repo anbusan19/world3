@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePhoneSize as useWindowDimensions } from './phoneSize';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Camera, Map, ViewAnnotation } from '@maplibre/maplibre-react-native';
+import { pinLogo } from './pinLogos';
 import { Ionicons } from '@expo/vector-icons';
 import { getCartoonStyle } from './mapStyle';
 import { formatDistance } from './geo';
@@ -133,8 +134,10 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock, fill
                     <Text style={styles.clusterText}>{g.items.length}</Text>
                   </View>
                 ) : (
-                  <View style={[styles.medal, { backgroundColor: t.frame }, on && styles.medalOn]}>
-                    <Ionicons name={s.icon} size={on ? 22 : 18} color={t.accent} />
+                  <View style={[styles.medal, { backgroundColor: pinLogo(s.name) ? '#FFFFFF' : t.frame }, on && styles.medalOn]}>
+                    {pinLogo(s.name)
+                      ? <Image source={pinLogo(s.name)} style={{ width: on ? 34 : 28, height: on ? 34 : 28 }} resizeMode="contain" />
+                      : <Ionicons name={s.icon} size={on ? 22 : 18} color={t.accent} />}
                   </View>
                 )}
                 <View style={[styles.pinTip, { borderTopColor: many ? GREEN : '#FFFFFF' }]} />
