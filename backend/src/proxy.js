@@ -20,6 +20,7 @@ const ALLOWED = [
   // the explorer: recent stamps across everyone, no personal data
   /^\/(explorer\.html|skin\.css|logo\.png)$/,
   /^\/api\/v1\/explorer$/,
+  /^\/api\/v1\/faucet\/info$/,
 ];
 
 export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } = {}) {
@@ -27,6 +28,19 @@ export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } =
     const url = new URL(req.url, 'http://x');
     const deny = (code, msg) => { res.writeHead(code, { 'content-type': 'text/plain', 'access-control-allow-origin': '*' }); res.end(msg); };
     if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET, HEAD' }); return res.end(); }
+    // the one write the public front allows: asking the testnet faucet for tGLM
+    if (req.method === 'POST' && url.pathname === '/api/v1/faucet') {
+      try { if (new URL(req.headers.origin ?? '').host !== req.headers.host) return deny(403, 'Cross-site requests are not allowed.'); } catch { return deny(403, 'Cross-site requests are not allowed.'); }
+      let size = 0;
+      const up = http.request({ host: upstreamHost, port: upstreamPort, method: 'POST', path: url.pathname, headers: {
+        host: `${upstreamHost}:${upstreamPort}`, 'content-type': 'application/json', 'x-requested-with': 'world3-dashboard',
+        'x-forwarded-for': String(req.headers['cf-connecting-ip'] ?? req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '').split(',')[0].trim(),
+      } }, (r) => { res.writeHead(r.statusCode, { 'content-type': r.headers['content-type'] ?? 'application/json', 'access-control-allow-origin': '*' }); r.pipe(res); });
+      up.on('error', () => deny(502, 'The spots server is not running.'));
+      req.on('data', (c) => { size += c.length; if (size > 1024) { up.destroy(); deny(413, 'Too large.'); req.destroy(); } else up.write(c); });
+      req.on('end', () => up.end());
+      return undefined;
+    }
     if (req.method !== 'GET' && req.method !== 'HEAD') return deny(405, 'Read-only.');
     if (!ALLOWED.some((re) => re.test(url.pathname))) return deny(404, 'Not found.');
 

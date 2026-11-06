@@ -70,6 +70,59 @@ async function connect() {
   }
 }
 
+// ---- testnet setup: add the network to the wallet, and get free test tGLM from the organizer's faucet ------------------
+async function addNetwork() {
+  const provider = window.ethereum;
+  if (!provider) { say($('#netMsg'), 'No browser wallet found. Install MetaMask, then reload this page.', 'bad'); return false; }
+  const chain = chainFor();
+  try {
+    try {
+      await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_HEX }] });
+    } catch (e) {
+      if (e?.code !== 4902 && e?.code !== -32603) throw e;
+      await provider.request({ method: 'wallet_addEthereumChain', params: [{ chainId: CHAIN_HEX, chainName: 'Arkiv Rabdi Testnet', nativeCurrency: chain.nativeCurrency, rpcUrls: [chain.rpcUrls.default.http[0]], blockExplorerUrls: [chain.blockExplorers.default.url] }] });
+      await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_HEX }] });
+    }
+    say($('#netMsg'), 'Arkiv testnet added and selected.', 'ok');
+    if (S.account) await adopt(S.account, chain);
+    return true;
+  } catch (e) {
+    say($('#netMsg'), friendly(e), 'bad');
+    return false;
+  }
+}
+
+async function getTglm() {
+  if (!S.account) { await connect(); if (!S.account) return false; }
+  const btn = $('#faucet'); btn.disabled = true;
+  say($('#netMsg'), 'Sending you test tGLM…');
+  try {
+    const res = await fetch('/api/v1/faucet', { method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'world3-dashboard' }, body: JSON.stringify({ address: S.account }) });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) { say($('#netMsg'), out.error ?? out.message ?? 'The faucet said no.', 'bad'); return false; }
+    say($('#netMsg'), `Sent ${out.amount}. It lands in a few seconds.`, 'ok');
+    for (let i = 0; i < 4; i += 1) { await new Promise((r) => setTimeout(r, 2500)); await showAccount(); }
+    validate();
+    return true;
+  } catch {
+    say($('#netMsg'), 'Could not reach the faucet.', 'bad');
+    return false;
+  } finally { btn.disabled = false; }
+}
+
+async function easySetup() {
+  const b = $('#easy'); b.disabled = true;
+  try {
+    if (!S.account) await connect(); // adds and selects the network too
+    if (!S.account) return;
+    if (!S.onRabdi && !(await addNetwork())) return;
+    let bal = 0n;
+    try { bal = BigInt(await S.provider.request({ method: 'eth_getBalance', params: [S.account, 'latest'] })); } catch { /* the faucet decides */ }
+    if (bal < 10n ** 16n) await getTglm();
+    else say($('#netMsg'), 'You are all set: wallet connected, network added, tGLM in your account.', 'ok');
+  } finally { b.disabled = false; }
+}
+
 async function adopt(account, chain = chainFor()) {
   S.account = account;
   S.onRabdi = BigInt(await S.provider.request({ method: 'eth_chainId' })) === CHAIN_ID;
@@ -293,6 +346,10 @@ function init() {
   $('#copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(S.account); $('#copy').textContent = 'Copied'; setTimeout(() => ($('#copy').textContent = 'Copy address'), 1500); } catch { /* the address is on screen to copy by hand */ } });
   $('#form').addEventListener('submit', publish);
   for (const id of ['spot', 'sponsor', 'headline', 'url', 'alt', 'days']) $(`#${id}`).addEventListener('input', validate);
+  $('#addNet').addEventListener('click', addNetwork);
+  $('#faucet').addEventListener('click', getTglm);
+  $('#easy').addEventListener('click', easySetup);
+  fetch('/api/v1/faucet/info').then((r) => r.json()).then((f) => { if (f.enabled) { $('#faucet').hidden = false; $('#faucet').textContent = `Get free ${f.token} (${f.amount})`; } }).catch(() => {});
   $('#image').addEventListener('change', (e) => chooseImage(e.target.files?.[0]));
   const drop = $('#drop');
   ['dragover', 'dragenter'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));

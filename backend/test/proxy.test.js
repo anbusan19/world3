@@ -4,6 +4,10 @@ import http from 'node:http';
 import { createProxy } from '../src/proxy.js';
 
 function listen(srv) { return new Promise((r) => srv.listen(0, '127.0.0.1', () => r(srv.address().port))); }
+const post = (port, path, headers = {}) => new Promise((resolve, reject) => {
+  const q = http.request({ host: '127.0.0.1', port, path, method: 'POST', headers: { 'content-type': 'application/json', ...headers } }, (res) => { let b = ''; res.on('data', (c) => (b += c)); res.on('end', () => resolve({ status: res.statusCode, body: b })); });
+  q.on('error', reject); q.end('{"address":"0x0"}');
+});
 const get = (port, path, method = 'GET') => new Promise((resolve, reject) => {
   const q = http.request({ host: '127.0.0.1', port, path, method }, (res) => { let b = ''; res.on('data', (c) => (b += c)); res.on('end', () => resolve({ status: res.statusCode, body: b })); });
   q.on('error', reject); q.end();
@@ -31,5 +35,12 @@ test('proxy forwards the feed and files only, read-only', async () => {
   assert.equal((await get(port, '/api/v1/spots', 'PUT')).status, 405);
   assert.equal((await get(port, '/api/spots', 'POST')).status, 405);
   assert.equal(seen.length, 8); // the feed, a model file, the advertiser page's two read-only requests, the two passport page requests and the two explorer requests
+  // the faucet is the one POST the public front forwards, and only from its own page
+  const before = seen.length;
+  assert.equal((await post(port, '/api/v1/faucet', { origin: `http://127.0.0.1:${port}` })).status, 200);
+  assert.equal((await post(port, '/api/v1/faucet', { origin: 'https://evil.example' })).status, 403);
+  assert.equal((await post(port, '/api/v1/faucet')).status, 403); // no origin at all
+  assert.equal((await post(port, '/api/spots', { origin: `http://127.0.0.1:${port}` })).status, 405); // nothing else
+  assert.equal(seen.length, before + 1);
   proxy.close(); up.close();
 });

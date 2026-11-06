@@ -141,6 +141,17 @@ export async function createArkiv({ dataDir, config = arkivConfigFromEnv(), clie
     ledger,
     status: (id) => (id ? ledger.get(id) : ledger.items),
 
+    // plain tGLM transfers for the testnet faucet. They go through the same one-writer queue so the nonce never collides.
+    fundOps: {
+      send: (to, value) => serial(async () => {
+        const hash = await walletClient.sendTransaction({ to, value, gas: 100_000n });
+        await publicClient.waitForTransactionReceipt({ hash });
+        return hash;
+      }),
+      balanceOf: (address) => publicClient.getBalance({ address }),
+      ownBalance: () => publicClient.getBalance({ address: owner }),
+    },
+
     // create the spot's entity, or update it (and renew its life) if it is already there
     publish: (spot) => serial(async () => {
       const values = toEntityValues(spot, config.eventSlug);

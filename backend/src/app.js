@@ -14,6 +14,7 @@ import { createVoucherSigner, voucherConfigFromEnv } from './voucher.js';
 import { GlbError, LIMITS, parseGlb } from './glb.js';
 import { SEED } from './seed.js';
 import { explore } from './explorer.js';
+import { FaucetError, createFaucet } from './faucet.js';
 import { Store, toPublic } from './store.js';
 import { validateSpot } from './validate.js';
 
@@ -82,6 +83,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   const store = new Store(dataDir);
   await store.init(SEED);
   const arkiv = await createArkiv({ dataDir, ...arkivOpts });
+  const faucet = arkiv.enabled && arkiv.fundOps ? await createFaucet({ dataDir, chain: arkiv.fundOps, ...(arkivOpts.faucet ? { config: arkivOpts.faucet } : {}) }) : null;
   const captures = new Captures(dataDir);
   await captures.init();
   const accounts = new Accounts(dataDir);
@@ -168,6 +170,17 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     if (p === '/api/v1/arkiv/spots' && method === 'GET') {
       if (!arkiv.enabled) throw new HttpError(503, 'Arkiv is not configured on this server.');
       return send(res, 200, { owner: arkiv.owner, eventSlug: arkiv.eventSlug, schema: 'world3.spot', spots: await arkiv.list() }, cors);
+    }
+
+    // testnet faucet: a sponsor gets a little tGLM to run an ad (worthless test token; limited per wallet and per day)
+    if (p === '/api/v1/faucet/info' && method === 'GET') return send(res, 200, faucet ? { ...faucet.info(), owner: arkiv.owner } : { enabled: false }, cors);
+    if (p === '/api/v1/faucet' && method === 'POST') {
+      if (!faucet) throw new HttpError(503, 'The faucet is not set up on this server.');
+      const { address } = await readJson(req);
+      const loop = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+      const ip = (loop ? String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim() : '') || req.socket.remoteAddress || '';
+      try { return send(res, 200, await faucet.drip(address, ip), cors); }
+      catch (e) { if (e instanceof FaucetError) throw new HttpError(e.status, e.message); console.error('faucet', e?.shortMessage ?? e?.name); throw new HttpError(502, 'The faucet could not send right now. Try again in a minute.'); }
     }
 
     // the public explorer: recent stamps across everyone (no personal data), searchable

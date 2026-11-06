@@ -27,11 +27,16 @@
 
     <section class="card" id="s-connect">
       <h2><span class="n">1</span> Connect your wallet</h2>
-      <p class="muted">Use a wallet on the <b>Arkiv Rabdi testnet</b> (chain 7794095, gas token tGLM). You pay a tiny amount of tGLM for each write; get some free at the <a href="https://hub.arkiv.network/faucet" target="_blank" rel="noopener noreferrer">Arkiv faucet</a>. No real money is involved.</p>
+      <p class="muted">Use a wallet on the <b>Arkiv Rabdi testnet</b> (chain 7794095, gas token tGLM). You pay a tiny amount of tGLM for each write. The button below adds the network to MetaMask and sends you some for free from our faucet (or use the <a href="https://hub.arkiv.network/faucet" target="_blank" rel="noopener noreferrer">Arkiv faucet</a>). No real money is involved.</p>
       <label class="field"><span>Your own Arkiv access key <i>(optional, free)</i></span>
         <input id="rpcKey" type="password" autocomplete="off" spellcheck="false" placeholder="ark_live_…">
         <small>Avoids the public network's rate limit. It stays in this browser and in your wallet's network settings. <a href="https://hub.arkiv.network/access-keys" target="_blank" rel="noopener noreferrer">Get one</a>. Never share it.</small></label>
       <div class="row"><button id="connect" class="btn dark" type="button">Connect wallet</button><span id="connMsg" class="msg" role="status"></span></div>
+      <div class="easy">
+        <button id="easy" class="btn green big" type="button">Set me up in one click</button>
+        <p class="fine" style="margin:6px 0 0">Connects MetaMask, adds the Arkiv testnet and sends you free test tGLM. Or do the steps yourself:</p>
+        <div class="row" style="margin-top:8px"><button id="addNet" class="btn" type="button">Add testnet to MetaMask</button><button id="faucet" class="btn" type="button" hidden>Get free tGLM</button><span id="netMsg" class="msg" role="status"></span></div>
+      </div>
     </section>
 
     <section class="card" id="s-approval" hidden>
