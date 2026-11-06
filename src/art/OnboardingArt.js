@@ -145,14 +145,8 @@ export function IntroHero() {
   return (
     <View style={[styles.intro, { marginHorizontal: -bleed }]}>
       {/* the globe sits in the top-right corner, partly off the edge, like the dashboard's */}
-      <View style={{ position: 'absolute', right: -size * 0.28, top: -size * 0.16 }}>
+      <View style={{ position: 'absolute', right: -size * 0.28, top: -size * 0.32 }}>
         <GlobeHero size={size} />
-      </View>
-      <View style={[styles.introChip, { left: 14 + bleed }]}>
-        <Text style={styles.introChipText}>Spots across India</Text>
-        <View style={styles.introChipArrow}>
-          <Ionicons name="arrow-forward" size={14} color="#A6D16C" />
-        </View>
       </View>
     </View>
   );

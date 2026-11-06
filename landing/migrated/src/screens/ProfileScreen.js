@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { Stamp } from '../Stamp';
 import { PrimaryButton } from '../ui';
 import { usePassport } from '../usePassport';
+import { getRecoveryCode } from '../world';
 import { SERVERS, getFeedBase, pingServer, refreshSpots, setFeedBase, shortName, spots } from '../spots';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -505,6 +506,17 @@ function Toggle({ value, onChange }) {
 }
 
 function SettingsSection({ profile, setProfile, settings, updateSetting, onSignOut }) {
+  const showRecovery = () => {
+    Alert.alert('Make a recovery code?', 'World ID lets each person prove once, so this code is how you get back in on a new phone or after a reinstall. A new code cancels the old one. Keep it private.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Make code', onPress: async () => {
+        try {
+          const code = await getRecoveryCode();
+          Share.share({ message: `My wrld3 recovery code: ${code}` }).catch(() => {});
+        } catch { Alert.alert('Could not make a code', 'Check your connection and try again.'); }
+      } },
+    ]);
+  };
   const styles = useStyles();
   const C = useColors();
   const { mode, setMode, isDark } = useTheme();
@@ -551,7 +563,8 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
 
       <Group title="Account">
         <Row icon="finger-print-outline" title="Signed in with World ID" sub="One verified human, no password" />
-        <Row icon="log-out-outline" tint={C.orange} title="Sign out" danger onPress={onSignOut} last />
+        <Row icon="key-outline" title="Recovery code" sub="Get back in after a reinstall or on a new phone" onPress={showRecovery} />
+        <Row icon="log-out-outline" tint={C.orange} title="Sign out" sub="You will need your recovery code to sign back in" danger onPress={onSignOut} last />
       </Group>
 
       {SERVERS.length > 1 ? <Group title="Connection"><ServerToggle /></Group> : null}

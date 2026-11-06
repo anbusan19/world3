@@ -90,7 +90,6 @@ const Page = memo(function Page({ slide, width }) {
   const styles = useStyles();
   return (
     <View style={[styles.page, { width }]}>
-      {slide.hero === 'globe' && <Text style={styles.eyebrow}>YOUR WORLD, COLLECTED</Text>}
       <Art slide={slide} />
       <Text style={[styles.title, slide.hero === 'globe' && styles.titleBig]}>
         {slide.title}

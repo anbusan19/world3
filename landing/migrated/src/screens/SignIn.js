@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { PassportHero } from '../art/OnboardingArt';
 import { PrimaryButton } from '../ui';
-import { CaptureFailure, signInWithWorldId } from '../world';
+import { CaptureFailure, restoreAccount, signInWithWorldId } from '../world';
 import { F, makeStyles, useColors, useTheme } from '../theme';
 
 // Sign in with World ID: proving you are a unique human is the only way in, and it is your account. No email, no password.
@@ -13,6 +13,8 @@ const STAGES = ['Requesting a one-time code', 'Approve in World App', 'Server ch
 export function SignIn({ onDone }) {
   const [stage, setStage] = useState(null); // null while idle, else 0..2
   const [error, setError] = useState(null);
+  const [restoring, setRestoring] = useState(false);
+  const [code, setCode] = useState('');
   const styles = useStyles();
   const C = useColors();
   const { isDark } = useTheme();
@@ -24,8 +26,16 @@ export function SignIn({ onDone }) {
       onDone(user);
     } catch (e) {
       setStage(null);
-      setError(e instanceof CaptureFailure ? e.message : 'Something went wrong. Try again.');
+      // World ID allows one sign-in proof per person, so a second one (a reinstall, a new phone) is refused: point to the code
+      if (/nullifier_replayed/.test(String(e?.message))) {
+        setRestoring(true);
+        setError('This World ID already has a wrld3 account. Enter the recovery code you saved in Settings to get back in.');
+      } else setError(e instanceof CaptureFailure ? e.message : 'Something went wrong. Try again.');
     }
+  }
+  async function restore() {
+    setError(null);
+    try { onDone(await restoreAccount(code)); } catch (e) { setError(e instanceof CaptureFailure ? e.message : 'Could not restore. Try again.'); }
   }
 
   return (
@@ -69,6 +79,17 @@ export function SignIn({ onDone }) {
           </View>
         )}
         {error ? <Text style={styles.error}>{error}</Text> : null}
+        {stage === null && !restoring ? (
+          <Pressable onPress={() => setRestoring(true)} hitSlop={8} style={{ alignSelf: 'center', paddingVertical: 4 }}>
+            <Text style={styles.link}>Already have an account? Use a recovery code</Text>
+          </Pressable>
+        ) : null}
+        {restoring && stage === null ? (
+          <View style={{ gap: 10 }}>
+            <TextInput value={code} onChangeText={setCode} placeholder="XXXX-XXXX-XXXX-XXXX-XXXX" placeholderTextColor={C.muted} autoCapitalize="characters" autoCorrect={false} style={styles.input} />
+            <PrimaryButton label="Restore my account" icon="key" onPress={restore} />
+          </View>
+        ) : null}
 
         <View style={styles.note}>
           <View style={styles.noteIcon}>
@@ -86,6 +107,8 @@ const useStyles = makeStyles((C) => ({
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: C.soft, alignItems: 'center', justifyContent: 'center' },
   stepText: { flex: 1, fontFamily: F.reg, fontSize: 14, color: C.muted },
+  link: { fontFamily: F.semi, fontSize: 13, color: C.info },
+  input: { backgroundColor: C.card, borderRadius: 18, height: 52, paddingHorizontal: 18, fontFamily: F.semi, fontSize: 15, letterSpacing: 1, color: C.ink, textAlign: 'center' },
   error: { fontFamily: F.semi, fontSize: 13, color: C.orange, textAlign: 'center', marginTop: 12 },
   safe: { flex: 1, backgroundColor: C.bg, paddingHorizontal: 22 },
   brand: { alignItems: 'center', paddingTop: 6 },
