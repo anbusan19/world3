@@ -418,8 +418,11 @@ async function snapshot() {
   if (!spot || !mv) return;
   try {
     await customElements.whenDefined('model-viewer');
-    const blob = await mv.toBlob({ mimeType: 'image/png', idealAspect: true });
-    const { spot: next } = await api('PUT', `/api/spots/${spot.id}/image`, blob, { 'content-type': 'image/png' });
+    const snap = await mv.toBlob({ mimeType: 'image/png', idealAspect: true });
+    // keep the stamp image small: shrink it under 100 KB (it is sent to every phone with the feed)
+    const { compressImage } = await import('/compress.js');
+    const { blob } = await compressImage(snap, { maxBytes: 100 * 1024, maxSide: 800 });
+    const { spot: next } = await api('PUT', `/api/spots/${spot.id}/image`, blob, { 'content-type': blob.type || 'image/png' });
     replaceSaved(next);
     toast('Stamp image saved');
     refreshDerived();

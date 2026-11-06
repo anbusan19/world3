@@ -1,3 +1,4 @@
+import { compressImage } from '../public/compress.js';
 // The advertiser page. Everything that costs money or changes a campaign is signed by the sponsor's own wallet; this page and the
 // wrld3 server never hold a key. Source for public/sponsor.bundle.js (build: npm run build:web).
 import { ExpirationTime, createWalletClient } from '@arkiv-network/sdk';
@@ -295,9 +296,20 @@ function validate() {
   else if (S.account && !S.onRabdi) $('#problem').textContent = 'Switch your wallet to the Arkiv Rabdi network.';
 }
 
-async function chooseImage(file) {
+async function chooseImage(picked) {
   if (S.image?.url) URL.revokeObjectURL(S.image.url);
   S.image = null;
+  let file = picked; let note = '';
+  if (picked) {
+    try { // shrink anything over the limit (or too large) so nobody needs a separate compressor
+      $('#dropInfo').textContent = 'Checking the image…';
+      const out = await compressImage(picked, { maxBytes: LIMITS.creativeBytes, maxSide: LIMITS.maxSide });
+      if (out.changed) {
+        file = new File([out.blob], picked.name.replace(/\.[^.]+$/, '') + (out.blob.type === 'image/webp' ? '.webp' : '.jpg'), { type: out.blob.type });
+        note = ` · compressed from ${Math.round(picked.size / 1024)} KB`;
+      }
+    } catch (e) { file = picked; note = ''; $('#problem').textContent = e.message; }
+  }
   const img = node('img', { alt: '' });
   const thumb = $('#dropThumb'); const info = $('#dropInfo');
   info.className = '';
@@ -315,7 +327,7 @@ async function chooseImage(file) {
       const { w, h } = S.image;
       const ratio = w && h ? w / h : 0;
       const ok = Math.abs(ratio - 16 / 9) < 0.06;
-      info.textContent = w ? `${w}×${h} · ${Math.round(file.size / 1024)} KB · ${ok ? 'fits 16:9' : `ratio ${ratio.toFixed(2)}:1, 16:9 is best`}` : `${Math.round(file.size / 1024)} KB`;
+      info.textContent = w ? `${w}×${h} · ${Math.round(file.size / 1024)} KB${note} · ${ok ? 'fits 16:9' : `ratio ${ratio.toFixed(2)}:1, 16:9 is best`}` : `${Math.round(file.size / 1024)} KB`;
       info.className = ok ? 'ok' : 'warn';
     }
     $('#dropName').textContent = file.name;
