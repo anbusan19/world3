@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F5F1E4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="wrld3 pins">
+<meta name="robots" content="noindex">
+<title>wrld3 pin collector</title>
+<link rel="icon" href="/app-logo.png">
+<link rel="apple-touch-icon" href="/app-logo.png">
+<style>
+@font-face { font-family: 'PJS'; font-weight: 500; src: url('/fonts/PlusJakartaSans_500Medium.ttf'); font-display: swap; }
+@font-face { font-family: 'PJS'; font-weight: 700; src: url('/fonts/PlusJakartaSans_700Bold.ttf'); font-display: swap; }
+@font-face { font-family: 'PJS'; font-weight: 800; src: url('/fonts/PlusJakartaSans_800ExtraBold.ttf'); font-display: swap; }
+:root { --cream:#F5F1E4; --ink:#0B0B0F; --muted:#7C808A; --line:#E6E8EE; --green:#A6D16C; --blue:#0265AD; --coral:#F26B21; --sky:#E6F7FB; --sun:#FFF7D1; --bad:#C0392B; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { -webkit-text-size-adjust:100%; }
+body { margin:0; background:var(--cream); color:var(--ink); font:500 16px/1.5 'PJS',system-ui,-apple-system,sans-serif; padding:max(16px,env(safe-area-inset-top)) 16px max(28px,env(safe-area-inset-bottom)); }
+main { max-width:520px; margin:0 auto; display:grid; gap:14px; }
+h1,h2,p { margin:0; }
+h1 { font-size:34px; font-weight:800; letter-spacing:-.04em; line-height:1; }
+h2 { font-size:15px; font-weight:800; letter-spacing:-.01em; }
+.brand { display:flex; align-items:center; gap:12px; padding:6px 2px 2px; }
+.brand img { height:34px; }
+.sub { color:#4B4F59; font-size:15px; }
+.card { background:#fff; border-radius:28px; padding:20px; display:grid; gap:14px; }
+label { display:grid; gap:6px; font-weight:700; font-size:13px; color:var(--muted); }
+select,input { font:inherit; color:var(--ink); height:48px; border:1.5px solid var(--line); border-radius:16px; padding:0 14px; background:#fff; width:100%; }
+select:focus,input:focus { outline:3px solid var(--blue); outline-offset:1px; }
+.btn { font:800 17px 'PJS',system-ui,sans-serif; height:58px; border:0; border-radius:29px; background:var(--ink); color:#fff; cursor:pointer; width:100%; }
+.btn.green { background:var(--green); color:var(--ink); }
+.btn.soft { background:var(--cream); color:var(--ink); height:44px; font-size:14px; border-radius:22px; }
+.btn:disabled { opacity:.45; cursor:default; }
+.row { display:flex; gap:10px; }
+.row > * { flex:1; }
+.stat { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.stat div { background:var(--cream); border-radius:18px; padding:12px 14px; }
+.stat b { display:block; font-size:21px; letter-spacing:-.03em; font-weight:800; font-variant-numeric:tabular-nums; }
+.stat span { font-size:12px; color:var(--muted); font-weight:700; }
+.bar { height:10px; border-radius:5px; background:var(--cream); overflow:hidden; }
+.bar i { display:block; height:100%; width:0; background:var(--green); transition:width .25s; }
+.grade { display:inline-block; padding:4px 12px; border-radius:999px; font-weight:800; font-size:13px; }
+.g-good { background:#DDF0C2; } .g-ok { background:var(--sun); } .g-poor { background:#FFD9D2; }
+.msg { font-size:14px; color:#4B4F59; } .msg.bad { color:var(--bad); font-weight:700; }
+.result { background:var(--sky); border-radius:22px; padding:16px; display:grid; gap:6px; }
+.result code { font:800 22px ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:-.02em; word-break:break-all; }
+.item { display:grid; gap:8px; padding:14px 0; border-top:1.5px solid var(--line); }
+.item:first-child { border-top:0; padding-top:0; }
+.item b { font-weight:800; }
+.item code { font:700 14px ui-monospace,SFMono-Regular,Menlo,monospace; }
+.item .meta { font-size:12.5px; color:var(--muted); font-weight:700; }
+.item .row { gap:8px; }
+.item .btn { height:38px; font-size:13px; border-radius:19px; }
+.empty { color:var(--muted); font-size:14px; }
+.tips { margin:0; padding-left:18px; color:#4B4F59; font-size:14px; display:grid; gap:4px; }
+.toast { position:fixed; left:50%; bottom:max(20px,env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:999px; font-weight:700; font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s; z-index:9; }
+.toast.on { opacity:1; }
+a { color:var(--blue); }
+[hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><img src="/logo-light.png" alt="wrld3"></div>
+  <div>
+    <h1>Pin collector</h1>
+    <p class="sub" style="margin-top:8px">Stand where the coin should sit, take a reading, save it. Copy the list when you are done.</p>
+  </div>
+
+  <section class="card" aria-labelledby="h-spot">
+    <h2 id="h-spot">1. Which spot?</h2>
+    <label>Spot<select id="spot"><option value="">Loading spots…</option></select></label>
+    <label id="customWrap" hidden>Name for this new spot<input id="custom" type="text" placeholder="e.g. Cafe near the station" autocomplete="off" maxlength="60"></label>
+    <p class="msg" id="known" hidden></p>
+  </section>
+
+  <section class="card" aria-labelledby="h-read">
+    <h2 id="h-read">2. Take a reading</h2>
+    <button class="btn green" id="go" type="button">Start reading</button>
+    <div id="live" hidden>
+      <div class="bar" aria-hidden="true"><i id="prog"></i></div>
+      <div class="stat" style="margin-top:12px">
+        <div><b id="acc">–</b><span>accuracy now</span></div>
+        <div><b id="n">0</b><span>readings averaged</span></div>
+      </div>
+      <button class="btn soft" id="stop" type="button" style="margin-top:12px">Use what I have</button>
+    </div>
+    <p class="msg" id="gmsg" role="status"></p>
+    <div class="result" id="result" hidden>
+      <span><span class="grade" id="grade"></span> <span class="msg" id="rmeta"></span></span>
+      <code id="rcoord"></code>
+      <p class="msg" id="rdist"></p>
+      <div class="row" style="margin-top:6px"><button class="btn" id="save" type="button" style="height:50px">Save this pin</button><button class="btn soft" id="again" type="button" style="height:50px">Retake</button></div>
+    </div>
+    <ul class="tips">
+      <li>Stand on the exact point, in the open if you can. Buildings and trees make it drift.</li>
+      <li>Hold the phone still. It averages readings for up to 15 seconds.</li>
+      <li>Under 10 m is good. Over 25 m, move to open sky and retake.</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="h-saved">
+    <h2 id="h-saved">3. Saved pins <span id="count" class="msg"></span></h2>
+    <div id="list"><p class="empty">Nothing saved yet.</p></div>
+    <div class="row">
+      <button class="btn" id="copyAll" type="button" style="height:50px">Copy all</button>
+      <button class="btn soft" id="share" type="button" style="height:50px">Share or download</button>
+    </div>
+    <button class="btn soft" id="clear" type="button">Clear the list</button>
+    <p class="msg">Pins stay on this phone only. Paste the copied list to whoever sets the spots.</p>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function () {
+  'use strict';
+  var API = 'https://15-252-207-174.sslip.io/api/v1/spots';
+  var STORE = 'wrld3.pins.v1';
+  var MAX_MS = 15000, WANT = 12, ACC_MAX = 60;
+  var $ = function (s) { return document.querySelector(s); };
+  var spots = [], pins = [], watchId = null, samples = [], timer = null, startedAt = 0, current = null;
+
+  function load() { try { pins = JSON.parse(localStorage.getItem(STORE) || '[]'); if (!Array.isArray(pins)) pins = []; } catch (e) { pins = []; } }
+  function persist() { try { localStorage.setItem(STORE, JSON.stringify(pins)); } catch (e) { toast('Could not save on this browser (private mode?)'); } }
+  function toast(t) { var el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('on'); }, 1800); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // ---- spots from the public feed (optional: the page still works without them) ----
+  function fillSpots() {
+    var sel = $('#spot');
+    var opts = ['<option value="">Choose a spot…</option>'];
+    spots.slice().sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); }).forEach(function (s) { opts.push('<option value="' + esc(s.id) + '">' + esc(s.id) + ' · ' + esc(s.name) + '</option>'); });
+    opts.push('<option value="__new">Something else (type a name)</option>');
+    sel.innerHTML = opts.join('');
+  }
+  fetch(API, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) { spots = (j.spots || []).filter(function (s) { return s && s.id && s.name; }); fillSpots(); })
+    .catch(function () { $('#spot').innerHTML = '<option value="__new">Type a name (the spot list could not load)</option>'; $('#customWrap').hidden = false; });
+  function chosen() {
+    var v = $('#spot').value;
+    if (v === '__new') return { id: '', name: $('#custom').value.trim() };
+    var s = spots.find(function (x) { return String(x.id) === v; });
+    return s ? { id: String(s.id), name: s.name, coord: s.coord } : null;
+  }
+  $('#spot').addEventListener('change', function () {
+    $('#customWrap').hidden = $('#spot').value !== '__new';
+    var c = chosen(), k = $('#known');
+    if (c && c.coord) { k.hidden = false; k.textContent = 'The app currently has this spot at ' + c.coord[1].toFixed(4) + ', ' + c.coord[0].toFixed(4) + ' (rounded).'; } else k.hidden = true;
+    if (current) showResult();
+  });
+
+  // ---- reading ----
+  function haversine(a, b) { var R = 6371008.8, r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r, h = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.pow(Math.sin(dLng / 2), 2); return 2 * R * Math.asin(Math.sqrt(h)); }
+  function average() {
+    var use = samples.filter(function (s) { return s.acc <= ACC_MAX; });
+    if (!use.length) use = samples.slice();
+    if (!use.length) return null;
+    var w = 0, la = 0, ln = 0;
+    use.forEach(function (s) { var k = 1 / Math.max(s.acc * s.acc, 1); w += k; la += s.lat * k; ln += s.lng * k; });
+    var best = Math.min.apply(null, use.map(function (s) { return s.acc; }));
+    return { lat: la / w, lng: ln / w, acc: Math.max(best, 1), n: use.length };
+  }
+  function stopWatch() { if (watchId != null) navigator.geolocation.clearWatch(watchId); watchId = null; clearInterval(timer); timer = null; }
+  function finish() {
+    stopWatch();
+    $('#live').hidden = true; $('#go').disabled = false; $('#go').textContent = 'Start reading';
+    current = average();
+    if (!current) { $('#gmsg').textContent = 'No reading came back. Check that location is on and allowed for this site, then try again.'; $('#gmsg').className = 'msg bad'; return; }
+    $('#gmsg').textContent = ''; showResult();
+  }
+  function showResult() {
+    if (!current) return;
+    var g = current.acc <= 10 ? ['Good', 'g-good'] : current.acc <= 25 ? ['Okay', 'g-ok'] : ['Poor', 'g-poor'];
+    $('#grade').textContent = g[0]; $('#grade').className = 'grade ' + g[1];
+    $('#rmeta').textContent = '±' + Math.round(current.acc) + ' m · ' + current.n + ' readings';
+    $('#rcoord').textContent = current.lat.toFixed(6) + ',' + current.lng.toFixed(6);
+    var c = chosen(), d = $('#rdist');
+    if (c && c.coord) d.textContent = Math.round(haversine({ lat: current.lat, lng: current.lng }, { lat: c.coord[1], lng: c.coord[0] })) + ' m from where the app has this spot now.'; else d.textContent = '';
+    $('#result').hidden = false;
+  }
+  function tick() {
+    var el = Date.now() - startedAt;
+    $('#prog').style.width = Math.min(100, Math.max(el / MAX_MS, samples.length / WANT) * 100) + '%';
+    if (el >= MAX_MS || samples.length >= WANT) finish();
+  }
+  function start() {
+    if (!('geolocation' in navigator)) { $('#gmsg').textContent = 'This browser cannot read your location.'; $('#gmsg').className = 'msg bad'; return; }
+    if (!chosen() || ($('#spot').value === '__new' && !chosen().name)) { $('#gmsg').textContent = 'Choose a spot first (or type a name).'; $('#gmsg').className = 'msg bad'; return; }
+    samples = []; current = null; $('#result').hidden = true; $('#gmsg').textContent = 'Waiting for your phone’s location…'; $('#gmsg').className = 'msg';
+    $('#go').disabled = true; $('#go').textContent = 'Reading…'; $('#live').hidden = false; $('#prog').style.width = '0'; $('#acc').textContent = '–'; $('#n').textContent = '0';
+    startedAt = Date.now();
+    watchId = navigator.geolocation.watchPosition(function (p) {
+      samples.push({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy || 999 });
+      $('#acc').textContent = '±' + Math.round(p.coords.accuracy) + ' m'; $('#n').textContent = String(samples.length); $('#gmsg').textContent = 'Hold still…';
+    }, function (e) {
+      stopWatch(); $('#live').hidden = true; $('#go').disabled = false; $('#go').textContent = 'Start reading';
+      $('#gmsg').className = 'msg bad';
+      $('#gmsg').textContent = e && e.code === 1 ? 'Location is blocked. Allow it for this site in your browser or phone settings, then try again.' : e && e.code === 3 ? 'The reading timed out. Move to open sky and try again.' : 'Could not get a location. Check that location services are on.';
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+    timer = setInterval(tick, 300);
+  }
+  $('#go').addEventListener('click', start);
+  $('#again').addEventListener('click', function () { $('#result').hidden = true; current = null; start(); });
+  $('#stop').addEventListener('click', finish);
+
+  // ---- saved pins ----
+  function line(p) { return p.lat.toFixed(6) + ',' + p.lng.toFixed(6) + ' ' + (p.id ? p.id + ' ' : '') + p.name; }
+  function render() {
+    $('#count').textContent = pins.length ? '(' + pins.length + ')' : '';
+    var box = $('#list');
+    if (!pins.length) { box.innerHTML = '<p class="empty">Nothing saved yet.</p>'; return; }
+    box.innerHTML = pins.map(function (p, i) {
+      return '<div class="item"><div><b>' + (p.id ? esc(p.id) + ' · ' : '') + esc(p.name) + '</b></div><code>' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6) + '</code><div class="meta">±' + Math.round(p.acc) + ' m · ' + new Date(p.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</div>' +
+        '<div class="row"><button class="btn soft" data-a="copy" data-i="' + i + '">Copy</button><a class="btn soft" style="display:grid;place-items:center;text-decoration:none" target="_blank" rel="noreferrer" href="https://www.google.com/maps?q=' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6) + '">Open in Maps</a><button class="btn soft" data-a="del" data-i="' + i + '">Delete</button></div></div>';
+    }).join('');
+  }
+  function copy(text, ok) {
+    function fallback() { var t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); toast(ok); } catch (e) { toast('Could not copy. Select the text instead.'); } t.remove(); }
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function () { toast(ok); }, fallback); else fallback();
+  }
+  $('#save').addEventListener('click', function () {
+    var c = chosen();
+    if (!current || !c) return;
+    pins.unshift({ id: c.id, name: c.name || 'Unnamed', lat: current.lat, lng: current.lng, acc: current.acc, at: Date.now() });
+    persist(); render(); $('#result').hidden = true; current = null; toast('Saved');
+  });
+  $('#list').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-a]'); if (!b) return;
+    var i = Number(b.getAttribute('data-i')), p = pins[i]; if (!p) return;
+    if (b.getAttribute('data-a') === 'copy') copy(line(p), 'Copied');
+    else { pins.splice(i, 1); persist(); render(); }
+  });
+  $('#copyAll').addEventListener('click', function () { if (!pins.length) return toast('Nothing to copy yet'); copy(pins.slice().reverse().map(line).join('\n'), 'Copied ' + pins.length + ' pins'); });
+  $('#share').addEventListener('click', function () {
+    if (!pins.length) return toast('Nothing to share yet');
+    var text = pins.slice().reverse().map(line).join('\n');
+    if (navigator.share) { navigator.share({ title: 'wrld3 pins', text: text }).catch(function () {}); return; }
+    var csv = 'id,name,lat,lng,accuracy_m\n' + pins.slice().reverse().map(function (p) { return [p.id, '"' + p.name.replace(/"/g, '""') + '"', p.lat.toFixed(6), p.lng.toFixed(6), Math.round(p.acc)].join(','); }).join('\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'wrld3-pins.csv'; document.body.appendChild(a); a.click(); a.remove();
+  });
+  $('#clear').addEventListener('click', function () { if (!pins.length) return; if (confirm('Delete all ' + pins.length + ' saved pins?')) { pins = []; persist(); render(); } });
+
+  load(); render();
+})();
+</script>
+</body>
+</html>

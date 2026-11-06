@@ -5,7 +5,10 @@ const noop = './shims/noop-modules.js';
 const API = process.env.WRLD3_API_URL || 'https://15-252-207-174.sslip.io';
 const nextConfig = {
   async rewrites() {
-    return [{ source: '/share/:path*', destination: `${API}/share/:path*` }];
+    return [
+      { source: '/share/:path*', destination: `${API}/share/:path*` },
+      { source: '/pin', destination: '/pin/index.html' }, // the phone pin collector (public/pin)
+    ];
   },
   allowedDevOrigins: ['127.0.0.1'], // lets the dev server be opened as 127.0.0.1 too
   // The app's own screens (migrated/) run in the browser through react-native-web; native-only modules get web stand-ins.
