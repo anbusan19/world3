@@ -323,6 +323,11 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
 
     if (p.startsWith('/api/') || p.startsWith('/files/')) throw new HttpError(404, 'Not found.');
 
+    // ---- the public passport page: /p/<label> is the share link; the page reads ENS itself
+    if ((method === 'GET' || method === 'HEAD') && /^\/p\/[a-z0-9-]{1,32}\/?$/i.test(p)) {
+      return send(res, 200, await readFile(path.join(publicDir, 'passport.html')), { 'content-type': MIME['.html'], 'cache-control': 'no-cache' });
+    }
+
     // ---- the dashboard pages ------------------------------------------------------------------------------------
     if (method === 'GET' || method === 'HEAD') {
       const rel = p === '/' ? 'index.html' : decodeURIComponent(p).replace(/^\/+/, '');

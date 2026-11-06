@@ -1,0 +1,29 @@
+.h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 38px); letter-spacing: -.03em; font-weight: 800; }
+.join { display: flex; align-items: center; border: 1.5px solid var(--line); border-radius: 14px; background: var(--card); overflow: hidden; }
+.join input { border: 0; height: 44px; padding: 0 0 0 14px; flex: 1; min-width: 0; background: transparent; outline-offset: -2px; }
+.join b { padding: 0 14px 0 4px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.cover { background: var(--ink); color: var(--card); border-radius: 32px; padding: clamp(22px, 4vw, 40px); }
+.cover .muted { color: color-mix(in srgb, var(--card) 70%, transparent); margin: 14px 0 0; max-width: 60ch; }
+.kicker { margin: 0 0 10px; letter-spacing: .2em; font-size: 11px; font-weight: 700; color: var(--green); }
+.name { margin: 0 0 14px; font-size: clamp(28px, 6vw, 56px); line-height: 1.05; letter-spacing: -.035em; font-weight: 800; word-break: break-word; }
+.cover .chip { background: color-mix(in srgb, var(--card) 14%, transparent); color: var(--card); }
+.stamps { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin: 16px 0; }
+.stamp { position: relative; border-radius: 10px; padding: 12px 12px 14px; background: var(--tint, #F9C9B0); color: #0B0B0F; text-align: center; display: grid; gap: 6px; border: 5px dotted var(--card); outline: 2px solid var(--tint, #F9C9B0); outline-offset: -2px; min-height: 170px; align-content: space-between; }
+.stamp .no { position: absolute; top: 8px; left: 8px; background: #0B0B0F; color: #fff; border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 8px; }
+.stamp .art { font-size: 44px; line-height: 1; margin-top: 22px; }
+.stamp .lbl { font-weight: 800; letter-spacing: .12em; font-size: 14px; }
+.stamp .sub { font-size: 12px; font-weight: 500; opacity: .75; }
+.stamp.unknown { background: var(--soft); outline-color: var(--line); color: var(--muted); }
+.verify summary { cursor: pointer; font-weight: 800; font-size: 17px; }
+.verify dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 14px 0; }
+.verify dt { color: var(--muted); font-weight: 700; font-size: 13px; }
+.verify dd { margin: 0; word-break: break-all; }
+code, pre { font: 500 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+pre { background: var(--soft); border-radius: 14px; padding: 14px; overflow-x: auto; margin: 8px 0 10px; white-space: pre; }
+.centre { text-align: center; }
+.verify { margin-top: 16px; }
+/* keep long code and names from stretching the page on a phone */
+main { grid-template-columns: minmax(0, 1fr); }
+#view, #view > * { min-width: 0; }
+pre { max-width: 100%; }
+.verify dd, .verify code { overflow-wrap: anywhere; }

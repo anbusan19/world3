@@ -1,9 +1,11 @@
-// Bundles the advertiser page's script (and the Arkiv SDK it needs) into one static file the server can hand out.
+// Bundles the browser scripts (the advertiser page, with the Arkiv SDK, and the public passport page, with viem) into static files.
 //   npm run build:web
 import { build } from 'esbuild';
-await build({
-  entryPoints: [new URL('../web/sponsor.js', import.meta.url).pathname],
-  outfile: new URL('../public/sponsor.bundle.js', import.meta.url).pathname,
-  bundle: true, minify: true, format: 'esm', platform: 'browser', target: 'es2022', logLevel: 'info',
-  define: { 'process.env.NODE_ENV': '"production"' },
-});
+for (const name of ['sponsor', 'passport']) {
+  await build({
+    entryPoints: [new URL(`../web/${name}.js`, import.meta.url).pathname],
+    outfile: new URL(`../public/${name}.bundle.js`, import.meta.url).pathname,
+    bundle: true, minify: true, format: 'esm', platform: 'browser', target: 'es2022', logLevel: 'info',
+    define: { 'process.env.NODE_ENV': '"production"' },
+  });
+}

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World3 passport</title>
+  <meta name="description" content="A World3 passport: stamps for places a verified human really visited, read live from ENS.">
+  <link rel="icon" href="/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/sponsor.css">
+  <link rel="stylesheet" href="/passport.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/passport.html"><img src="/logo.png" width="34" height="34" alt=""><span>World3 <em>Passport</em></span></a>
+    <span class="grow"></span>
+    <span class="chip">Sepolia testnet</span>
+  </header>
+
+  <main>
+    <section id="lookup" class="card" hidden>
+      <h1 class="h1">Look up a passport</h1>
+      <p class="muted">Enter a passport name. Anyone can do this: the stamps are read straight from ENS, not from us.</p>
+      <form id="form" class="row" autocomplete="off">
+        <label class="field" style="margin:0;flex:1 1 220px"><span>Passport name</span>
+          <span class="join"><input id="label" placeholder="a7k2" maxlength="32" spellcheck="false" autocapitalize="none"><b>.wrld3.eth</b></span></label>
+        <button class="btn dark" type="submit" style="align-self:end">Open</button>
+      </form>
+      <p id="lookupMsg" class="msg" role="status"></p>
+    </section>
+
+    <section id="view" hidden>
+      <div class="card cover">
+        <p class="kicker">WORLD3 PASSPORT</p>
+        <h1 class="name" id="name"></h1>
+        <div class="row" id="chips"></div>
+        <p class="muted" id="intro"></p>
+      </div>
+
+      <div id="stamps" class="stamps" aria-live="polite"></div>
+      <p id="empty" class="card muted" hidden></p>
+
+      <details class="card verify" open>
+        <summary>How you can check this yourself</summary>
+        <p class="muted">This page asked ENS directly, from your browser. The stamps are one text record on the passport's own resolver. Only the traveler and a single backend permission can change that record; nothing else about the name can be edited by World3.</p>
+        <dl>
+          <dt>Name</dt><dd><code id="vName"></code> <a id="vApp" target="_blank" rel="noopener noreferrer">Open in the ENS app ↗</a></dd>
+          <dt>Resolver</dt><dd><code id="vResolver">–</code></dd>
+          <dt>Record</dt><dd><code>world3.stamps</code> = <code id="vValue">–</code></dd>
+        </dl>
+        <p class="fine">With viem ≥ 2.35:</p>
+        <pre id="snippet"></pre>
+        <button id="copy" class="btn small" type="button">Copy code</button>
+      </details>
+
+      <p class="fine centre">Stamps are private until the traveler chooses to publish them. A stamp means a verified human was at the spot when it was captured. Presence is evidence, not proof. Testnet only, not audited.</p>
+    </section>
+  </main>
+  <footer class="foot">World3 is an independent prototype. Not affiliated with World or ENS.</footer>
+  <script type="module" src="/passport.bundle.js"></script>
+</body>
+</html>
