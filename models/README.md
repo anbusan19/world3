@@ -35,3 +35,13 @@ with `python3 -m http.server 8099` in `models/` and open `preview.html?set=0`.
 | `khajuraho-temple.glb` | Kandariya Mahadeva Temple, Khajuraho |
 | `gateway-of-india.glb` | Gateway of India, Mumbai |
 | `csmt.glb` | Chhatrapati Shivaji Terminus, Mumbai |
+
+## Sponsor anchor models (generated)
+
+The same generator builds a 3D version of each workstation logo, 4 m tall, same flat palette (approximations of the marks, original work).
+
+| File | Mark |
+|---|---|
+| `ens-logo.glb` | ENS diamond |
+| `arkiv-logo.glb` | Arkiv |
+| `world-logo.glb` | World globe mark |

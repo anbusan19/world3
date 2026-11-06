@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Pressable, Share, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { Stamp } from '../Stamp';
@@ -35,32 +35,46 @@ function statsOf(collected) {
   };
 }
 
-export function ProfileScreen({ collected, openStamp, profile, setProfile, settings, updateSetting, onSignOut }) {
+export function ProfileScreen({ collected, openStamp, profile, setProfile, settings, updateSetting, onSignOut, goStamps, goEvents }) {
   const pp = usePassport();
   const styles = useStyles();
-  const [section, setSection] = useState('passport');
+  const C = useColors();
+  const [view, setView] = useState('main'); // 'main' | 'settings'
   const stats = statsOf(collected);
+
+  if (view === 'settings') {
+    return (
+      <>
+        <Pressable onPress={() => setView('main')} style={styles.backRow} hitSlop={8}>
+          <View style={styles.backBtn}><Ionicons name="arrow-back" size={18} color={C.onSolid} /></View>
+          <Text style={styles.title}>Settings</Text>
+        </Pressable>
+        <SettingsSection profile={profile} setProfile={setProfile} settings={settings} updateSetting={updateSetting} onSignOut={onSignOut} />
+      </>
+    );
+  }
 
   return (
     <>
-      <Header profile={profile} setProfile={setProfile} stats={stats} passport={pp.passport} />
+      <Header profile={profile} setProfile={setProfile} stats={stats} passport={pp.passport} onSettings={() => setView('settings')} />
 
-      <View style={styles.segment}>
-        {[
-          { key: 'passport', label: 'Passport', icon: 'albums-outline' },
-          { key: 'settings', label: 'Settings', icon: 'settings-outline' },
-        ].map((o) => (
-          <Pressable key={o.key} onPress={() => setSection(o.key)} style={[styles.seg, section === o.key && styles.segOn]}>
-            <SegLabel icon={o.icon} label={o.label} on={section === o.key} />
-          </Pressable>
-        ))}
+      {/* what to do next, in two taps */}
+      <View style={styles.quick}>
+        <Pressable style={styles.quickBtn} onPress={goStamps}>
+          <Ionicons name="albums" size={20} color={C.ink} />
+          <Text style={styles.quickText}>My stamps</Text>
+        </Pressable>
+        <Pressable style={styles.quickBtn} onPress={goEvents}>
+          <Ionicons name="trophy" size={20} color={C.ink} />
+          <Text style={styles.quickText}>Events</Text>
+        </Pressable>
+        <Pressable style={styles.quickBtn} onPress={() => setView('settings')}>
+          <Ionicons name="settings" size={20} color={C.ink} />
+          <Text style={styles.quickText}>Settings</Text>
+        </Pressable>
       </View>
 
-      {section === 'passport' ? (
-        <PassportSection stats={stats} openStamp={openStamp} pp={pp} />
-      ) : (
-        <SettingsSection profile={profile} setProfile={setProfile} settings={settings} updateSetting={updateSetting} onSignOut={onSignOut} />
-      )}
+      <PassportSection stats={stats} openStamp={openStamp} pp={pp} goStamps={goStamps} />
     </>
   );
 }
@@ -111,7 +125,7 @@ async function pickPhoto(setProfile) {
   }
 }
 
-function Header({ profile, setProfile, stats, passport }) {
+function Header({ profile, setProfile, stats, passport, onSettings }) {
   const styles = useStyles();
   const C = useColors();
   const [editing, setEditing] = useState(false);
@@ -121,7 +135,10 @@ function Header({ profile, setProfile, stats, passport }) {
   const ready = passport?.status === 'ready';
   return (
     <>
-      <Text style={styles.title}>Profile</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>Profile</Text>
+        <Pressable onPress={onSettings} style={styles.gear} hitSlop={8} accessibilityLabel="Settings"><Ionicons name="settings-outline" size={20} color={C.ink} /></Pressable>
+      </View>
       <View style={styles.card}>
         <View style={styles.headRow}>
           <Pressable onPress={() => pickPhoto(setProfile)} onLongPress={() => profile.image && setProfile((p) => ({ ...p, image: null }))} accessibilityLabel="Change profile picture">
@@ -183,33 +200,39 @@ function Stat({ value, label }) {
 
 /* -------------------------------- passport --------------------------------- */
 
-function PassportSection({ stats, openStamp, pp }) {
+function PassportSection({ stats, openStamp, pp, goStamps }) {
   const styles = useStyles();
   const C = useColors();
   return (
     <>
-      <Text style={styles.section}>Stamps</Text>
+      <Text style={styles.section}>Your public passport</Text>
+      <PublicPassport pp={pp} stamps={stats.n} />
+
+      <View style={styles.sectionRow}>
+        <Text style={[styles.section, { marginTop: 0, marginBottom: 0 }]}>Recent stamps</Text>
+        {stats.mine.length > 0 ? <Pressable onPress={goStamps} hitSlop={8}><Text style={styles.seeAll}>See all</Text></Pressable> : null}
+      </View>
       {stats.mine.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="albums-outline" size={26} color={C.muted} />
           <Text style={styles.emptyText}>No stamps yet. Capture a spot and it appears here.</Text>
         </View>
       ) : (
-        <View style={styles.strip}>
-          {stats.mine.map((s) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 8 }} style={{ marginTop: 12 }}>
+          {stats.mine.slice(0, 12).map((s) => (
             <Pressable key={s.id} style={styles.mini} onPress={() => openStamp(s)}>
               <Stamp theme={s.theme} art={s.art} icon={s.icon} label={shortName(s)} tag={s.id} iconSize={34} labelSize={11} />
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       )}
 
       <Text style={styles.section}>Achievements</Text>
-      <View style={styles.achGrid}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 8 }} style={{ marginTop: 12 }}>
         {ACHIEVEMENTS.map((a) => {
           const got = a.test(stats);
           return (
-            <View key={a.key} style={[styles.ach, !got && { opacity: 0.6 }]}>
+            <View key={a.key} style={[styles.ach, styles.achWide, !got && { opacity: 0.65 }]}>
               <View style={[styles.achIcon, { backgroundColor: got ? C.green : C.soft }]}>
                 <Ionicons name={got ? a.icon : 'lock-closed'} size={20} color={got ? '#0B0B0F' : C.muted} />
               </View>
@@ -218,10 +241,7 @@ function PassportSection({ stats, openStamp, pp }) {
             </View>
           );
         })}
-      </View>
-
-      <Text style={styles.section}>Public passport</Text>
-      <PublicPassport pp={pp} stamps={stats.n} />
+      </ScrollView>
     </>
   );
 }
@@ -457,7 +477,7 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
         </View>
       </Group>
 
-      <Group title="Profile" note="Tap your name at the top of this page to change it.">
+      <Group title="Profile" note="Change your name and photo from the Profile page.">
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
             <Text style={styles.rowTitle}>Avatar colour</Text>
@@ -526,6 +546,16 @@ const useStyles = makeStyles((C) => ({
   avatarText: { fontFamily: F.bold },
   name: { fontFamily: F.bold, fontSize: 22, color: '#FFFFFF', letterSpacing: -0.4 },
   camBadge: { position: 'absolute', right: 0, bottom: 0, width: 30, height: 30, borderRadius: 15, backgroundColor: '#A6D16C', borderWidth: 3, borderColor: '#0265AD', alignItems: 'center', justifyContent: 'center' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  gear: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 6 },
+  backBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: C.solid, alignItems: 'center', justifyContent: 'center' },
+  quick: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  quickBtn: { flex: 1, height: 64, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  quickText: { fontFamily: F.semi, fontSize: 12, color: C.ink },
+  sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 28 },
+  seeAll: { fontFamily: F.semi, fontSize: 13, color: C.info },
+  achWide: { width: 150, flexGrow: 0 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   nameInput: { padding: 0, borderBottomWidth: 1.5, borderBottomColor: '#A6D16C' },
   themeSeg: { flexDirection: 'row', margin: 12, padding: 4, borderRadius: 22, backgroundColor: C.soft },
@@ -552,7 +582,7 @@ const useStyles = makeStyles((C) => ({
   empty: { backgroundColor: C.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 8 },
   emptyText: { fontFamily: F.reg, fontSize: 13, color: C.muted, textAlign: 'center' },
   strip: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  mini: { width: '30%' },
+  mini: { width: 84 },
   achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   ach: { width: '47.5%', flexGrow: 1, backgroundColor: C.card, borderRadius: 20, padding: 14 },
   achIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
