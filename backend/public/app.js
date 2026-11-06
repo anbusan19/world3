@@ -19,7 +19,7 @@ const FIELDS = ['name', 'label', 'city', 'type', 'kind', 'lat', 'lng', 'captureR
 const NUMBERS = new Set(['lat', 'lng', 'captureRadiusM', 'approachRadiusM', 'heading', 'scale', 'heightOffsetM']);
 const DEFAULT_CENTER = [72.8347, 18.9322];
 
-const state = { spots: [], sel: null, draft: null, placing: false, base: 'cartoon' };
+const state = { spots: [], sel: null, draft: null, placing: false, base: 'cartoon', q: '' };
 let map;
 const markers = new Map();
 const dark = matchMedia('(prefers-color-scheme: dark)').matches;
@@ -217,14 +217,30 @@ function renderKpis() {
   }
 }
 
+// every word typed must match somewhere in the spot: its name, id, city, label, type, event, or words like draft / published / model / chain
+function spotMatches(s, q) {
+  if (!q) return true;
+  const ev = (state.events ?? []).find((e) => e.id === (s.eventId ?? 'ethmumbai'));
+  const hay = [s.id, s.name, s.city, s.label, s.type, s.kind === 'anchor' ? 'qr anchor' : s.kind === 'quest' ? 'quest' : 'outdoor', s.eventId ?? 'ethmumbai', ev?.name,
+    s.published ? 'published' : 'draft', s.model ? '3d model' : 'no model', s.chain?.status && !s.chain.status.closed ? 'on chain' : ''].join(' ').toLowerCase();
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
+}
+
 function renderList() {
   renderKpis();
   const ul = $('#spots');
   if (!state.spots.length) {
     ul.innerHTML = '<li style="cursor:default;color:var(--muted)">No spots yet. Click “New spot”, then click the map.</li>';
+    const c = $('#spotCount'); if (c) c.textContent = '';
     return;
   }
-  ul.innerHTML = state.spots
+  const shown = state.spots.filter((s) => spotMatches(s, state.q) || s.id === state.sel);
+  const c = $('#spotCount'); if (c) c.textContent = state.q ? `${shown.length} of ${state.spots.length}` : `${state.spots.length} spots`;
+  if (!shown.length) {
+    ul.innerHTML = '<li style="cursor:default;color:var(--muted)">No spots match that search.</li>';
+    return;
+  }
+  ul.innerHTML = shown
     .map((s) => {
       const v = s.id === state.sel && state.draft ? { ...s, ...state.draft } : s;
       const t = THEMES[v.theme] ?? THEMES.coral;
@@ -590,7 +606,8 @@ function bindEvents() {
     const li = e.target.closest('li[data-id]');
     if (li) select(li.dataset.id);
   });
-  $('#new').addEventListener('click', () => setPlacing(!state.placing));
+  $('#spotSearch')?.addEventListener('input', (e) => { state.q = e.target.value.trim(); renderList(); });
+$('#new').addEventListener('click', () => setPlacing(!state.placing));
   $('#hint').addEventListener('click', (e) => {
     if (e.target.id !== 'atCentre') return;
     const c = map.getCenter();

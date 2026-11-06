@@ -41,6 +41,10 @@
         <h2>Spots</h2>
         <button id="new" class="btn primary" type="button">+ New spot</button>
       </div>
+      <div class="spot-search">
+        <input id="spotSearch" type="search" placeholder="Search spots…" title="Search by name, id, city, event, draft, published, 3D model or on chain" autocomplete="off" aria-label="Search spots">
+        <span id="spotCount" class="fine" aria-live="polite"></span>
+      </div>
       <ul id="spots" class="spots"></ul>
       <p class="fine">Drafts are only visible here. The app only gets <b>published</b> spots.</p>
     </aside>

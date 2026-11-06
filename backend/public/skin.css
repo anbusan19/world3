@@ -129,3 +129,9 @@ main > .hero > *:not(.hero-globe), .xp .intro > *:not(.hero-globe) { position: r
 .field.missing > span:first-of-type { color: var(--miss); }
 .field.missing > span:first-of-type::after { content: 'Required'; margin-left: 8px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--miss) 22%, transparent); color: var(--miss); }
 #publishWrap { display: inline-block; } #publishWrap > .btn:disabled { pointer-events: none; }
+
+/* spot search above the list */
+.spot-search { display: flex; align-items: center; gap: 10px; padding: 0 2px 10px; }
+.spot-search input { flex: 1; min-width: 0; height: 40px; border: 1.5px solid var(--line, #E4DCC8); border-radius: 20px; padding: 0 16px; font: inherit; font-size: 14px; background: #fff; color: inherit; }
+.spot-search input:focus { outline: 3px solid color-mix(in srgb, var(--green, #8CC152) 45%, transparent); border-color: var(--green, #8CC152); }
+.spot-search .fine { white-space: nowrap; margin: 0; }
