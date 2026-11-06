@@ -383,15 +383,44 @@ export default function Home() {
       </section>
 
       <footer className="site pad">
-        <Birds className="birds2" />
-        <Boat className="boat" w={110} />
         <div className="wrap in">
-          <p className="signoff reveal">Go there.<br /><span>Prove it.</span><br /><em>Keep it.</em></p>
-          <a className="pillcta" href="#launch"><span>Try the app</span><i aria-hidden="true">›</i></a>
-          <div className="foot-notes">
-            <strong>World3</strong>
-            <span>Built for ETHGlobal Mumbai, November 5–7, 2026. Testnet only, not audited.</span>
-            <span>World3 is an independent project. It uses World ID and is not affiliated with World.</span>
+          <div className="foot-top">
+            <div className="foot-cta">
+              <p>Walking somewhere worth remembering? Pick up the app, collect a stamp, and keep it as a memory. Running an event or a brand? We will help you set up your spots and your ads in minutes.</p>
+              <a className="pillcta" href="#get"><span>Get the app</span><i aria-hidden="true">›</i></a>
+            </div>
+            <div className="foot-links" role="navigation" aria-label="Footer">
+              <ul>
+                <li><a href="#steps">How it works</a></li>
+                <li><a href="#real">On a phone</a></li>
+                <li><a href="#events">Events</a></li>
+                <li><a href="#proof">Proof</a></li>
+                <li><a href="#passport">Passport</a></li>
+                <li><a href="#organizers">Organizers</a></li>
+              </ul>
+              <ul>
+                <li><a href="#get">Get the app</a></li>
+                <li><a href="https://github.com/anbusan19/world3" target="_blank" rel="noreferrer">GitHub</a></li>
+                <li><a href="https://world.org" target="_blank" rel="noreferrer">World ID</a></li>
+                <li><a href="https://ens.domains" target="_blank" rel="noreferrer">ENS</a></li>
+                <li><a href="https://arkiv.network" target="_blank" rel="noreferrer">Arkiv</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="foot-mid">
+            <p className="foot-big reveal">Go there.<br /><span>Prove it.</span><br /><em>Keep it.</em>
+              <svg className="foot-wave" viewBox="0 0 600 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22 Q37 2 75 22 T150 22 T225 22 T300 22 T375 22 T450 22 T525 22 T600 22" fill="none" stroke="#0265AD" strokeWidth="14" strokeLinecap="round" /></svg>
+            </p>
+            <div className="foot-info">
+              <div><b>Built for</b><span>ETHGlobal Mumbai</span><span>November 5–7, 2026</span></div>
+              <div><b>Runs on</b><span>Android, World ID</span><span>Sepolia and Arkiv testnets</span></div>
+              <div><b>Status</b><span>A prototype. Testnet only, not audited.</span></div>
+            </div>
+          </div>
+          <div className="foot-bottom">
+            <span>© 2026 World3. An independent project, not affiliated with World.</span>
+            <span className="foot-badge">Testnet only</span>
+            <a href="https://github.com/anbusan19/world3" target="_blank" rel="noreferrer">GitHub</a>
           </div>
         </div>
       </footer>
