@@ -11,6 +11,9 @@ const ALLOWED = [
   /^\/api\/health$/,
   /^\/api\/v1\/spots$/,
   /^\/files\/(models|images)\/[A-Za-z0-9._-]+$/,
+  // the advertiser page and the two read-only facts it needs. The organizer's approval routes (/api/sponsors) are deliberately not here.
+  /^\/(sponsor\.html|sponsor\.css|sponsor\.bundle\.js|logo\.png)$/,
+  /^\/api\/v1\/sponsors\/(info|campaigns)$/,
 ];
 
 export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } = {}) {

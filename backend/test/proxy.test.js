@@ -20,8 +20,12 @@ test('proxy forwards the feed and files only, read-only', async () => {
   assert.equal((await get(port, '/')).status, 404); // dashboard
   assert.equal((await get(port, '/api/spots')).status, 404); // admin list
   assert.equal((await get(port, '/files/models/../../x')).status, 404);
+  assert.equal((await get(port, '/api/sponsors')).status, 404); // the organizer's approval list must never be on the public tunnel
+  assert.equal((await get(port, '/sponsors.html')).status, 404); // the organizer page either
+  assert.equal((await get(port, '/api/v1/sponsors/info')).status, 200); // but the advertiser page's read-only facts are
+  assert.equal((await get(port, '/sponsor.html')).status, 200);
   assert.equal((await get(port, '/api/v1/spots', 'PUT')).status, 405);
   assert.equal((await get(port, '/api/spots', 'POST')).status, 405);
-  assert.equal(seen.length, 2);
+  assert.equal(seen.length, 4); // the feed, a model file, and the advertiser page's two read-only requests
   proxy.close(); up.close();
 });
