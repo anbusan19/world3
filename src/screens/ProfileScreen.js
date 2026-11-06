@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 import { Stamp } from '../Stamp';
 import { PrimaryButton } from '../ui';
 import { usePassport } from '../usePassport';
-import { getFeedBase, refreshSpots, setFeedBase, shortName, spots } from '../spots';
+import { SERVERS, getFeedBase, pingServer, refreshSpots, setFeedBase, shortName, spots } from '../spots';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { WorldMark } from '../art/WorldMark';
@@ -359,6 +359,20 @@ function SpotServer({ onSynced }) {
   const styles = useStyles();
   const [url, setUrl] = useState(getFeedBase());
   const [msg, setMsg] = useState('');
+  const [ping, setPing] = useState({}); // url -> ms | null
+  useEffect(() => {
+    let live = true;
+    Promise.all(SERVERS.map(async (sv) => [sv.url, await pingServer(sv.url)])).then((r) => live && setPing(Object.fromEntries(r)));
+    return () => { live = false; };
+  }, []);
+  const choose = async (sv) => {
+    setMsg(`Switching to ${sv.name}…`);
+    const base = await setFeedBase(sv.url);
+    setUrl(base);
+    const n = await refreshSpots(true);
+    setMsg(n < 0 ? `Could not reach ${sv.name}.` : `Using ${sv.name} · ${n} spot${n === 1 ? '' : 's'}`);
+    if (n >= 0) onSynced?.();
+  };
   const sync = async () => {
     setMsg('Checking…');
     const base = await setFeedBase(url);
@@ -370,8 +384,26 @@ function SpotServer({ onSynced }) {
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.rowTitle}>Spot server</Text>
-        <Text style={styles.rowSub}>Where spots and 3D models come from. Paste the https link from the dashboard share step.</Text>
+        <Text style={styles.rowTitle}>Server</Text>
+        {SERVERS.length > 0 && (
+          <>
+            <Text style={styles.rowSub}>Having trouble connecting? Pick another server. Each server keeps its own sign-in and stamps, so you may need to sign in again.</Text>
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {SERVERS.map((sv) => {
+                const on = getFeedBase() === sv.url;
+                const ms = ping[sv.url];
+                return (
+                  <Pressable key={sv.url} onPress={() => choose(sv)} style={[styles.themeBtn, { height: 48, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, backgroundColor: on ? C.solid : C.soft }]}>
+                    <Text style={[styles.themeBtnText, { color: on ? C.onSolid : C.ink, fontFamily: F.semi }]}>{sv.name}</Text>
+                    <Text style={[styles.themeBtnText, { color: on ? C.onSolid : C.muted }]}>{ms === undefined ? '…' : ms === null ? 'unreachable' : `${ms} ms`}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={[styles.rowSub, { marginTop: 14 }]}>Or use your own address:</Text>
+          </>
+        )}
+        {SERVERS.length === 0 && <Text style={styles.rowSub}>Where spots and 3D models come from.</Text>}
         <TextInput value={url} onChangeText={setUrl} autoCapitalize="none" autoCorrect={false} keyboardType="url" placeholder="https://…trycloudflare.com" placeholderTextColor={C.muted} style={[styles.input, { marginTop: 8 }]} />
         <Pressable onPress={sync} hitSlop={6} style={{ marginTop: 8 }}>
           <Text style={[styles.rowTitle, { color: C.info }]}>Save and test{msg ? `  ·  ${msg}` : ''}</Text>

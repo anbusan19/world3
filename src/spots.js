@@ -12,12 +12,31 @@ const BUNDLED = [
 // (backend/), so every screen that imports `spots` sees the update on its next render.
 export const spots = [...BUNDLED];
 let eventInfo = null; // { name, endsAt, over } from the feed
+let failStreak = 0; // how many feed refreshes in a row could not reach the server
+export const getFailStreak = () => failStreak;
+// round-trip time to a server in ms, or null if it does not answer
+export async function pingServer(url) {
+  const t0 = Date.now();
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 4000);
+    const res = await fetch(`${url}/api/health`, { signal: ctl.signal });
+    clearTimeout(t);
+    return res.ok ? Date.now() - t0 : null;
+  } catch { return null; }
+}
 export const getEvent = () => eventInfo;
 
 // Where the app fetches spots from. Default: the Mac over USB (`adb reverse tcp:3000 tcp:3000`). For testing away from
 // the cable, run `npm run share` in backend/ and paste the https URL it prints into Profile > Settings > Spot server
 // (saved on the phone). EXPO_PUBLIC_FEED_URL sets the default at build time.
-const DEFAULT_BASE = process.env.EXPO_PUBLIC_FEED_URL || 'http://127.0.0.1:3000';
+// Servers baked into the build: EXPO_PUBLIC_SERVERS="Main|https://api.example.com,Backup|https://backup.example.com".
+// The first one is the default. A person can switch in Profile > Settings > Developer if one is unreachable.
+export const SERVERS = String(process.env.EXPO_PUBLIC_SERVERS || '')
+  .split(',').map((x) => x.trim()).filter(Boolean)
+  .map((x) => { const [name, ...u] = x.split('|'); const url = u.join('|').trim().replace(/\/+$/, ''); return url ? { name: name.trim(), url } : null; })
+  .filter(Boolean);
+const DEFAULT_BASE = SERVERS[0]?.url || process.env.EXPO_PUBLIC_FEED_URL || 'http://127.0.0.1:3000';
 const BASE_KEY = 'world3.feedBase';
 let feedBase = DEFAULT_BASE;
 export const getFeedBase = () => feedBase;
@@ -60,7 +79,8 @@ export async function refreshSpots(force = false) {
     const t = setTimeout(() => ctl.abort(), 4000);
     const res = await fetch(feedBase + '/api/v1/spots', { signal: ctl.signal });
     clearTimeout(t);
-    if (!res.ok) return force ? -1 : false;
+    if (!res.ok) { failStreak += 1; return force ? -1 : false; }
+    failStreak = 0;
     const body = await res.json();
     eventInfo = body.event ?? null;
     // After the event only the record of stamps remains: the places stay (so a collected stamp can still be opened) but have
@@ -76,6 +96,7 @@ export async function refreshSpots(force = false) {
     spots.splice(0, spots.length, ...next);
     return force ? next.length : true;
   } catch {
+    failStreak += 1;
     return force ? -1 : false;
   }
 }

@@ -5,12 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { MapCard } from '../MapCard';
 import { Stamp } from '../Stamp';
 import { formatDistance } from '../geo';
-import { NEAR_METERS, getEvent, shortName } from '../spots';
+import { NEAR_METERS, SERVERS, getEvent, getFailStreak, shortName } from '../spots';
 import { F, makeStyles, useColors } from '../theme';
 
 // Explore: the real map fills the whole screen, and the words sit on top of it. A strip of spot cards floats above the
 // tab bar; tapping one flies the map there, and its arrow opens the spot.
-export function Home({ spots: all, user, collected, openSpot }) {
+export function Home({ spots: all, user, collected, openSpot, onFix }) {
+  const trouble = getFailStreak() >= 2;
   const spots = all.filter((s) => !s.ended); // after the event nothing is on the map
   const over = !!getEvent()?.over;
   const styles = useStyles();
@@ -36,6 +37,13 @@ export function Home({ spots: all, user, collected, openSpot }) {
           </Text>
         </View>
       </View>
+
+      {trouble && (
+        <Pressable style={[styles.trouble, { top: insets.top + 150 }]} onPress={onFix}>
+          <Ionicons name="cloud-offline" size={16} color="#0B0B0F" />
+          <Text style={styles.troubleText}>Can’t reach the server.{SERVERS.length > 1 ? ' Tap to pick another one.' : ' Check Profile, Settings, Developer.'}</Text>
+        </Pressable>
+      )}
 
       {over && (
         <View style={[styles.endedCard, { bottom: insets.bottom + 108 }]}>
@@ -83,6 +91,8 @@ const useStyles = makeStyles((C) => ({
   title: { fontFamily: F.bold, fontSize: 28, lineHeight: 33, letterSpacing: -1, color: C.ink, marginTop: 2 },
   titleLight: { fontFamily: F.reg },
 
+  trouble: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F6C453', borderRadius: 20, paddingHorizontal: 14, height: 40, elevation: 4 },
+  troubleText: { flex: 1, fontFamily: F.semi, fontSize: 12, color: '#0B0B0F' },
   endedCard: { position: 'absolute', left: 16, right: 16, backgroundColor: C.card, borderRadius: 26, padding: 18, elevation: 4 },
   endedTitle: { fontFamily: F.bold, fontSize: 18, color: C.ink, letterSpacing: -0.4 },
   endedBody: { fontFamily: F.reg, fontSize: 13, lineHeight: 19, color: C.muted, marginTop: 6 },

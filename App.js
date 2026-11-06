@@ -17,7 +17,7 @@ import * as SystemUI from 'expo-system-ui';
 import * as Haptics from 'expo-haptics';
 import * as SecureStore from 'expo-secure-store';
 import { F, ThemeProvider, makeStyles, useColors, useTheme } from './src/theme';
-import { loadFeedBase, refreshSpots, spots } from './src/spots';
+import { SERVERS, getFailStreak, loadFeedBase, refreshSpots, spots } from './src/spots';
 import { distanceMeters } from './src/geo';
 import { useLocation } from './src/useLocation';
 import { fetchMyCaptures, loadSession, signOut } from './src/world';
@@ -80,7 +80,7 @@ function AppInner() {
   // pull published spots from the dashboard server on start and every 20 s (silently keeps the bundled spots if unreachable)
   useEffect(() => {
     let live = true;
-    const pull = () => refreshSpots().then((changed) => live && changed && setFeedTick((n) => n + 1));
+    const pull = () => refreshSpots().then((changed) => live && (changed || getFailStreak() > 0) && setFeedTick((n) => n + 1));
     loadFeedBase().then(pull);
     const t = setInterval(pull, 20000);
     return () => { live = false; clearInterval(t); };
@@ -192,7 +192,7 @@ function AppInner() {
     <SafeAreaProvider>
       {full && (
         <View style={StyleSheet.absoluteFill}>
-          {tab === 'EXPLORE' && <Home spots={spotsWithDist} user={user} collected={collected} openSpot={(s) => push('spot', s)} />}
+          {tab === 'EXPLORE' && <Home spots={spotsWithDist} user={user} collected={collected} openSpot={(s) => push('spot', s)} onFix={() => setTab('PASSPORT')} />}
           {tab === 'GLOBE' && <GlobeScreen />}
         </View>
       )}
