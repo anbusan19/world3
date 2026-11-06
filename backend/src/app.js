@@ -236,7 +236,8 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       const [, kind, id, png] = shareRoute;
       const loop = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
       const fwdHost = loop ? req.headers['x-forwarded-host'] : null;
-      const base = (process.env.PUBLIC_BASE_URL || (fwdHost ? `${req.headers['x-forwarded-proto'] || 'https'}://${fwdHost}` : `http://${req.headers.host}`)).replace(/\/+$/, '');
+      // SHARE_BASE_URL (for example https://wrld3.vercel.app) makes the page and its picture name the public website, which forwards /share here
+      const base = (process.env.SHARE_BASE_URL || process.env.PUBLIC_BASE_URL || (fwdHost ? `${req.headers['x-forwarded-proto'] || 'https'}://${fwdHost}` : `http://${req.headers.host}`)).replace(/\/+$/, '');
       let eventName = events.name;
       let svg, title, description;
       if (kind === 'ad') {
