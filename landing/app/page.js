@@ -34,10 +34,17 @@ const CHECKS = [
   ['Privacy', 'No coordinates stored', 'Location evidence is discarded after checking. A stamp records the place’s name and the time, never where you stood.', 'M5 11h14v9H5Zm3 0V8a4 4 0 0 1 8 0v3'],
 ];
 
+const WORLD = [
+  ['The check', 'One human, once per spot', 'Each spot has its own World ID action, so a person can claim a stamp once and collecting twice is refused. Different spots give different proofs, which can’t be linked.'],
+  ['The credential', 'Proof of Human is enough', 'Stopping bots and duplicate claims needs a unique human, nothing more. We don’t ask for a name, a document or a face.'],
+  ['When it fails', 'Nothing is minted', 'A cancelled request, a replayed proof, a credential we don’t accept or a spot you are too far from all end the same way: no stamp, and a plain reason.'],
+  ['Coming back', 'A recovery code', 'Signing in on a new phone uses a code you save, because the same person can’t prove the same action twice.'],
+];
+
 const NUMS = [
   [1, '', 'human per stamp, per spot. World ID makes it one.'],
   [0, '', 'exact coordinates on a public chain. Spots are shown rounded.'],
-  [81, '', 'stamps to find: 65 landmarks across India, the venue and its tracks, and the Aqua Line stations.'],
+  [19, '', 'stamps to find in Mumbai: the venue, its sponsor tracks, landmarks and the Aqua Line trail.'],
   [80, ' s', 'to create your wrld3 passport on ENS, from one tap.'],
 ];
 const BLOCKS = [
@@ -51,14 +58,15 @@ const DONE = [
   ['Sign in and capture with World ID', 'one verified human per stamp, checked on our server for every capture.'],
   ['Events and quests', 'spots that open and close on their own clock, and stamps you earn by finishing a quest.'],
   ['The wrld3 passport on ENS', 'opt-in, with a name you choose, on Sepolia, written with permissions that only allow the stamps record.'],
+  ['Onchain stamps', 'a non-transferable stamp is minted on Sepolia for every verified capture, with the server paying the gas.'],
   ['Sponsor ads on Arkiv', 'a sponsor publishes from their own wallet and the ad shows after a verified capture. Share cards for X.'],
   ['Organizer dashboard', 'for spots, 3D models, events, quests, sponsors and a public explorer of recent stamps.'],
 ];
 const NEXT = [
-  ['Onchain stamp mint', 'the non-transferable stamp contract is written and tested, not deployed yet.'],
+  ['Checking World ID onchain', 'today our server verifies the proof and signs the mint. The contract trusting World ID directly is the next step.'],
+  ['More credentials', 'passport and national ID holders can join once World enables them for the app. Sign-in is Orb only for now.'],
   ['Sponsor payouts', 'splitting a sponsor’s stake between the people who collected is designed, not built.'],
-  ['Production hosting', 'one stable server for everyone, with a signed release APK.'],
-  ['iOS', 'the app is Android only for now.'],
+  ['iOS and web', 'the app is Android only for now.'],
 ];
 
 // The APK lives on the repository's latest GitHub release, under this fixed name; set NEXT_PUBLIC_APK_URL to host it elsewhere.
@@ -241,6 +249,28 @@ export default function Home() {
         </div>
       </section>
 
+      {/* why world id */}
+      <section className="sec peach" id="why-world-id">
+        <Wave color="#E6F7FB" flip />
+        <div className="wrap pad">
+          <div className="head reveal">
+            <p className="eyebrow">Why World ID</p>
+            <h2>The moment that needs a human.</h2>
+            <p className="lede">A stamp says “a real person was here”. If one person, or a script, can collect every spot, it says nothing. So the moment someone claims a stamp is the one place we ask who they are, and only that.</p>
+          </div>
+          <div className="checks">
+            {WORLD.map(([tag, title, body]) => (
+              <div className="check" key={tag}>
+                <p className="eyebrow">{tag}</p>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="note">Today the proof is verified on our server, which then signs the mint. Verifying it in the contract is the next step. World ID proves a unique human, not where they stand: location is a separate check.</p>
+        </div>
+      </section>
+
       {/* proof */}
       <section className="sec sky" id="proof">
         <Wave color="#FFF7D1" flip />
@@ -337,7 +367,7 @@ export default function Home() {
           <div className="head reveal">
             <p className="eyebrow">Where it stands</p>
             <h2>A prototype, built in the open.</h2>
-            <p className="lede">Made for ETHGlobal Mumbai. Capture, sign-in, passports and sponsor ads run end to end on a real phone and a testnet. What is left is minting on a contract and paying sponsors out.</p>
+            <p className="lede">Made for ETHGlobal Mumbai. Capture, sign-in, passports and sponsor ads run end to end on a real phone and a testnet. Stamps mint on a Sepolia contract. What is left is checking World ID onchain and paying sponsors out.</p>
           </div>
           <div className="status">
             <div className="col">
@@ -394,13 +424,14 @@ export default function Home() {
                 <li><a href="#steps">How it works</a></li>
                 <li><a href="#real">On a phone</a></li>
                 <li><a href="#events">Events</a></li>
+                <li><a href="#why-world-id">Why World ID</a></li>
                 <li><a href="#proof">Proof</a></li>
                 <li><a href="#passport">Passport</a></li>
                 <li><a href="#organizers">Organizers</a></li>
               </ul>
               <ul>
                 <li><a href="#get">Get the app</a></li>
-                <li><a href="https://github.com/anbusan19/wrld3" target="_blank" rel="noreferrer">GitHub</a></li>
+                <li><a href="https://github.com/anbusan19/world3" target="_blank" rel="noreferrer">GitHub</a></li>
                 <li><a href="https://world.org" target="_blank" rel="noreferrer">World ID</a></li>
                 <li><a href="https://ens.domains" target="_blank" rel="noreferrer">ENS</a></li>
                 <li><a href="https://arkiv.network" target="_blank" rel="noreferrer">Arkiv</a></li>
@@ -420,7 +451,7 @@ export default function Home() {
           <div className="foot-bottom">
             <span>© 2026 wrld3. An independent project, not affiliated with World.</span>
             <span className="foot-badge">Testnet only</span>
-            <a href="https://github.com/anbusan19/wrld3" target="_blank" rel="noreferrer">GitHub</a>
+            <a href="https://github.com/anbusan19/world3" target="_blank" rel="noreferrer">GitHub</a>
           </div>
         </div>
       </footer>
