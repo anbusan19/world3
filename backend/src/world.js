@@ -31,7 +31,7 @@ export function normaliseNullifier(v) {
 }
 
 export function createWorld({ config, fetchImpl = fetch, now = () => Date.now() }) {
-  const c = { environment: 'production', worldBase: 'https://developer.world.org', nonceTtlS: 120, credentials: ['proof_of_human', 'passport', 'mnc', 'selfie'], ...config };
+  const c = { environment: 'production', worldBase: 'https://developer.world.org', nonceTtlS: 120, credentials: ['proof_of_human'], ...config };
   const pending = new Map(); // nonce -> { action, meta, expiresAt }
   const key = (n) => String(n).toLowerCase();
 
@@ -95,6 +95,6 @@ export function worldConfigFromEnv(env = process.env) {
     signingKey: env.WORLD_ID_SIGNING_KEY,
     environment: env.WORLD_ID_ENV || 'production',
     nonceTtlS: Number(env.NONCE_TTL_SECONDS) || 120,
-    credentials: String(env.WORLD_ID_CREDENTIALS || 'proof_of_human,passport,mnc,selfie').split(',').map((s) => s.trim()).filter(Boolean),
+    credentials: String(env.WORLD_ID_CREDENTIALS || 'proof_of_human').split(',').map((s) => s.trim()).filter(Boolean),
   };
 }

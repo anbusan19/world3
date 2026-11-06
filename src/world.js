@@ -1,6 +1,6 @@
 import { Linking, Share } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { CredentialRequest, IDKit, any } from '@worldcoin/idkit-core/expo';
+import { CredentialRequest, IDKit, any, proofOfHuman } from '@worldcoin/idkit-core/expo';
 import { getFeedBase } from './spots';
 
 // The real capture, from the phone's side. The phone only gathers evidence and asks World ID to prove the person is
@@ -53,17 +53,17 @@ async function post(path, body) {
   return data;
 }
 
-// Which World ID credentials are accepted. "proof_of_human" is Orb-verified and the strongest; "passport" (NFC document) and "selfie"
-// (Selfie Check, a preview feature), "mnc" (national ID document) let people who never visited an Orb in. Only Orb would turn away most attendees ("credentials don't meet the
-// requirements" in World App), so all three are accepted by default. The server enforces the same list (WORLD_ID_CREDENTIALS).
-// Narrow it with EXPO_PUBLIC_WORLD_CREDENTIALS="proof_of_human" at build time (and the server setting) for the strictest mode.
-const CREDENTIALS = String(process.env.EXPO_PUBLIC_WORLD_CREDENTIALS || 'proof_of_human,passport,mnc,selfie').split(',').map((s) => s.trim()).filter(Boolean);
+// Which World ID credentials are accepted: Orb-verified "proof_of_human" by default, the standard request that worked from the start.
+// Passport ("passport"), national ID ("mnc") and Selfie Check ("selfie") would let people who never visited an Orb in, but World has to enable
+// each one for the app first (Selfie Check is a preview feature, and World App says "contact your World POC" until it is). To add them,
+// build with EXPO_PUBLIC_WORLD_CREDENTIALS="proof_of_human,passport" and set the same list on the server (WORLD_ID_CREDENTIALS).
+const CREDENTIALS = String(process.env.EXPO_PUBLIC_WORLD_CREDENTIALS || 'proof_of_human').split(',').map((s) => s.trim()).filter(Boolean);
 
 // Open World App with a signed request and wait for the person to approve or decline. Resolves with World's result.
 async function askWorldId(req, signal) {
   let completion;
   try {
-    const request = await IDKit.request({
+    const builder = IDKit.request({
       app_id: req.app_id,
       action: req.action,
       rp_context: {
@@ -76,7 +76,12 @@ async function askWorldId(req, signal) {
       allow_legacy_proofs: false,
       environment: req.environment,
       return_to: 'wrld3://verify',
-    }).constraints(any(...CREDENTIALS.map((c) => CredentialRequest(c, { signal }))));
+    });
+    // Orb only is the standard "Proof of Human" request. Other credentials (passport, national ID, Selfie Check) can be added with
+    // EXPO_PUBLIC_WORLD_CREDENTIALS, but World must enable each one for the app first (Selfie Check is a preview feature).
+    const request = CREDENTIALS.length === 1 && CREDENTIALS[0] === 'proof_of_human'
+      ? await builder.preset(proofOfHuman({ signal }))
+      : await builder.constraints(any(...CREDENTIALS.map((c) => CredentialRequest(c, { signal }))));
     await Linking.openURL(request.connectorURI);
     completion = await request.pollUntilCompletion({ timeout: 3 * 60 * 1000 });
   } catch (e) {
