@@ -172,8 +172,19 @@ export async function getPassport() {
 }
 
 // Asking for a passport is the consent to publish: creation takes about a minute and runs on the server.
-export async function startPassport() {
-  return post('/api/v1/passport', {});
+export async function startPassport(label) {
+  return post('/api/v1/passport', label ? { label } : {});
+}
+
+// Is this name allowed and free? { ok: true, label } or { ok: false, reason }
+export async function checkPassportName(label) {
+  const unsure = { ok: false, reason: 'Could not check right now.' };
+  try {
+    const res = await fetch(`${getFeedBase()}/api/v1/passport/name?label=${encodeURIComponent(label)}`, { headers: headers() });
+    return res.ok ? await res.json() : unsure;
+  } catch {
+    return unsure;
+  }
 }
 
 export async function setPassportPublic(flag) {

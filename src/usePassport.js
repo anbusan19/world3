@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getPassport, setPassportPublic, startPassport } from './world';
+import { checkPassportName, getPassport, setPassportPublic, startPassport } from './world';
 
 // The person's public passport, as the server sees it. Polls while it is being created (about a minute), so the screen updates on its own.
 // state: { status: 'loading' | 'unavailable' | 'none' | 'creating' | 'ready' | 'error', name, url, path, published, stamps, error }
 export function usePassport() {
   const [state, setState] = useState({ status: 'loading' });
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null); // the reason the last request was refused (for example, a name that is taken)
   const alive = useRef(true);
   const timer = useRef(null);
 
@@ -32,8 +33,9 @@ export function usePassport() {
 
   const act = useCallback(async (fn) => {
     setBusy(true);
-    try { apply(await fn()); } catch { await refresh(); } finally { if (alive.current) setBusy(false); }
+    setError(null);
+    try { apply(await fn()); } catch (e) { if (alive.current) setError(e?.message ?? null); await refresh(); } finally { if (alive.current) setBusy(false); }
   }, [apply, refresh]);
 
-  return { passport: state, busy, create: () => act(startPassport), setPublic: (flag) => act(() => setPassportPublic(flag)), refresh };
+  return { passport: state, busy, error, check: checkPassportName, create: (label) => act(() => startPassport(label)), setPublic: (flag) => act(() => setPassportPublic(flag)), refresh };
 }

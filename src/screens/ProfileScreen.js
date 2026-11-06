@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, Share, Switch, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -176,10 +176,26 @@ function PassportSection({ stats, openStamp, pp }) {
 
 // Opt-in: nothing is public until the person asks. The name lives on ENS (Sepolia testnet) and the stamps are one record on it.
 // For now World3 holds the name for the person, because the app has no wallet yet; the copy says so.
+const randomName = () => Array.from({ length: 6 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]).join('');
+
 function PublicPassport({ pp, stamps }) {
   const styles = useStyles();
   const C = useColors();
   const p = pp.passport;
+  // the name the person is typing, and whether it is allowed and free (checked a moment after they stop typing)
+  const [typed, setTyped] = useState('');
+  const [check, setCheck] = useState({ state: 'idle' });
+  const label = typed.trim().toLowerCase();
+  useEffect(() => {
+    if (!label) { setCheck({ state: 'idle' }); return undefined; }
+    setCheck({ state: 'checking' });
+    let live = true;
+    const t = setTimeout(async () => {
+      const r = await pp.check(label);
+      if (live) setCheck(r.ok ? { state: 'ok' } : { state: 'bad', reason: r.reason });
+    }, 500);
+    return () => { live = false; clearTimeout(t); };
+  }, [label]); // eslint-disable-line react-hooks/exhaustive-deps
   const shareText = p.url ? `My World3 passport: ${p.url}` : `My World3 passport: ${p.name}`;
 
   if (p.status === 'loading') return <View style={styles.pp}><ActivityIndicator color={C.muted} /></View>;
@@ -222,15 +238,45 @@ function PublicPassport({ pp, stamps }) {
     );
   }
 
+  const canCreate = !pp.busy && (!label || check.state === 'ok');
   return (
     <View style={styles.pp}>
       <Text style={styles.ppTitle}>{p.status === 'error' ? 'That did not finish' : 'Share where you have been'}</Text>
       <Text style={styles.ppBody}>
         {p.status === 'error'
           ? `${p.error} Your progress is kept, so trying again continues where it stopped.`
-          : 'Create a public passport: a name on ENS like k7m2qx.wrld3.eth that lists your stamps. It is your choice. Until you create it, nothing about your captures is public. You can make it private again at any time.'}
+          : 'Create a public passport: a name on ENS that lists your stamps. It is your choice. Until you create it, nothing about your captures is public, and you can make it private again at any time.'}
       </Text>
-      <PrimaryButton label={p.status === 'error' ? 'Try again' : 'Create my public passport'} icon="globe-outline" disabled={pp.busy} onPress={pp.create} style={{ marginTop: 14 }} />
+
+      {p.status !== 'error' && (
+        <>
+          <Text style={styles.ppLabel}>Choose a name</Text>
+          <View style={styles.ppInputRow}>
+            <TextInput
+              value={typed}
+              onChangeText={(t) => setTyped(t.replace(/[^A-Za-z0-9-]/g, ''))}
+              placeholder="pick a name"
+              placeholderTextColor={C.muted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={20}
+              style={styles.ppInput}
+              accessibilityLabel="Passport name"
+            />
+            <Text style={styles.ppSuffix}>.wrld3.eth</Text>
+          </View>
+          <Text style={[styles.ppHint, check.state === 'ok' && { color: C.green }, check.state === 'bad' && { color: C.orange }]}>
+            {!label ? 'Leave it empty for a random name.' : check.state === 'checking' ? 'Checking…' : check.state === 'ok' ? `✓ ${label}.wrld3.eth is available` : check.reason}
+          </Text>
+          <Pressable onPress={() => setTyped(randomName())} hitSlop={8}>
+            <Text style={styles.ppLink}>Use a random name</Text>
+          </Pressable>
+          <Text style={styles.ppNote}>Your name is public and linked to your stamps. Please don’t use your real name or anything private.</Text>
+        </>
+      )}
+
+      {pp.error ? <Text style={[styles.ppHint, { color: C.orange }]}>{pp.error}</Text> : null}
+      <PrimaryButton label={p.status === 'error' ? 'Try again' : 'Create my public passport'} icon="globe-outline" disabled={!canCreate} onPress={() => pp.create(label)} style={{ marginTop: 14 }} />
       <Text style={styles.ppNote}>Testnet only. World3 holds the name for you for now.</Text>
     </View>
   );
@@ -421,6 +467,11 @@ const useStyles = makeStyles((C) => ({
   ppName: { fontFamily: F.mono, fontSize: 15, color: C.ink, marginTop: 2 },
   ppBody: { fontFamily: F.reg, fontSize: 14, lineHeight: 21, color: C.muted },
   ppButtons: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  ppLabel: { fontFamily: F.semi, fontSize: 13, color: C.ink, marginTop: 10 },
+  ppInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.soft, borderRadius: 16, paddingHorizontal: 14, height: 50 },
+  ppInput: { flex: 1, fontFamily: F.mono, fontSize: 15, color: C.ink, padding: 0 },
+  ppSuffix: { fontFamily: F.mono, fontSize: 14, color: C.muted },
+  ppHint: { fontFamily: F.reg, fontSize: 13, lineHeight: 19, color: C.muted, marginTop: 4 },
   ppLink: { fontFamily: F.semi, fontSize: 13, color: C.blue, marginTop: 10 },
   ppNote: { fontFamily: F.reg, fontSize: 12, lineHeight: 18, color: C.muted, marginTop: 6 },
   title: { fontFamily: F.bold, fontSize: 30, color: C.ink, letterSpacing: -0.8, marginBottom: 16 },
