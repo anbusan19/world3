@@ -78,7 +78,7 @@ body > main:not(.grid):not(.xp) > #s-connect, body > main:not(.grid):not(.xp) > 
 main > :nth-child(2) { animation-delay: .08s; } main > :nth-child(3) { animation-delay: .16s; } main > :nth-child(4) { animation-delay: .24s; } main > :nth-child(5) { animation-delay: .32s; }
 .spots li { animation: rise .4s cubic-bezier(.2, .7, .2, 1) backwards; }
 .spots li:nth-child(2) { animation-delay: .05s; } .spots li:nth-child(3) { animation-delay: .1s; } .spots li:nth-child(4) { animation-delay: .15s; } .spots li:nth-child(5) { animation-delay: .2s; } .spots li:nth-child(n+6) { animation-delay: .25s; }
-.pin { animation: pop .45s cubic-bezier(.2, 1.5, .4, 1) backwards; }
+.pin > i { animation: pop .45s cubic-bezier(.2, 1.5, .4, 1) backwards; }
 .status.ok i { animation: breathe 2.2s infinite; }
 main > .hero, .xp .intro { position: relative; overflow: hidden; }
 main .hero-globe, main .hero-globe.maplibregl-map { position: absolute !important; right: -150px; top: -150px; width: 420px; height: 420px; pointer-events: none; z-index: 0; }
@@ -130,8 +130,44 @@ main > .hero > *:not(.hero-globe), .xp .intro > *:not(.hero-globe) { position: r
 .field.missing > span:first-of-type::after { content: 'Required'; margin-left: 8px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--miss) 22%, transparent); color: var(--miss); }
 #publishWrap { display: inline-block; } #publishWrap > .btn:disabled { pointer-events: none; }
 
-/* spot search above the list */
-.spot-search { display: flex; align-items: center; gap: 10px; padding: 0 2px 10px; }
-.spot-search input { flex: 1; min-width: 0; height: 40px; border: 1.5px solid var(--line, #E4DCC8); border-radius: 20px; padding: 0 16px; font: inherit; font-size: 14px; background: #fff; color: inherit; }
+/* ---- the spots panel: search, filters, a cleaner list ---- */
+.grid { grid-template-columns: 350px minmax(0, 1fr) 400px; }
+.list { overflow: hidden; }
+.panel-head h2 { display: flex; align-items: center; gap: 10px; }
+.count-pill { font-size: 12px; font-weight: 800; letter-spacing: 0; padding: 3px 10px; border-radius: 999px; background: var(--soft); color: var(--muted); font-variant-numeric: tabular-nums; }
+.count-pill:empty { display: none; }
+.listtools { padding: 0 14px 6px; display: grid; gap: 10px; }
+.spot-search { position: relative; display: flex; align-items: center; }
+.spot-search svg { position: absolute; left: 14px; color: var(--muted); pointer-events: none; }
+.spot-search input { width: 100%; min-width: 0; height: 42px; border: 1.5px solid var(--line, #E4DCC8); border-radius: 21px; padding: 0 16px 0 38px; font: inherit; font-size: 14px; background: var(--bg, #fff); color: inherit; }
 .spot-search input:focus { outline: 3px solid color-mix(in srgb, var(--green, #8CC152) 45%, transparent); border-color: var(--green, #8CC152); }
-.spot-search .fine { white-space: nowrap; margin: 0; }
+.filters { display: grid; gap: 8px; }
+.chips { display: flex; gap: 4px; padding: 3px; background: var(--soft); border-radius: 999px; }
+.chips button { flex: 1 1 auto; min-width: 0; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 700; padding: 6px 8px; border-radius: 999px; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s; }
+.chips button:hover { color: var(--ink, #0B0B0F); }
+.chips button.on { background: var(--card, #fff); color: var(--ink, #0B0B0F); box-shadow: 0 1px 4px rgba(0, 0, 0, .12); }
+.filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.filter-row select { height: 36px; border: 1.5px solid var(--line, #E4DCC8); border-radius: 18px; padding: 0 12px; font: inherit; font-size: 12.5px; font-weight: 600; background: var(--bg, #fff); color: inherit; min-width: 0; }
+.listmeta { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: var(--muted); padding: 0 4px; }
+.listmeta .grow { flex: 1; }
+.linkbtn { border: 0; background: transparent; color: var(--info, #0265AD); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+.linkbtn:hover { text-decoration: underline; }
+.spots { padding: 4px 10px 8px; }
+.spots li { align-items: flex-start; gap: 12px; padding: 10px 10px; border-radius: 18px; }
+.spots li .dot { flex: 0 0 38px; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; font-size: 13px; color: #0B0B0F; }
+.spots li .li-body { min-width: 0; }
+.spots li .name { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spots li .meta { font-size: 12px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spots li .sub { margin-top: 6px; gap: 5px; }
+.spots li.empty { cursor: default; color: var(--muted); display: block; text-align: center; padding: 28px 10px; }
+.spots li.empty:hover { background: transparent; }
+
+/* ---- pins and clusters on the map ---- */
+/* never scale, rotate or animate the pin/cluster element itself: MapLibre positions it with a transform and a CSS scale would multiply that position. Everything visual is the child <i>. */
+.pin > i { transition: box-shadow .2s, scale .2s; }
+.pin.gone { display: none; }
+.pin.sel > i { scale: 1.28; }
+.pin:hover > i { box-shadow: 0 5px 16px rgba(0, 0, 0, .4); }
+.cluster { width: 46px; height: 46px; cursor: pointer; }
+.cluster > i { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 15px; color: #0B0B0F; background: var(--green, #8CC152); border: 4px solid rgba(255, 255, 255, .92); box-shadow: 0 4px 14px rgba(0, 0, 0, .3), 0 0 0 7px color-mix(in srgb, var(--green, #8CC152) 35%, transparent); animation: pop .35s cubic-bezier(.2, 1.5, .4, 1) backwards; transition: scale .2s; }
+.cluster:hover > i { scale: 1.08; }

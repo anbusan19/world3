@@ -38,12 +38,32 @@
   <main class="grid">
     <aside class="panel list">
       <div class="panel-head">
-        <h2>Spots</h2>
+        <h2>Spots <span id="spotCount" class="count-pill" aria-live="polite"></span></h2>
         <button id="new" class="btn primary" type="button">+ New spot</button>
       </div>
-      <div class="spot-search">
-        <input id="spotSearch" type="search" placeholder="Search spots…" title="Search by name, id, city, event, draft, published, 3D model or on chain" autocomplete="off" aria-label="Search spots">
-        <span id="spotCount" class="fine" aria-live="polite"></span>
+      <div class="listtools">
+        <div class="spot-search">
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 13l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="spotSearch" type="search" placeholder="Search spots…" title="Search by name, id, city, event, draft, published, 3D model or on chain" autocomplete="off" aria-label="Search spots">
+        </div>
+        <div class="filters" id="filters">
+          <div class="chips" data-group="status" role="group" aria-label="Status">
+            <button type="button" data-v="all" class="on">All</button><button type="button" data-v="published">Published</button><button type="button" data-v="draft">Drafts</button>
+          </div>
+          <div class="chips" data-group="kind" role="group" aria-label="Type">
+            <button type="button" data-v="all" class="on">Any type</button><button type="button" data-v="outdoor">Outdoor</button><button type="button" data-v="anchor">QR anchor</button><button type="button" data-v="quest">Quest</button>
+          </div>
+          <div class="chips" data-group="model" role="group" aria-label="3D model">
+            <button type="button" data-v="all" class="on">Any model</button><button type="button" data-v="with">3D model</button><button type="button" data-v="without">No model</button>
+          </div>
+          <div class="filter-row">
+            <select id="fEvent" aria-label="Event"><option value="all">All events</option></select>
+            <select id="fSort" aria-label="Sort">
+              <option value="id">Sort: ID</option><option value="name">Sort: Name A–Z</option><option value="new">Sort: Newest</option>
+            </select>
+          </div>
+        </div>
+        <div class="listmeta"><span id="resultText"></span><span class="grow"></span><button id="fitResults" class="linkbtn" type="button">Fit map</button><button id="fReset" class="linkbtn" type="button" hidden>Reset</button></div>
       </div>
       <ul id="spots" class="spots"></ul>
       <p class="fine">Drafts are only visible here. The app only gets <b>published</b> spots.</p>

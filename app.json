@@ -3,7 +3,7 @@
     "name": "wrld3",
     "slug": "wrld3",
     "scheme": "wrld3",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/icon.png",
@@ -17,7 +17,8 @@
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
-      ]
+      ],
+      "versionCode": 3
     },
     "plugins": [
       "expo-dev-client",

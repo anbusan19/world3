@@ -19,7 +19,10 @@ const FIELDS = ['name', 'label', 'city', 'type', 'kind', 'lat', 'lng', 'captureR
 const NUMBERS = new Set(['lat', 'lng', 'captureRadiusM', 'approachRadiusM', 'heading', 'scale', 'heightOffsetM']);
 const DEFAULT_CENTER = [72.8347, 18.9322];
 
-const state = { spots: [], sel: null, draft: null, placing: false, base: 'cartoon', q: '' };
+const FILTER_KEY = 'wrld3.dash.filters';
+const defaultFilters = { status: 'all', kind: 'all', model: 'all', event: 'all', sort: 'id' };
+const loadFilters = () => { try { return { ...defaultFilters, ...JSON.parse(localStorage.getItem(FILTER_KEY) || '{}') }; } catch { return { ...defaultFilters }; } };
+const state = { spots: [], sel: null, draft: null, placing: false, base: 'cartoon', q: '', f: loadFilters() };
 let map;
 const markers = new Map();
 const dark = matchMedia('(prefers-color-scheme: dark)').matches;
@@ -132,6 +135,8 @@ function initMap() {
   // the page layout settles after the map is created, so keep the map's size in step with its container
   new ResizeObserver(() => map.resize()).observe(map.getContainer());
   map.on('style.load', ensureRadii);
+  map.on('zoomend', layoutPins);
+  map.on('moveend', layoutPins);
   map.on('click', (e) => {
     if (!state.placing) return;
     setPlacing(false);
@@ -185,13 +190,63 @@ function syncMarkers() {
       markers.set(s.id, m);
     }
     const el = m.getElement();
-    el.className = `pin${s.published ? '' : ' draft'}${s.id === state.sel ? ' sel' : ''}`;
-    el.style.background = theme.frame;
-    el.textContent = s.id;
+    // classList, never className: MapLibre puts its own class on the element to anchor it to the map, and wiping it makes pins drift
+    el.classList.add('pin');
+    el.classList.toggle('draft', !s.published);
+    el.classList.toggle('sel', s.id === state.sel);
+    // the element MapLibre moves stays a bare wrapper; everything visual (colour, border, scale, animation) lives on a child, because a
+    // CSS scale or animation on the moved element multiplies its map position and the pin drifts off its place
+    let face = el.firstElementChild;
+    if (!face) { face = document.createElement('i'); el.replaceChildren(face); }
+    face.style.background = theme.frame;
+    face.textContent = s.id;
     el.title = `${s.name}${s.published ? '' : ' (draft)'}`;
     const lat = Number(view.lat), lng = Number(view.lng);
     if (Number.isFinite(lat) && Number.isFinite(lng)) m.setLngLat([lng, lat]).addTo(map);
     m.setDraggable(s.id === state.sel);
+  }
+  layoutPins();
+}
+
+// Pins that would sit on top of each other at this zoom become one numbered bubble; zoom in and they split apart. Spots filtered
+// out are hidden, and the one being edited always stays a real pin so it can be dragged.
+const clusterMarkers = [];
+function layoutPins() {
+  if (!map) return;
+  for (const c of clusterMarkers.splice(0)) c.remove();
+  const keep = [];
+  for (const s of state.spots) {
+    const m = markers.get(s.id); if (!m) continue;
+    const el = m.getElement();
+    const show = passes(s) && Number.isFinite(+s.lat) && Number.isFinite(+s.lng);
+    el.classList.toggle('gone', !show);
+    if (show && s.id !== state.sel) keep.push({ s, m, el, p: map.project([+s.lng, +s.lat]) });
+  }
+  const R = 36; // pixels: pins are 38 wide and bubbles 46, so closer than this they overlap
+  const cells = new Map();
+  for (const it of keep) { const k = `${Math.floor(it.p.x / R)},${Math.floor(it.p.y / R)}`; (cells.get(k) ?? cells.set(k, []).get(k)).push(it); }
+  const groups = []; const used = new Set();
+  for (const it of keep) {
+    if (used.has(it)) continue;
+    const gx = Math.floor(it.p.x / R), gy = Math.floor(it.p.y / R); const g = [];
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (const o of cells.get(`${gx + dx},${gy + dy}`) ?? []) {
+      if (!used.has(o) && Math.hypot(o.p.x - it.p.x, o.p.y - it.p.y) < R) { used.add(o); g.push(o); }
+    }
+    groups.push(g);
+  }
+  for (const g of groups) {
+    if (g.length === 1) continue;
+    for (const it of g) it.el.classList.add('gone');
+    const cx = g.reduce((n, i) => n + +i.s.lng, 0) / g.length, cy = g.reduce((n, i) => n + +i.s.lat, 0) / g.length;
+    const el = document.createElement('div');
+    el.className = 'cluster'; el.title = `${g.length} spots here. Click to zoom in`;
+    const cf = document.createElement('i'); cf.textContent = String(g.length); el.append(cf);
+    el.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const b = new maplibregl.LngLatBounds(); g.forEach((i) => b.extend([+i.s.lng, +i.s.lat]));
+      map.fitBounds(b, { padding: 120, maxZoom: map.getZoom() + 3, duration: 450 });
+    });
+    clusterMarkers.push(new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([cx, cy]).addTo(map));
   }
 }
 
@@ -218,37 +273,95 @@ function renderKpis() {
 }
 
 // every word typed must match somewhere in the spot: its name, id, city, label, type, event, or words like draft / published / model / chain
+const kindOf = (s) => (s.kind === 'anchor' ? 'anchor' : s.kind === 'quest' ? 'quest' : 'outdoor');
 function spotMatches(s, q) {
   if (!q) return true;
   const ev = (state.events ?? []).find((e) => e.id === (s.eventId ?? 'ethmumbai'));
-  const hay = [s.id, s.name, s.city, s.label, s.type, s.kind === 'anchor' ? 'qr anchor' : s.kind === 'quest' ? 'quest' : 'outdoor', s.eventId ?? 'ethmumbai', ev?.name,
+  const hay = [s.id, s.name, s.city, s.label, s.type, kindOf(s) === 'anchor' ? 'qr anchor' : kindOf(s), s.eventId ?? 'ethmumbai', ev?.name,
     s.published ? 'published' : 'draft', s.model ? '3d model' : 'no model', s.chain?.status && !s.chain.status.closed ? 'on chain' : ''].join(' ').toLowerCase();
   return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hay.includes(w));
 }
+// the search words plus the filter bar; the spot being edited always stays visible
+function passes(s) {
+  if (s.id === state.sel) return true;
+  const f = state.f;
+  if (f.status === 'published' && !s.published) return false;
+  if (f.status === 'draft' && s.published) return false;
+  if (f.kind !== 'all' && kindOf(s) !== f.kind) return false;
+  if (f.model === 'with' && !s.model) return false;
+  if (f.model === 'without' && s.model) return false;
+  if (f.event !== 'all' && (s.eventId ?? 'ethmumbai') !== f.event) return false;
+  return spotMatches(s, state.q);
+}
+const filtersActive = () => Object.entries(state.f).some(([k, v]) => k !== 'sort' && v !== 'all') || !!state.q;
+function visibleSpots() {
+  const list = state.spots.filter(passes);
+  const by = { id: (a, b) => Number(a.id) - Number(b.id) || a.id.localeCompare(b.id), name: (a, b) => String(a.name).localeCompare(String(b.name)), new: (a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')) || Number(b.id) - Number(a.id) };
+  return list.sort(by[state.f.sort] ?? by.id);
+}
+function saveFilters() { try { localStorage.setItem(FILTER_KEY, JSON.stringify(state.f)); } catch { /* private window */ } }
+function syncFilterUi() {
+  for (const g of document.querySelectorAll('#filters .chips')) for (const b of g.querySelectorAll('button')) b.classList.toggle('on', b.dataset.v === state.f[g.dataset.group]);
+  const ev = $('#fEvent'), so = $('#fSort');
+  if (ev) {
+    const want = ['all', ...(state.events ?? [{ id: 'ethmumbai', name: 'ETHGlobal Mumbai' }]).map((e) => e.id)];
+    if (ev.options.length !== want.length) ev.innerHTML = `<option value="all">All events</option>` + (state.events ?? [{ id: 'ethmumbai', name: 'ETHGlobal Mumbai' }]).map((e) => `<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
+    ev.value = want.includes(state.f.event) ? state.f.event : 'all';
+  }
+  if (so) so.value = state.f.sort;
+  const reset = $('#fReset'); if (reset) reset.hidden = !filtersActive();
+  const q = $('#spotSearch'); if (q && q.value !== state.q) q.value = state.q;
+}
+function bindFilters() {
+  $('#spotSearch')?.addEventListener('input', (e) => { state.q = e.target.value.trim(); refreshView(); });
+  $('#filters')?.addEventListener('click', (e) => {
+    const b = e.target.closest('.chips button'); if (!b) return;
+    state.f[b.closest('.chips').dataset.group] = b.dataset.v; saveFilters(); refreshView();
+  });
+  $('#fEvent')?.addEventListener('change', (e) => { state.f.event = e.target.value; saveFilters(); refreshView(); });
+  $('#fSort')?.addEventListener('change', (e) => { state.f.sort = e.target.value; saveFilters(); refreshView(); });
+  $('#fReset')?.addEventListener('click', () => { state.f = { ...defaultFilters, sort: state.f.sort }; state.q = ''; saveFilters(); refreshView(); });
+  $('#fitResults')?.addEventListener('click', fitToResults);
+}
+function fitToResults() {
+  const list = visibleSpots().filter((s) => Number.isFinite(+s.lat) && Number.isFinite(+s.lng));
+  if (!list.length || !map) return;
+  const b = new maplibregl.LngLatBounds();
+  list.forEach((s) => b.extend([+s.lng, +s.lat]));
+  map.fitBounds(b, { padding: 90, maxZoom: 15, duration: 600 });
+}
+// list, pins and the numbers above all follow the same filters
+function refreshView() { renderList(); syncMarkers(); }
 
 function renderList() {
   renderKpis();
+  syncFilterUi();
   const ul = $('#spots');
+  const c = $('#spotCount'); const rt = $('#resultText');
   if (!state.spots.length) {
-    ul.innerHTML = '<li style="cursor:default;color:var(--muted)">No spots yet. Click “New spot”, then click the map.</li>';
-    const c = $('#spotCount'); if (c) c.textContent = '';
+    ul.innerHTML = '<li class="empty">No spots yet. Click “New spot”, then click the map.</li>';
+    if (c) c.textContent = ''; if (rt) rt.textContent = '';
     return;
   }
-  const shown = state.spots.filter((s) => spotMatches(s, state.q) || s.id === state.sel);
-  const c = $('#spotCount'); if (c) c.textContent = state.q ? `${shown.length} of ${state.spots.length}` : `${state.spots.length} spots`;
+  const shown = visibleSpots();
+  if (c) c.textContent = String(state.spots.length);
+  if (rt) rt.textContent = filtersActive() ? `${shown.length} of ${state.spots.length} spots` : `${state.spots.length} spots`;
   if (!shown.length) {
-    ul.innerHTML = '<li style="cursor:default;color:var(--muted)">No spots match that search.</li>';
+    ul.innerHTML = '<li class="empty">No spots match. <button type="button" class="linkbtn" id="clearAll">Clear filters</button></li>';
+    $('#clearAll')?.addEventListener('click', () => $('#fReset').click());
     return;
   }
+  const evName = (s) => (state.events ?? []).find((e) => e.id === (s.eventId ?? 'ethmumbai'))?.name ?? '';
   ul.innerHTML = shown
     .map((s) => {
       const v = s.id === state.sel && state.draft ? { ...s, ...state.draft } : s;
       const t = THEMES[v.theme] ?? THEMES.coral;
+      const kind = kindOf(v) === 'anchor' ? 'QR anchor' : kindOf(v) === 'quest' ? 'Quest' : 'Outdoor';
       return `<li data-id="${s.id}" class="${s.id === state.sel ? 'sel' : ''}">
         <div class="dot" style="background:${t.frame}">${s.id}</div>
-        <div><div class="name">${esc(v.name)}</div>
+        <div class="li-body"><div class="name">${esc(v.name)}</div>
+        <div class="meta">${esc(kind)}${evName(s) ? ` · ${esc(evName(s))}` : ''}</div>
         <div class="sub"><span class="tag ${s.published ? 'pub' : ''}">${s.published ? 'Published' : 'Draft'}</span>
-        <span class="tag">${v.kind === 'anchor' ? 'QR anchor' : 'Outdoor'}</span>
         ${s.model ? '<span class="tag model">3D model</span>' : '<span class="tag">No model</span>'}${s.chain?.status && !s.chain.status.closed ? '<span class="tag chain">On chain</span>' : ''}</div></div></li>`;
     })
     .join('');
@@ -606,7 +719,6 @@ function bindEvents() {
     const li = e.target.closest('li[data-id]');
     if (li) select(li.dataset.id);
   });
-  $('#spotSearch')?.addEventListener('input', (e) => { state.q = e.target.value.trim(); renderList(); });
 $('#new').addEventListener('click', () => setPlacing(!state.placing));
   $('#hint').addEventListener('click', (e) => {
     if (e.target.id !== 'atCentre') return;
@@ -689,6 +801,7 @@ async function pingStatus() {
 async function boot() {
   initMap();
   bindEvents();
+  bindFilters();
   renderEditor();
   try {
     state.spots = (await api('GET', '/api/spots')).spots;
