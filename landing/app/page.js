@@ -18,7 +18,7 @@ const GIFS = [
   ['explore', 'Explore', 'A full-screen map that opens on you, with an altitude readout and spots grouped as you zoom.'],
   ['globe', 'Globe', 'Stamps blink on the globe where they were collected. The feed in this recording is simulated.'],
   ['stamps', 'Stamps', 'Your stamps by event, with limited-time events first and finished ones kept as memories.'],
-  ['passport', 'Passport', 'Your name, your achievements and an optional public passport on ENS.'],
+  ['passport', 'Passport', 'Your name, your achievements and your optional wrld3 passport on ENS.'],
 ];
 
 const STEPS = [
@@ -38,11 +38,11 @@ const NUMS = [
   [1, '', 'human per stamp, per spot. World ID makes it one.'],
   [0, '', 'exact coordinates on a public chain. Spots are shown rounded.'],
   [81, '', 'stamps to find: 65 landmarks across India, the venue and its tracks, and the Aqua Line stations.'],
-  [80, ' s', 'to create a public passport on ENS, from one tap.'],
+  [80, ' s', 'to create your wrld3 passport on ENS, from one tap.'],
 ];
 const BLOCKS = [
   ['/sponsors/world.svg', 'World ID', 'Proves you are one unique human, without telling us who you are.', 'Checked on our server for every capture, and once more to sign in.'],
-  ['/sponsors/ens.svg', 'ENS', 'Your passport is a name anyone can look up, like a7k2.wrld3.eth.', 'Your stamps are one record on it. We can write that record and nothing else.'],
+  ['/sponsors/ens.svg', 'ENS', 'Your wrld3 passport is a name anyone can look up, like a7k2.wrld3.eth.', 'Your stamps are one record on it. We can write that record and nothing else.'],
   ['/sponsors/arkiv.svg', 'Arkiv', 'Spots and sponsor ads live as public records, owned by their authors.', 'A sponsor’s ad is a record only their wallet can change or delete. Read them yourself, no wrld3 server needed.'],
 ];
 
@@ -50,7 +50,7 @@ const DONE = [
   ['Android app', 'with a full-screen map, a globe, your stamps, events, a public passport and settings, in light and dark.'],
   ['Sign in and capture with World ID', 'one verified human per stamp, checked on our server for every capture.'],
   ['Events and quests', 'spots that open and close on their own clock, and stamps you earn by finishing a quest.'],
-  ['Public passport on ENS', 'opt-in, with a name you choose, on Sepolia, written with permissions that only allow the stamps record.'],
+  ['The wrld3 passport on ENS', 'opt-in, with a name you choose, on Sepolia, written with permissions that only allow the stamps record.'],
   ['Sponsor ads on Arkiv', 'a sponsor publishes from their own wallet and the ad shows after a verified capture. Share cards for X.'],
   ['Organizer dashboard', 'for spots, 3D models, events, quests, sponsors and a public explorer of recent stamps.'],
 ];

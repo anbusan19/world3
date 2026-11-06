@@ -168,7 +168,7 @@ function Header({ profile, setProfile, stats, passport, onSettings }) {
                 <Ionicons name="pencil" size={14} color={C.muted} />
               </Pressable>
             )}
-            <Text style={styles.ens} numberOfLines={1}>{ready ? passport.name : 'No public passport yet'}</Text>
+            <Text style={styles.ens} numberOfLines={1}>{ready ? passport.name : 'No wrld3 passport yet'}</Text>
             <View style={styles.badges}>
               <View style={[styles.pill, { backgroundColor: '#A6D16C' }]}>
                 <WorldMark size={13} color="#0B0B0F" />
@@ -177,7 +177,7 @@ function Header({ profile, setProfile, stats, passport, onSettings }) {
             </View>
           </View>
         </View>
-        <Text style={styles.preview}>{ready ? (passport.published ? 'Your stamps are public on ENS.' : 'Your passport exists but is private.') : 'Your stamps are private. Create a public passport below if you want to share them.'}</Text>
+        <Text style={styles.preview}>{ready ? (passport.published ? 'Your wrld3 passport is public on ENS.' : 'Your wrld3 passport is private.') : 'Your stamps are private. Create your wrld3 passport below if you want to share them.'}</Text>
       </View>
 
       <View style={styles.stats}>
@@ -206,7 +206,7 @@ function PassportSection({ stats, openStamp, pp, goStamps }) {
   const C = useColors();
   return (
     <>
-      <Text style={styles.section}>Your public passport</Text>
+      <Text style={styles.section}>Your wrld3 passport</Text>
       <PublicPassport pp={pp} stamps={stats.n} />
 
       <View style={styles.sectionRow}>
@@ -279,12 +279,12 @@ function PublicPassport({ pp, stamps }) {
   const shareText = `My wrld3 passport: ${link}`;
 
   if (p.status === 'loading') return <View style={styles.pp}><ActivityIndicator color={C.muted} /></View>;
-  if (p.status === 'unavailable') return <View style={styles.pp}><Text style={styles.ppBody}>Public passports are not available right now. Check the Spot server setting and that you are signed in.</Text></View>;
+  if (p.status === 'unavailable') return <View style={styles.pp}><Text style={styles.ppBody}>The wrld3 passport is not available right now. Check the Spot server setting and that you are signed in.</Text></View>;
 
   if (p.status === 'creating') {
     return (
       <View style={styles.pp}>
-        <View style={styles.ppRow}><ActivityIndicator color={C.ink} /><Text style={styles.ppTitle}>Creating your passport…</Text></View>
+        <View style={styles.ppRow}><ActivityIndicator color={C.ink} /><Text style={styles.ppTitle}>Creating your wrld3 passport…</Text></View>
         <Text style={styles.ppBody}>This sets up your name and its permissions on ENS and takes about a minute. You can leave this screen; it keeps going.</Text>
       </View>
     );
@@ -295,7 +295,7 @@ function PublicPassport({ pp, stamps }) {
       <View style={styles.pp}>
         <View style={styles.ppRow}>
           <Ionicons name={p.published ? 'globe-outline' : 'lock-closed-outline'} size={20} color={C.ink} />
-          <Text style={styles.ppTitle}>{p.published ? 'Public on ENS' : 'Private'}</Text>
+          <Text style={styles.ppTitle}>{p.published ? 'Public wrld3 passport' : 'Private'}</Text>
         </View>
         <Text style={styles.ppName} selectable>{p.name}</Text>
         <Text style={styles.ppBody}>
@@ -325,7 +325,7 @@ function PublicPassport({ pp, stamps }) {
       <Text style={styles.ppBody}>
         {p.status === 'error'
           ? `${p.error} Your progress is kept, so trying again continues where it stopped.`
-          : 'Create a public passport: a name on ENS that lists your stamps. It is your choice. Until you create it, nothing about your captures is public, and you can make it private again at any time.'}
+          : 'Create your wrld3 passport: a name on ENS that lists your stamps. It is your choice. Until you create it, nothing about your captures is public, and you can make it private again at any time.'}
       </Text>
 
       {p.status !== 'error' && (
@@ -356,7 +356,7 @@ function PublicPassport({ pp, stamps }) {
       )}
 
       {pp.error ? <Text style={[styles.ppHint, { color: C.orange }]}>{pp.error}</Text> : null}
-      <PrimaryButton label={p.status === 'error' ? 'Try again' : 'Create my public passport'} icon="globe-outline" disabled={!canCreate} onPress={() => pp.create(label)} style={{ marginTop: 14 }} />
+      <PrimaryButton label={p.status === 'error' ? 'Try again' : 'Create my wrld3 passport'} icon="globe-outline" disabled={!canCreate} onPress={() => pp.create(label)} style={{ marginTop: 14 }} />
       <Text style={styles.ppNote}>Testnet only. wrld3 holds the name for you for now.</Text>
     </View>
   );
@@ -557,8 +557,8 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
         <Row icon="phone-portrait-outline" tint={C.info} title="Haptics" sub="A small tap when you switch tabs" right={<Toggle value={settings.haptics} onChange={(v) => updateSetting('haptics', v)} />} last />
       </Group>
 
-      <Group title="Privacy" note="Stamps record the spot and time, never your coordinates. Location evidence is discarded after verification. To publish your stamps, create a public passport on the Passport tab.">
-        <Row icon="eye-outline" tint={C.info} title="Public passport" sub="Manage it on the Passport tab" right={<Ionicons name="chevron-forward" size={18} color={C.muted} />} last />
+      <Group title="Privacy" note="Stamps record the spot and time, never your coordinates. Location evidence is discarded after verification. To publish your stamps, create your wrld3 passport on the Passport tab.">
+        <Row icon="eye-outline" tint={C.info} title="wrld3 passport" sub="Manage it on the Passport tab" right={<Ionicons name="chevron-forward" size={18} color={C.muted} />} last />
       </Group>
 
       <Group title="Account">
