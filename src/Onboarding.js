@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { Animated, BackHandler, PanResponder, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Stamp } from './Stamp';
 import { IntroHero, PassportHero } from './art/OnboardingArt';
@@ -85,10 +85,11 @@ function Art({ slide }) {
 
 // One slide. Memoised so changing the current page never re-renders the (heavy) artwork: while the pager moves,
 // nothing here is recomputed, the whole strip is just translated by the GPU.
-const Page = memo(function Page({ slide, width }) {
+const Page = memo(function Page({ slide, width, top }) {
   const styles = useStyles();
+  // the globe slide runs right up to the top of the screen; the others start below the buttons
   return (
-    <View style={[styles.page, { width }]}>
+    <View style={[styles.page, { width, paddingTop: slide.hero === 'globe' ? 0 : top }]}>
       <Art slide={slide} />
       <Text style={[styles.title, slide.hero === 'globe' && styles.titleBig]}>
         {slide.title}
@@ -108,6 +109,7 @@ const clamp = (n) => Math.max(0, Math.min(SLIDES.length - 1, n));
 export function Onboarding({ onDone }) {
   const styles = useStyles();
   const { width: W } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const C = useColors();
   const [index, setIndex] = useState(0);
   const x = useRef(new Animated.Value(0)).current; // horizontal position of the whole strip, in px (0, -W, -2W)
@@ -172,8 +174,8 @@ export function Onboarding({ onDone }) {
   const pillX = x.interpolate({ inputRange: input, outputRange: output, extrapolate: 'clamp' });
 
   return (
-    <SafeAreaView style={styles.safe} {...pan.panHandlers}>
-      <View style={styles.topRow}>
+    <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']} {...pan.panHandlers}>
+      <View style={[styles.topRow, { top: insets.top }]}>
         {index > 0 ? (
           <Pressable style={styles.backBtn} onPress={() => go(-1)} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={C.ink} />
@@ -191,7 +193,7 @@ export function Onboarding({ onDone }) {
       <View style={styles.pager}>
         <Animated.View style={[styles.track, { width: W * SLIDES.length, transform: [{ translateX: x }] }]}>
           {SLIDES.map((s, i) => (
-            <Page key={i} slide={s} width={W} />
+            <Page key={i} slide={s} width={W} top={insets.top + 56} />
           ))}
         </Animated.View>
       </View>
@@ -216,7 +218,7 @@ export function Onboarding({ onDone }) {
 const useStyles = makeStyles((C) => ({
   safe: { flex: 1, backgroundColor: C.bg },
 
-  topRow: { height: 56, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topRow: { position: 'absolute', left: 0, right: 0, zIndex: 5, height: 56, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   backBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   backSpacer: { width: 46, height: 46 },
   skip: { paddingHorizontal: 16, height: 38, borderRadius: 19, backgroundColor: C.card, justifyContent: 'center' },

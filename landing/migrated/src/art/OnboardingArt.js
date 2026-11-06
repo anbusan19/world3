@@ -146,7 +146,7 @@ export function IntroHero() {
   return (
     <View style={[styles.intro, { marginHorizontal: -bleed }]}>
       {/* the globe sits in the top-right corner, partly off the edge, like the dashboard's */}
-      <View style={{ position: 'absolute', right: -size * 0.28, top: -size * 0.32 }}>
+      <View style={{ position: 'absolute', right: -size * 0.28, top: -size * 0.1 }}>
         <GlobeHero size={size} />
       </View>
     </View>
