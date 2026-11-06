@@ -82,7 +82,7 @@ export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } =
 
     const headers = { host: `${upstreamHost}:${upstreamPort}`, 'x-forwarded-host': String(req.headers['x-forwarded-host'] ?? req.headers.host ?? ''), 'x-forwarded-proto': String(req.headers['x-forwarded-proto'] ?? 'https').split(',')[0] };
     for (const h of ['if-none-match', 'accept', 'range', ...(appRead ? ['authorization'] : [])]) if (req.headers[h]) headers[h] = req.headers[h];
-    const up = http.request({ host: upstreamHost, port: upstreamPort, method: req.method, path: url.pathname, headers }, (r) => {
+    const up = http.request({ host: upstreamHost, port: upstreamPort, method: req.method, path: url.pathname + url.search, headers }, (r) => {
       res.writeHead(r.statusCode, r.headers);
       r.pipe(res);
     });

@@ -60,5 +60,8 @@ test('proxy forwards the feed and files only, read-only', async () => {
   assert.equal((await sendApp('GET', '/api/v1/ads/stats')).status, 404);
   assert.equal((await sendApp('GET', '/api/spots')).status, 404);
   assert.equal(seen.length, seenBefore + 3); // none of the refused ones reached the server
+  // query strings reach the server (the passport name check and the explorer search depend on them)
+  await sendApp('GET', '/api/v1/passport/name?label=taco', { authorization: 'Bearer abc' });
+  assert.match(seen[seen.length - 1], /^GET \/api\/v1\/passport\/name\?label=taco /);
   proxy.close(); up.close();
 });
