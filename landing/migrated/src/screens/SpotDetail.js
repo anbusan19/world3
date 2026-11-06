@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stamp } from '../Stamp';
 import { BackButton, Chip, InfoRow, PrimaryButton } from '../ui';
 import { formatDistance } from '../geo';
-import { APPROACH_M, CAPTURE_M, shortName, spotState } from '../spots';
+import { APPROACH_M, CAPTURE_M, eventOf, shortName, spotState } from '../spots';
 import { F, makeStyles, useColors } from '../theme';
 
 const STATES = [
@@ -16,7 +16,10 @@ const STATES = [
 
 // Spot page. `spot.dist` (metres, or null) is the real GPS distance. The "Preview state" switch is a design aid so
 // every state can be seen without walking to the place; it starts on whatever the real distance says.
-export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }) {
+export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp, quest = null }) {
+  const isQuest = spot.kind === 'quest';
+  const ev = eventOf(spot);
+  const unlocked = !quest || quest.have >= quest.need;
   const styles = useStyles();
   const C = useColors();
   const [state, setState] = useState(spotState(spot.dist, spot));
@@ -50,15 +53,40 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
 
         <Text style={styles.name}>{spot.name}</Text>
         <Text style={styles.sub}>
-          {spot.city} · {spot.type === 'EVENT' ? 'Event spot' : 'Landmark'}
+          {spot.city} · {isQuest ? 'Quest stamp' : spot.type === 'EVENT' ? 'Event spot' : 'Landmark'}{ev && ev.id !== 'ethmumbai' && ev.id !== 'india' ? ` · ${ev.name}` : ''}
         </Text>
         <View style={styles.chipRow}>
-          <Chip icon={spot.kind === 'anchor' ? 'qr-code' : 'camera'} label={spot.kind === 'anchor' ? 'Anchor spot · scan QR' : 'Geospatial spot'} />
+          <Chip icon={isQuest ? 'trophy' : spot.kind === 'anchor' ? 'qr-code' : 'camera'} label={isQuest ? 'Claim after the quest' : spot.kind === 'anchor' ? 'Anchor spot · scan QR' : 'Geospatial spot'} />
           <Chip icon="navigate" label={away ? `${away} away` : 'Distance needs GPS'} />
+          {spot.arkiv && <Chip icon="cube" label="Listed on Arkiv" />}
         </View>
+        {spot.arkiv && (
+          <Text style={styles.arkiv}>
+            Public on Arkiv, with a rounded location. Entity <Text style={styles.mono}>{spot.arkiv.entityKey.slice(0, 8)}…{spot.arkiv.entityKey.slice(-6)}</Text>, listed until {spot.arkiv.expiresOn}.
+          </Text>
+        )}
+
+        {/* quest progress */}
+        {isQuest && quest && (
+          <View style={styles.card}>
+            <View style={styles.cardHead}>
+              <Text style={styles.cardTitle}>The quest</Text>
+              <Text style={styles.preview}>{Math.min(quest.have, quest.need)} OF {quest.need}</Text>
+            </View>
+            <Text style={styles.stateBody}>Collect {quest.need === quest.total ? 'all' : `any ${quest.need} of`} these {quest.total} stamps, then claim this one from anywhere.</Text>
+            <View style={{ marginTop: 12, gap: 8 }}>
+              {quest.items.map((it) => (
+                <View key={it.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Ionicons name={it.got ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={it.got ? C.green : C.muted} />
+                  <Text style={[styles.segText, { marginTop: 0, fontSize: 13, color: it.got ? C.ink : C.muted }]}>{it.name}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* distance state */}
-        <View style={styles.card}>
+        {!isQuest && <View style={styles.card}>
           <View style={styles.cardHead}>
             <Text style={styles.cardTitle}>Where you are</Text>
             <Text style={styles.preview}>PREVIEW STATE</Text>
@@ -75,10 +103,20 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
           <Text style={styles.rules}>
             Approaching starts within about {spot.approachM ?? APPROACH_M} m. The capture zone is within {spot.captureM ?? CAPTURE_M} m.
           </Text>
-        </View>
+        </View>}
 
         {done ? (
           <PrimaryButton label="View your stamp" icon="albums" onPress={onOpenStamp} style={{ marginTop: 16 }} />
+        ) : spot.ended ? (
+          <>
+            <PrimaryButton label="Event has ended" icon="time" tone="green" disabled onPress={() => {}} style={{ marginTop: 16 }} />
+            <Text style={styles.why}>This stamp could only be collected during the event. It can no longer be captured.</Text>
+          </>
+        ) : isQuest ? (
+          <>
+            <PrimaryButton label={unlocked ? 'Claim stamp' : 'Quest locked'} icon={unlocked ? 'trophy' : 'lock-closed'} tone="green" disabled={!unlocked} onPress={onCapture} style={{ marginTop: 16 }} />
+            {!unlocked && <Text style={styles.why}>Collect {quest.need - quest.have} more stamp{quest.need - quest.have === 1 ? '' : 's'} from the list above to unlock it.</Text>}
+          </>
         ) : (
           <>
             <PrimaryButton
@@ -97,8 +135,9 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
           </>
         )}
 
-        <Text style={styles.section}>How we know you were here</Text>
-        <InfoRow
+        <Text style={styles.section}>{isQuest ? 'How this stamp works' : 'How we know you were here'}</Text>
+        {isQuest && <InfoRow icon="trophy-outline" title="Earned, not visited" body="This stamp is proof you finished the quest. There is no place to stand: the server checks your other stamps." />}
+        {!isQuest && <InfoRow
           icon={spot.kind === 'anchor' ? 'qr-code-outline' : 'camera-outline'}
           title={spot.kind === 'anchor' ? 'Scan the QR at the venue' : 'Camera-based location fix'}
           body={
@@ -106,9 +145,9 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
               ? 'Indoors, a rotating code at the venue places you. A photo of yesterday’s code will not work.'
               : 'GPS blended with the camera image, which is far harder to fake than GPS alone.'
           }
-        />
+        />}
         <InfoRow icon="shield-checkmark-outline" title="World ID: one human, one stamp" body="Proves you are a unique person without revealing who you are." />
-        <InfoRow icon="server-outline" title="The backend decides" body="Your phone only sends evidence. The server re-checks distance, accuracy and the proof." />
+        <InfoRow icon="server-outline" title="The backend decides" body={isQuest ? 'The server counts your verified stamps itself. Nothing is taken on trust from the phone.' : 'Your phone only sends evidence. The server re-checks distance, accuracy and the proof.'} />
         <InfoRow icon="eye-off-outline" tint={C.orange} title="Exact coordinates never go onchain" body="Only the spot name and time are stored with your stamp." />
       </ScrollView>
     </SafeAreaView>
@@ -116,31 +155,33 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
 }
 
 const useStyles = makeStyles((C) => ({
+  arkiv: { fontFamily: F.reg, fontSize: 12, lineHeight: 18, color: C.muted, textAlign: 'center', marginTop: 10, paddingHorizontal: 8 },
+  mono: { fontFamily: F.mono, fontSize: 11, color: C.ink },
   safe: { flex: 1, backgroundColor: C.bg },
   top: { height: 62, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  topTitle: { fontFamily: F.bold, fontSize: 16, color: C.ink },
+  topTitle: { fontFamily: F.semi, fontSize: 16, color: C.ink },
   content: { paddingHorizontal: 22, paddingBottom: 40 },
 
   hero: { alignItems: 'center', justifyContent: 'center', paddingVertical: 18 },
   bigStamp: { width: 190, transform: [{ rotate: '-4deg' }] },
 
-  name: { fontFamily: F.black, fontSize: 28, lineHeight: 33, letterSpacing: -0.6, color: C.ink, textAlign: 'center', marginTop: 10 },
-  sub: { fontFamily: F.med, fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 5 },
+  name: { fontFamily: F.bold, fontSize: 28, lineHeight: 33, letterSpacing: -0.6, color: C.ink, textAlign: 'center', marginTop: 10 },
+  sub: { fontFamily: F.reg, fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 5 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 14, marginBottom: 20 },
 
   card: { backgroundColor: C.card, borderRadius: 24, padding: 18 },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontFamily: F.black, fontSize: 17, color: C.ink },
-  preview: { fontFamily: F.bold, fontSize: 9, letterSpacing: 1.2, color: C.muted },
+  cardTitle: { fontFamily: F.bold, fontSize: 17, color: C.ink },
+  preview: { fontFamily: F.semi, fontSize: 9, letterSpacing: 1.2, color: C.muted },
   track: { flexDirection: 'row', gap: 6, marginTop: 16 },
   seg: { flex: 1 },
   bar: { height: 8, borderRadius: 4, backgroundColor: C.line },
   barOn: { backgroundColor: C.green },
-  segText: { fontFamily: F.med, fontSize: 11, color: C.muted, marginTop: 7 },
-  segTextOn: { fontFamily: F.bold, color: C.ink },
-  stateBody: { fontFamily: F.bold, fontSize: 14, lineHeight: 20, color: C.ink, marginTop: 14 },
-  rules: { fontFamily: F.med, fontSize: 11, color: C.muted, marginTop: 8 },
+  segText: { fontFamily: F.reg, fontSize: 11, color: C.muted, marginTop: 7 },
+  segTextOn: { fontFamily: F.semi, color: C.ink },
+  stateBody: { fontFamily: F.semi, fontSize: 14, lineHeight: 20, color: C.ink, marginTop: 14 },
+  rules: { fontFamily: F.reg, fontSize: 11, color: C.muted, marginTop: 8 },
 
-  why: { fontFamily: F.med, fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 10 },
-  section: { fontFamily: F.black, fontSize: 20, letterSpacing: -0.4, color: C.ink, marginTop: 30, marginBottom: 12 },
+  why: { fontFamily: F.reg, fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 10 },
+  section: { fontFamily: F.bold, fontSize: 20, letterSpacing: -0.4, color: C.ink, marginTop: 30, marginBottom: 12 },
 }));

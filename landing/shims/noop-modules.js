@@ -42,3 +42,12 @@ export const CameraView = ({ children, style }) => (
   </View>
 );
 export const useCameraPermissions = () => [{ granted: true, canAskAgain: true }, async () => ({ granted: true })];
+
+// expo-image-picker / expo-file-system
+export const requestMediaLibraryPermissionsAsync = async () => ({ granted: false });
+export const launchImageLibraryAsync = async () => ({ canceled: true, assets: [] });
+export const documentDirectory = '';
+export const copyAsync = async () => {};
+export const GeistMono_500Medium = 'GeistMono_500Medium';
+export const PlusJakartaSans_400Regular = 'PlusJakartaSans_500Medium';
+export const PlusJakartaSans_600SemiBold = 'PlusJakartaSans_700Bold';

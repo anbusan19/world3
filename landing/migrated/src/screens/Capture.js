@@ -1,34 +1,43 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Easing, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { Stamp } from '../Stamp';
 import { ArCamera } from './ArCamera';
 import { BackButton, Chip, PrimaryButton } from '../ui';
-import { CAPTURE_M, shortName } from '../spots';
+import { shortName } from '../spots';
+import { CaptureFailure, captureWithWorldId, fetchAd, reportImpression, shareStamp } from '../world';
 import { F, makeStyles, useColors, useTheme } from '../theme';
 
-// FRONTEND ONLY. The camera step is real (see ArCamera.js); World ID and the backend are not. It shows the three steps
-// of the capture flow (camera, human check, result) and every outcome the README lists, so the design can be reviewed.
+// The capture flow: camera (ArCamera.js), then World ID and the server's checks (world.js), then the result. Nothing is
+// simulated here: the backend recomputes the distance, asks World to verify the proof, and may refuse for real.
 
-const PROGRESS = ['Requesting a one-time code', 'Verifying your World ID proof', 'Backend checking your location', 'Minting your stamp'];
+const PROGRESS = ['Requesting a one-time code', 'Verifying your World ID proof', 'Server checking your capture'];
 
-const OUTCOMES = [
-  { key: 'success', label: 'Success' },
-  { key: 'unverified', label: 'Not verified', failAt: 1, icon: 'person-remove', title: 'Not verified', body: 'We could not confirm you are a unique human. Verify with World ID and try again.' },
-  { key: 'repeat', label: 'Already captured', failAt: 2, icon: 'repeat', title: 'Already captured', body: 'One human can capture each spot once. This one is already in your passport.' },
-  { key: 'far', label: 'Too far', failAt: 2, icon: 'walk', title: 'Too far', body: `The server measured you outside the ${CAPTURE_M} m capture zone. Move closer and try again.` },
-  { key: 'gps', label: 'Poor GPS', failAt: 2, icon: 'cellular', title: 'Poor GPS signal', body: 'Your location was not accurate enough. Improve your signal, for example by stepping into the open, and try again.' },
-];
+// what the result screen says for each way a capture can be refused (kinds come from CaptureFailure in world.js)
+const FAILS = {
+  unverified: { icon: 'person-remove', title: 'Not verified', body: 'We could not confirm you are a unique human. Verify with World ID and try again.' },
+  repeat: { icon: 'repeat', title: 'Already captured', body: 'One human can capture each spot once. This one is already in your passport.' },
+  far: { icon: 'walk', title: 'Too far', body: 'The server measured you outside the capture zone. Move closer and try again.' },
+  gps: { icon: 'cellular', title: 'Poor GPS signal', body: 'Your location was not accurate enough. Improve your signal, for example by stepping into the open, and try again.' },
+  stale: { icon: 'time', title: 'Location out of date', body: 'Your location reading was too old. Try again.' },
+  expired: { icon: 'hourglass', title: 'Request expired', body: 'That capture request ran out of time or was already used. Start again.' },
+  busy: { icon: 'cloud-offline', title: 'World ID unavailable', body: 'World ID could not be reached. Try again in a moment.' },
+  signedout: { icon: 'person-remove', title: 'Signed out', body: 'Your session ended. Sign out and sign in with World ID again, then retry.' },
+  locked: { icon: 'lock-closed', title: 'Quest still locked', body: 'Collect the stamps this quest asks for first, then claim this one.' },
+  notstarted: { icon: 'hourglass', title: 'Not open yet', body: 'This event has not started. Come back when it opens.' },
+  ended: { icon: 'time', title: 'The event has ended', body: 'This stamp could only be collected during the event. Stamps you already collected stay in your passport.' },
+  network: { icon: 'cloud-offline', title: 'Server unreachable', body: 'We could not reach the World3 server. Check the Spot server setting in Passport, then try again.' },
+};
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export function Capture({ spot, user, onClose, onSuccess, onViewPassport, registerBack }) {
-  const [step, setStep] = useState('ar'); // 'ar' | 'verify' | 'result'
-  const [outcome, setOutcome] = useState('success');
+  const quest = spot.kind === 'quest'; // a quest stamp is claimed anywhere: no AR step
+  const [step, setStep] = useState(quest ? 'verify' : 'ar'); // 'ar' | 'verify' | 'result'
   const [run, setRun] = useState(null); // { i, failed } while the checklist is running
-  const [result, setResult] = useState(null); // 'success' or an OUTCOMES entry
+  const [result, setResult] = useState(null); // 'success' or { kind, icon, title, body } for a refusal
   const alive = useRef(true);
 
   // set true on every (re)mount: React re-runs effects in dev and on Fast Refresh, and a stale `false` would stop the run
@@ -41,28 +50,28 @@ export function Capture({ spot, user, onClose, onSuccess, onViewPassport, regist
   useEffect(() => {
     registerBack?.(() => {
       if (run) return true; // busy
-      if (step === 'verify') { setStep('ar'); return true; }
+      if (step === 'verify' && !quest) { setStep('ar'); return true; }
       return false;
     });
     return () => registerBack?.(null);
   }, [step, run, registerBack]);
 
   async function start() {
-    const out = OUTCOMES.find((o) => o.key === outcome);
-    for (let i = 0; i < PROGRESS.length; i++) {
-      setRun({ i, failed: false });
-      await wait(750);
+    setRun({ i: 0, failed: false });
+    try {
+      await captureWithWorldId({ spot, user, onStage: (i) => alive.current && setRun({ i, failed: false }) });
+    } catch (e) {
       if (!alive.current) return;
-      if (out.failAt === i) {
-        setRun({ i, failed: true });
-        await wait(900);
-        if (!alive.current) return;
-        setResult(out);
-        setStep('result');
-        setRun(null);
-        return;
-      }
+      const kind = e instanceof CaptureFailure ? e.kind : 'network';
+      setRun((r) => ({ i: r?.i ?? 0, failed: true }));
+      await wait(900);
+      if (!alive.current) return;
+      setResult({ kind, ...(FAILS[kind] ?? FAILS.network) });
+      setStep('result');
+      setRun(null);
+      return;
     }
+    if (!alive.current) return;
     setRun({ i: PROGRESS.length, failed: false });
     await wait(500);
     if (!alive.current) return;
@@ -77,10 +86,8 @@ export function Capture({ spot, user, onClose, onSuccess, onViewPassport, regist
     return (
       <VerifyStep
         spot={spot}
-        outcome={outcome}
-        setOutcome={setOutcome}
         run={run}
-        onBack={() => setStep('ar')}
+        onBack={() => (quest ? onClose() : setStep('ar'))}
         onStart={start}
       />
     );
@@ -98,7 +105,7 @@ export function Capture({ spot, user, onClose, onSuccess, onViewPassport, regist
 
 /* --------------------------------- Verify -------------------------------- */
 
-function VerifyStep({ spot, outcome, setOutcome, run, onBack, onStart }) {
+function VerifyStep({ spot, run, onBack, onStart }) {
   const { isDark } = useTheme();
   const styles = useStyles();
   const C = useColors();
@@ -128,7 +135,7 @@ function VerifyStep({ spot, outcome, setOutcome, run, onBack, onStart }) {
         <View style={styles.chips}>
           <Chip icon="ribbon" label="Proof of Human" />
           <Chip icon="pin" label="Tied to this spot" />
-          <Chip icon="wallet" label="Bound to your wallet" />
+          <Chip icon="shield-checkmark" label="Checked by the server" />
         </View>
 
         {run ? (
@@ -144,7 +151,7 @@ function VerifyStep({ spot, outcome, setOutcome, run, onBack, onStart }) {
                     {failed && <Ionicons name="close" size={16} color="#fff" />}
                     {current && !failed && <ActivityIndicator size="small" color={C.ink} />}
                   </View>
-                  <Text style={[styles.stepText, (done || current) && { color: C.ink, fontFamily: F.bold }]}>{label}</Text>
+                  <Text style={[styles.stepText, (done || current) && { color: C.ink, fontFamily: F.semi }]}>{label}</Text>
                 </View>
               );
             })}
@@ -153,18 +160,6 @@ function VerifyStep({ spot, outcome, setOutcome, run, onBack, onStart }) {
           <>
             <PrimaryButton label="Verify with World ID" icon="shield-checkmark" onPress={onStart} style={{ marginTop: 26 }} />
             <Text style={styles.small}>Your phone sends evidence. The server decides.</Text>
-
-            <View style={styles.previewBox}>
-              <Text style={styles.previewTitle}>PREVIEW OUTCOME</Text>
-              <View style={styles.previewRow}>
-                {OUTCOMES.map((o) => (
-                  <Pressable key={o.key} onPress={() => setOutcome(o.key)} style={[styles.pChip, outcome === o.key && styles.pChipOn]}>
-                    <Text style={[styles.pText, outcome === o.key && { color: C.onSolid }]}>{o.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Text style={styles.previewNote}>Design aid: pick what happens, then verify. Nothing is checked for real.</Text>
-            </View>
           </>
         )}
       </ScrollView>
@@ -180,6 +175,10 @@ function ResultStep({ spot, result, onRetry, onClose, onViewPassport }) {
   const C = useColors();
   const pop = useRef(new Animated.Value(0)).current;
   const ok = result === 'success';
+  const [ad, setAd] = useState(null);
+  useEffect(() => {
+    if (ok) fetchAd(spot.id).then(setAd);
+  }, [ok, spot.id]);
 
   useEffect(() => {
     Animated.spring(pop, { toValue: 1, friction: 5, tension: 70, useNativeDriver: true }).start();
@@ -209,10 +208,12 @@ function ResultStep({ spot, result, onRetry, onClose, onViewPassport }) {
             <Text style={styles.rTitle}>Stamp collected.</Text>
             <Text style={styles.rBody}>{spot.name} is now in your passport.</Text>
             <View style={styles.tx}>
-              <Text style={styles.txLabel}>MINT (PREVIEW)</Text>
+              <Text style={styles.txLabel}>MINTING ON SEPOLIA</Text>
               <Text style={styles.mono}>token #{spot.id.padStart(4, '0')} · Sepolia</Text>
             </View>
-            <PrimaryButton label="View passport" icon="person" onPress={onViewPassport} style={{ alignSelf: 'stretch', marginTop: 24 }} />
+            {ad && <SponsorCard ad={ad} />}
+            <PrimaryButton label="Share on X" icon="share-social" tone="green" onPress={() => shareStamp(spot)} style={{ alignSelf: 'stretch', marginTop: 24 }} />
+            <PrimaryButton label="View passport" icon="person" tone="light" onPress={onViewPassport} style={{ alignSelf: 'stretch', marginTop: 10 }} />
             <PrimaryButton label="Keep exploring" tone="light" onPress={onClose} style={{ alignSelf: 'stretch', marginTop: 10 }} />
           </>
         ) : (
@@ -235,45 +236,87 @@ function ResultStep({ spot, result, onRetry, onClose, onViewPassport }) {
   );
 }
 
+/* ---------------------------------- Sponsor ---------------------------------- */
+
+// An ad from a sponsor the organizer approved, shown only after a verified capture. Always labelled, links open only after a confirm.
+function SponsorCard({ ad }) {
+  const styles = useStyles();
+  const counted = useRef(false);
+  let host = '';
+  try { host = new URL(ad.clickUrl).host; } catch { /* the server only sends https links */ }
+  const seen = () => {
+    if (counted.current) return;
+    counted.current = true;
+    reportImpression(ad.key);
+  };
+  const open = () =>
+    Alert.alert(`Open ${host}?`, `This is a link from ${ad.sponsor}, a sponsor. It opens in your browser and leaves World3.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Open', onPress: () => Linking.openURL(ad.clickUrl).catch(() => {}) },
+    ]);
+  return (
+    <View style={styles.ad}>
+      <View style={styles.adHead}>
+        <Text style={styles.adTag}>SPONSORED</Text>
+        <Text style={styles.adBy} numberOfLines={1}>{ad.sponsor}</Text>
+      </View>
+      <Image source={{ uri: ad.imageUrl }} style={[styles.adImg, { aspectRatio: ad.width / ad.height }]} resizeMode="cover" accessibilityLabel={ad.alt} onLoad={seen} />
+      <Text style={styles.adTitle}>{ad.headline}</Text>
+      <Pressable onPress={open} style={styles.adBtn} accessibilityRole="link">
+        <Text style={styles.adBtnText}>Learn more</Text>
+        <Ionicons name="open-outline" size={14} color={styles.adBtnText.color} />
+      </Pressable>
+    </View>
+  );
+}
+
 /* --------------------------------- styles -------------------------------- */
 
 const useStyles = makeStyles((C) => ({
+  ad: { alignSelf: 'stretch', marginTop: 22, backgroundColor: C.card, borderRadius: 24, padding: 14 },
+  adHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  adTag: { fontFamily: F.semi, fontSize: 10, letterSpacing: 1.4, color: C.muted },
+  adBy: { fontFamily: F.reg, fontSize: 12, color: C.muted, flexShrink: 1, marginLeft: 12 },
+  adImg: { width: '100%', borderRadius: 16, backgroundColor: C.soft },
+  adTitle: { fontFamily: F.semi, fontSize: 15, color: C.ink, marginTop: 12 },
+  adBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 10, paddingVertical: 6 },
+  adBtnText: { fontFamily: F.semi, fontSize: 13, color: C.blue },
   safe: { flex: 1, backgroundColor: C.bg },
   top: { height: 62, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  topTitle: { fontFamily: F.bold, fontSize: 16, color: C.ink },
+  topTitle: { fontFamily: F.semi, fontSize: 16, color: C.ink },
   content: { paddingHorizontal: 22, paddingBottom: 40 },
 
   wid: { alignItems: 'center', marginTop: 10, marginBottom: 22 },
   widRing3: { width: 150, height: 150, borderRadius: 75, backgroundColor: C.blue + '14', alignItems: 'center', justifyContent: 'center' },
   widRing2: { width: 112, height: 112, borderRadius: 56, backgroundColor: C.blue + '26', alignItems: 'center', justifyContent: 'center' },
   widCore: { width: 76, height: 76, borderRadius: 38, backgroundColor: C.solid, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: F.black, fontSize: 30, letterSpacing: -0.8, color: C.ink, textAlign: 'center' },
-  copy: { fontFamily: F.med, fontSize: 14, lineHeight: 21, color: C.muted, textAlign: 'center', marginTop: 10 },
-  bold: { fontFamily: F.bold, color: C.ink },
+  title: { fontFamily: F.bold, fontSize: 30, letterSpacing: -0.8, color: C.ink, textAlign: 'center' },
+  copy: { fontFamily: F.reg, fontSize: 14, lineHeight: 21, color: C.muted, textAlign: 'center', marginTop: 10 },
+  bold: { fontFamily: F.semi, color: C.ink },
   chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 18 },
-  small: { fontFamily: F.med, fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 10 },
+  small: { fontFamily: F.reg, fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 10 },
 
   list: { marginTop: 28, backgroundColor: C.card, borderRadius: 24, padding: 18, gap: 14 },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: C.soft, alignItems: 'center', justifyContent: 'center' },
-  stepText: { flex: 1, fontFamily: F.med, fontSize: 14, color: C.muted },
+  stepText: { flex: 1, fontFamily: F.reg, fontSize: 14, color: C.muted },
 
   previewBox: { marginTop: 26, padding: 16, borderRadius: 20, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#C9CDD8' },
-  previewTitle: { fontFamily: F.bold, fontSize: 10, letterSpacing: 1.2, color: C.muted },
+  previewTitle: { fontFamily: F.semi, fontSize: 10, letterSpacing: 1.2, color: C.muted },
   previewRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   pChip: { paddingHorizontal: 13, height: 32, borderRadius: 16, backgroundColor: C.card, justifyContent: 'center' },
   pChipOn: { backgroundColor: C.solid },
-  pText: { fontFamily: F.bold, fontSize: 12, color: C.ink },
-  previewNote: { fontFamily: F.med, fontSize: 11, color: C.muted, marginTop: 12 },
+  pText: { fontFamily: F.semi, fontSize: 12, color: C.ink },
+  previewNote: { fontFamily: F.reg, fontSize: 11, color: C.muted, marginTop: 12 },
 
   burst: { width: 260, height: 290, alignItems: 'center', justifyContent: 'center' },
   spark: { position: 'absolute', width: 12, height: 12, borderRadius: 6 },
-  rTitle: { fontFamily: F.black, fontSize: 30, letterSpacing: -0.8, color: C.ink, marginTop: 14, textAlign: 'center' },
-  rBody: { fontFamily: F.med, fontSize: 14, lineHeight: 21, color: C.muted, marginTop: 8, textAlign: 'center', paddingHorizontal: 10 },
+  rTitle: { fontFamily: F.bold, fontSize: 30, letterSpacing: -0.8, color: C.ink, marginTop: 14, textAlign: 'center' },
+  rBody: { fontFamily: F.reg, fontSize: 14, lineHeight: 21, color: C.muted, marginTop: 8, textAlign: 'center', paddingHorizontal: 10 },
   tx: { marginTop: 18, backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 12, alignItems: 'center' },
-  txLabel: { fontFamily: F.bold, fontSize: 9, letterSpacing: 1.2, color: C.muted },
-  mono: { fontFamily: 'monospace', fontSize: 12, color: C.ink, marginTop: 4 },
+  txLabel: { fontFamily: F.semi, fontSize: 9, letterSpacing: 1.2, color: C.muted },
+  mono: { fontFamily: F.mono, fontSize: 12, color: C.ink, marginTop: 4 },
   fail: { width: 110, height: 110, borderRadius: 55, backgroundColor: C.orange, alignItems: 'center', justifyContent: 'center', marginTop: 24 },
   nothing: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: C.green, paddingHorizontal: 14, height: 34, borderRadius: 17, marginTop: 18 },
-  nothingText: { fontFamily: F.bold, fontSize: 12, color: '#0B0B0F' },
+  nothingText: { fontFamily: F.semi, fontSize: 12, color: '#0B0B0F' },
 }));

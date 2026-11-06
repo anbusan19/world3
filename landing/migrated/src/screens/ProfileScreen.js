@@ -1,15 +1,19 @@
-import { useState } from 'react';
-import { Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Linking, Pressable, Share, Switch, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { Stamp } from '../Stamp';
 import { PrimaryButton } from '../ui';
-import { getFeedBase, refreshSpots, setFeedBase, shortName, spots } from '../spots';
-import { DARK, F, LIGHT, STAMP_THEMES, makeStyles, useColors, useTheme } from '../theme';
+import { usePassport } from '../usePassport';
+import { SERVERS, getFeedBase, pingServer, refreshSpots, setFeedBase, shortName, spots } from '../spots';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import { WorldMark } from '../art/WorldMark';
+import { F, STAMP_THEMES, makeStyles, useColors, useTheme } from '../theme';
 
 // Profile tab = a header (avatar, name, passport name, stats) plus two sections: Passport and Settings.
-// FRONTEND ONLY: the name, avatar and switches live in memory (app state) and reset on restart. Only the colour theme is
-// remembered on the device. The passport name, email and wallet shown here are previews, nothing is connected yet.
+// The name, avatar and switches live in memory (app state) and reset on restart; only the colour theme is remembered on the device.
+// The public passport is real: it is created on ENS by the server when the person asks for it (see usePassport).
 
 const AVATARS = ['sky', 'coral', 'sun', 'leaf', 'ocean'];
 const slug = (name) => (name || '').toLowerCase().replace(/[^a-z0-9]/g, '') || 'explorer';
@@ -32,13 +36,14 @@ function statsOf(collected) {
 }
 
 export function ProfileScreen({ collected, openStamp, profile, setProfile, settings, updateSetting, onSignOut }) {
+  const pp = usePassport();
   const styles = useStyles();
   const [section, setSection] = useState('passport');
   const stats = statsOf(collected);
 
   return (
     <>
-      <Header profile={profile} stats={stats} />
+      <Header profile={profile} setProfile={setProfile} stats={stats} passport={pp.passport} />
 
       <View style={styles.segment}>
         {[
@@ -52,7 +57,7 @@ export function ProfileScreen({ collected, openStamp, profile, setProfile, setti
       </View>
 
       {section === 'passport' ? (
-        <PassportSection stats={stats} openStamp={openStamp} settings={settings} goSettings={() => setSection('settings')} />
+        <PassportSection stats={stats} openStamp={openStamp} pp={pp} />
       ) : (
         <SettingsSection profile={profile} setProfile={setProfile} settings={settings} updateSetting={updateSetting} onSignOut={onSignOut} />
       )}
@@ -73,36 +78,88 @@ function SegLabel({ icon, label, on }) {
 
 /* --------------------------------- header ---------------------------------- */
 
-export function Avatar({ name, theme, size = 84 }) {
+export function Avatar({ name, theme, image, size = 84 }) {
   const styles = useStyles();
   const t = STAMP_THEMES[theme] ?? STAMP_THEMES.sky;
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: t.frame }]}>
-      <Text style={[styles.avatarText, { color: t.accent, fontSize: size * 0.42 }]}>{(name || 'E').trim().charAt(0).toUpperCase() || 'E'}</Text>
+    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: t.frame, overflow: 'hidden' }]}>
+      {image ? (
+        <Image source={{ uri: image }} style={{ width: size, height: size }} />
+      ) : (
+        <Text style={[styles.avatarText, { color: t.accent, fontSize: size * 0.42 }]}>{(name || 'E').trim().charAt(0).toUpperCase() || 'E'}</Text>
+      )}
     </View>
   );
 }
 
-function Header({ profile, stats }) {
+// Pick a square photo from the gallery and keep a copy inside the app, so it is still there after a restart.
+async function pickPhoto(setProfile) {
+  try {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) { Alert.alert('Photos are off', 'Allow photo access in your phone settings to choose a profile picture.'); return; }
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.6 });
+    if (r.canceled || !r.assets?.[0]?.uri) return;
+    let uri = r.assets[0].uri;
+    try {
+      const dest = `${FileSystem.documentDirectory}avatar-${Date.now()}.jpg`;
+      await FileSystem.copyAsync({ from: uri, to: dest });
+      uri = dest;
+    } catch {}
+    setProfile((p) => ({ ...p, image: uri }));
+  } catch {
+    Alert.alert('Could not open photos', 'Try again in a moment.');
+  }
+}
+
+function Header({ profile, setProfile, stats, passport }) {
   const styles = useStyles();
+  const C = useColors();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const startEdit = () => { setDraft(profile.name); setEditing(true); };
+  const finish = () => { setProfile((p) => ({ ...p, name: draft.trim() || 'Explorer' })); setEditing(false); };
+  const ready = passport?.status === 'ready';
   return (
     <>
       <Text style={styles.title}>Profile</Text>
       <View style={styles.card}>
         <View style={styles.headRow}>
-          <Avatar name={profile.name} theme={profile.avatar} />
+          <Pressable onPress={() => pickPhoto(setProfile)} onLongPress={() => profile.image && setProfile((p) => ({ ...p, image: null }))} accessibilityLabel="Change profile picture">
+            <Avatar name={profile.name} theme={profile.avatar} image={profile.image} />
+            <View style={styles.camBadge}><Ionicons name="camera" size={14} color="#0B0B0F" /></View>
+          </Pressable>
           <View style={{ flex: 1 }}>
-            <Text style={styles.name} numberOfLines={1}>{profile.name || 'Explorer'}</Text>
-            <Text style={styles.ens} numberOfLines={1}>{slug(profile.name)}.world3.eth</Text>
+            {editing ? (
+              <TextInput
+                value={draft}
+                onChangeText={setDraft}
+                onBlur={finish}
+                onSubmitEditing={finish}
+                autoFocus
+                selectTextOnFocus
+                maxLength={18}
+                autoCorrect={false}
+                returnKeyType="done"
+                placeholder="Your name"
+                placeholderTextColor={C.muted}
+                style={[styles.name, styles.nameInput]}
+              />
+            ) : (
+              <Pressable onPress={startEdit} style={styles.nameRow} hitSlop={6}>
+                <Text style={styles.name} numberOfLines={1}>{profile.name || 'Explorer'}</Text>
+                <Ionicons name="pencil" size={14} color={C.muted} />
+              </Pressable>
+            )}
+            <Text style={styles.ens} numberOfLines={1}>{ready ? passport.name : 'No public passport yet'}</Text>
             <View style={styles.badges}>
               <View style={[styles.pill, { backgroundColor: '#A6D16C' }]}>
-                <Ionicons name="shield-checkmark" size={12} color="#0B0B0F" />
+                <WorldMark size={13} color="#0B0B0F" />
                 <Text style={[styles.pillText, { color: '#0B0B0F' }]}>Verified human</Text>
               </View>
             </View>
           </View>
         </View>
-        <Text style={styles.preview}>Passport name is a preview. Nothing is registered yet.</Text>
+        <Text style={styles.preview}>{ready ? (passport.published ? 'Your stamps are public on ENS.' : 'Your passport exists but is private.') : 'Your stamps are private. Create a public passport below if you want to share them.'}</Text>
       </View>
 
       <View style={styles.stats}>
@@ -126,7 +183,7 @@ function Stat({ value, label }) {
 
 /* -------------------------------- passport --------------------------------- */
 
-function PassportSection({ stats, openStamp, settings, goSettings }) {
+function PassportSection({ stats, openStamp, pp }) {
   const styles = useStyles();
   const C = useColors();
   return (
@@ -163,14 +220,124 @@ function PassportSection({ stats, openStamp, settings, goSettings }) {
         })}
       </View>
 
-      <Text style={styles.section}>Share</Text>
-      <PrimaryButton label="Share passport" icon="share-outline" disabled={!settings.publicPassport} onPress={() => {}} />
-      {!settings.publicPassport && (
-        <Pressable onPress={goSettings} hitSlop={8}>
-          <Text style={styles.hint}>Your passport is private. Turn on “Public passport” in Settings to share it.</Text>
-        </Pressable>
-      )}
+      <Text style={styles.section}>Public passport</Text>
+      <PublicPassport pp={pp} stamps={stats.n} />
     </>
+  );
+}
+
+/* ----------------------------- public passport ------------------------------ */
+
+// Opt-in: nothing is public until the person asks. The name lives on ENS (Sepolia testnet) and the stamps are one record on it.
+// For now World3 holds the name for the person, because the app has no wallet yet; the copy says so.
+const randomName = () => Array.from({ length: 6 }, () => 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]).join('');
+
+function PublicPassport({ pp, stamps }) {
+  const styles = useStyles();
+  const C = useColors();
+  const p = pp.passport;
+  // the name the person is typing, and whether it is allowed and free (checked a moment after they stop typing)
+  const [typed, setTyped] = useState('');
+  const [check, setCheck] = useState({ state: 'idle' });
+  const label = typed.trim().toLowerCase();
+  useEffect(() => {
+    if (!label) { setCheck({ state: 'idle' }); return undefined; }
+    setCheck({ state: 'checking' });
+    let live = true;
+    const t = setTimeout(async () => {
+      const r = await pp.check(label);
+      if (live) setCheck(r.ok ? { state: 'ok' } : { state: 'bad', reason: r.reason });
+    }, 500);
+    return () => { live = false; clearTimeout(t); };
+  }, [label]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The link people can open from any phone: our passport page when the spot server has a public https address,
+  // otherwise the ENS app's page for the name (it works everywhere and needs nothing from us).
+  const base = getFeedBase();
+  const webUrl = p.url ?? (/^https:\/\//i.test(base) && p.label ? `${base}/p/${p.label}` : null);
+  const link = webUrl ?? `https://sepolia.app.ens.domains/${p.name}`;
+  const shareText = `My World3 passport: ${link}`;
+
+  if (p.status === 'loading') return <View style={styles.pp}><ActivityIndicator color={C.muted} /></View>;
+  if (p.status === 'unavailable') return <View style={styles.pp}><Text style={styles.ppBody}>Public passports are not available right now. Check the Spot server setting and that you are signed in.</Text></View>;
+
+  if (p.status === 'creating') {
+    return (
+      <View style={styles.pp}>
+        <View style={styles.ppRow}><ActivityIndicator color={C.ink} /><Text style={styles.ppTitle}>Creating your passport…</Text></View>
+        <Text style={styles.ppBody}>This sets up your name and its permissions on ENS and takes about a minute. You can leave this screen; it keeps going.</Text>
+      </View>
+    );
+  }
+
+  if (p.status === 'ready') {
+    return (
+      <View style={styles.pp}>
+        <View style={styles.ppRow}>
+          <Ionicons name={p.published ? 'globe-outline' : 'lock-closed-outline'} size={20} color={C.ink} />
+          <Text style={styles.ppTitle}>{p.published ? 'Public on ENS' : 'Private'}</Text>
+        </View>
+        <Text style={styles.ppName} selectable>{p.name}</Text>
+        <Text style={styles.ppBody}>
+          {p.published
+            ? `${p.stamps} of your ${stamps} stamp${stamps === 1 ? '' : 's'} published. New captures are added automatically. Anyone with the link can see them; the page reads straight from ENS.`
+            : 'Your stamps are not published. Make it public again whenever you like.'}
+        </Text>
+        {p.published && (
+          <View style={styles.ppButtons}>
+            <PrimaryButton label="Share link" icon="share-outline" onPress={() => Share.share({ message: shareText }).catch(() => {})} style={{ flex: 1 }} />
+            <PrimaryButton label="Open" tone="light" icon="open-outline" onPress={() => Linking.openURL(link).catch(() => {})} style={{ flex: 1 }} />
+          </View>
+        )}
+        {p.published && !webUrl ? <Text style={styles.ppNote}>This link opens your name on the ENS app. For World3's own passport page, give the spot server a public https address (Settings, Developer).</Text> : null}
+        <Pressable onPress={() => pp.setPublic(!p.published)} disabled={pp.busy} hitSlop={8}>
+          <Text style={styles.ppLink}>{pp.busy ? 'Working…' : p.published ? 'Make private (removes your stamps from ENS)' : 'Make public again'}</Text>
+        </Pressable>
+        <Text style={styles.ppNote}>Testnet only. World3 holds this name for you for now. Stamps are evidence you were there, not proof.</Text>
+      </View>
+    );
+  }
+
+  const canCreate = !pp.busy && (!label || check.state === 'ok');
+  return (
+    <View style={styles.pp}>
+      <Text style={styles.ppTitle}>{p.status === 'error' ? 'That did not finish' : 'Share where you have been'}</Text>
+      <Text style={styles.ppBody}>
+        {p.status === 'error'
+          ? `${p.error} Your progress is kept, so trying again continues where it stopped.`
+          : 'Create a public passport: a name on ENS that lists your stamps. It is your choice. Until you create it, nothing about your captures is public, and you can make it private again at any time.'}
+      </Text>
+
+      {p.status !== 'error' && (
+        <>
+          <Text style={styles.ppLabel}>Choose a name</Text>
+          <View style={styles.ppInputRow}>
+            <TextInput
+              value={typed}
+              onChangeText={(t) => setTyped(t.replace(/[^A-Za-z0-9-]/g, ''))}
+              placeholder="pick a name"
+              placeholderTextColor={C.muted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={20}
+              style={styles.ppInput}
+              accessibilityLabel="Passport name"
+            />
+            <Text style={styles.ppSuffix}>.wrld3.eth</Text>
+          </View>
+          <Text style={[styles.ppHint, check.state === 'ok' && { color: C.green }, check.state === 'bad' && { color: C.orange }]}>
+            {!label ? 'Leave it empty for a random name.' : check.state === 'checking' ? 'Checking…' : check.state === 'ok' ? `✓ ${label}.wrld3.eth is available` : check.reason}
+          </Text>
+          <Pressable onPress={() => setTyped(randomName())} hitSlop={8}>
+            <Text style={styles.ppLink}>Use a random name</Text>
+          </Pressable>
+          <Text style={styles.ppNote}>Your name is public and linked to your stamps. Please don’t use your real name or anything private.</Text>
+        </>
+      )}
+
+      {pp.error ? <Text style={[styles.ppHint, { color: C.orange }]}>{pp.error}</Text> : null}
+      <PrimaryButton label={p.status === 'error' ? 'Try again' : 'Create my public passport'} icon="globe-outline" disabled={!canCreate} onPress={() => pp.create(label)} style={{ marginTop: 14 }} />
+      <Text style={styles.ppNote}>Testnet only. World3 holds the name for you for now.</Text>
+    </View>
   );
 }
 
@@ -192,6 +359,20 @@ function SpotServer({ onSynced }) {
   const styles = useStyles();
   const [url, setUrl] = useState(getFeedBase());
   const [msg, setMsg] = useState('');
+  const [ping, setPing] = useState({}); // url -> ms | null
+  useEffect(() => {
+    let live = true;
+    Promise.all(SERVERS.map(async (sv) => [sv.url, await pingServer(sv.url)])).then((r) => live && setPing(Object.fromEntries(r)));
+    return () => { live = false; };
+  }, []);
+  const choose = async (sv) => {
+    setMsg(`Switching to ${sv.name}…`);
+    const base = await setFeedBase(sv.url);
+    setUrl(base);
+    const n = await refreshSpots(true);
+    setMsg(n < 0 ? `Could not reach ${sv.name}.` : `Using ${sv.name} · ${n} spot${n === 1 ? '' : 's'}`);
+    if (n >= 0) onSynced?.();
+  };
   const sync = async () => {
     setMsg('Checking…');
     const base = await setFeedBase(url);
@@ -203,8 +384,26 @@ function SpotServer({ onSynced }) {
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.rowTitle}>Spot server</Text>
-        <Text style={styles.rowSub}>Where spots and 3D models come from. Paste the https link from the dashboard share step.</Text>
+        <Text style={styles.rowTitle}>Server</Text>
+        {SERVERS.length > 0 && (
+          <>
+            <Text style={styles.rowSub}>Having trouble connecting? Pick another server. Each server keeps its own sign-in and stamps, so you may need to sign in again.</Text>
+            <View style={{ gap: 8, marginTop: 10 }}>
+              {SERVERS.map((sv) => {
+                const on = getFeedBase() === sv.url;
+                const ms = ping[sv.url];
+                return (
+                  <Pressable key={sv.url} onPress={() => choose(sv)} style={[styles.themeBtn, { height: 48, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, backgroundColor: on ? C.solid : C.soft }]}>
+                    <Text style={[styles.themeBtnText, { color: on ? C.onSolid : C.ink, fontFamily: F.semi }]}>{sv.name}</Text>
+                    <Text style={[styles.themeBtnText, { color: on ? C.onSolid : C.muted }]}>{ms === undefined ? '…' : ms === null ? 'unreachable' : `${ms} ms`}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={[styles.rowSub, { marginTop: 14 }]}>Or use your own address:</Text>
+          </>
+        )}
+        {SERVERS.length === 0 && <Text style={styles.rowSub}>Where spots and 3D models come from.</Text>}
         <TextInput value={url} onChangeText={setUrl} autoCapitalize="none" autoCorrect={false} keyboardType="url" placeholder="https://…trycloudflare.com" placeholderTextColor={C.muted} style={[styles.input, { marginTop: 8 }]} />
         <Pressable onPress={sync} hitSlop={6} style={{ marginTop: 8 }}>
           <Text style={[styles.rowTitle, { color: C.info }]}>Save and test{msg ? `  ·  ${msg}` : ''}</Text>
@@ -240,36 +439,6 @@ function Toggle({ value, onChange }) {
   return <Switch value={value} onValueChange={onChange} trackColor={{ true: C.green, false: C.line }} thumbColor="#FFFFFF" />;
 }
 
-// a small picture of how each theme looks
-function ThemeOption({ mode, label, icon, selected, onPress }) {
-  const styles = useStyles();
-  const C = useColors();
-  const half = (P, flex = 1) => (
-    <View style={{ flex, backgroundColor: P.bg, padding: 6, justifyContent: 'center', gap: 4 }}>
-      <View style={{ height: 10, borderRadius: 4, backgroundColor: P.card }} />
-      <View style={{ height: 7, width: '60%', borderRadius: 4, backgroundColor: P.solid }} />
-    </View>
-  );
-  return (
-    <Pressable onPress={onPress} style={[styles.themeOpt, selected && { borderColor: C.green }]}>
-      <View style={styles.themePreview}>
-        {mode === 'system' ? (
-          <>
-            {half(LIGHT)}
-            {half(DARK)}
-          </>
-        ) : (
-          half(mode === 'dark' ? DARK : LIGHT)
-        )}
-      </View>
-      <View style={styles.themeLabelRow}>
-        <Ionicons name={icon} size={14} color={selected ? C.ink : C.muted} />
-        <Text style={[styles.themeLabel, selected && { color: C.ink, fontFamily: F.bold }]}>{label}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
 function SettingsSection({ profile, setProfile, settings, updateSetting, onSignOut }) {
   const styles = useStyles();
   const C = useColors();
@@ -278,32 +447,17 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
 
   return (
     <>
-      <Group title="Appearance" note={mode === 'system' ? `Following your phone: currently ${isDark ? 'dark' : 'light'}.` : undefined}>
-        <View style={styles.themeRow}>
-          <ThemeOption mode="system" label="System" icon="phone-portrait-outline" selected={mode === 'system'} onPress={() => setMode('system')} />
-          <ThemeOption mode="light" label="Light" icon="sunny-outline" selected={mode === 'light'} onPress={() => setMode('light')} />
-          <ThemeOption mode="dark" label="Dark" icon="moon-outline" selected={mode === 'dark'} onPress={() => setMode('dark')} />
+      <Group title="Appearance">
+        <View style={styles.themeSeg}>
+          {[['system', 'phone-portrait-outline', 'Follow phone'], ['light', 'sunny-outline', 'Light'], ['dark', 'moon-outline', 'Dark']].map(([m, icon, label]) => (
+            <Pressable key={m} onPress={() => setMode(m)} accessibilityLabel={label} accessibilityRole="button" style={[styles.themeBtn, mode === m && { backgroundColor: C.solid }]}>
+              <Ionicons name={icon} size={20} color={mode === m ? C.onSolid : C.muted} />
+            </Pressable>
+          ))}
         </View>
       </Group>
 
-      <Group title="Profile">
-        <View style={[styles.row, styles.rowLine]}>
-          <View style={[styles.rowIcon, { backgroundColor: C.info + '22' }]}>
-            <Ionicons name="person-outline" size={18} color={C.info} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowSub}>Display name</Text>
-            <TextInput
-              value={profile.name}
-              onChangeText={(t) => setProfile((p) => ({ ...p, name: t }))}
-              placeholder="Explorer"
-              placeholderTextColor={C.muted}
-              maxLength={18}
-              autoCorrect={false}
-              style={styles.input}
-            />
-          </View>
-        </View>
+      <Group title="Profile" note="Tap your name at the top of this page to change it.">
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
             <Text style={styles.rowTitle}>Avatar colour</Text>
@@ -326,13 +480,12 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
         <Row icon="phone-portrait-outline" tint={C.info} title="Haptics" sub="A small tap when you switch tabs" right={<Toggle value={settings.haptics} onChange={(v) => updateSetting('haptics', v)} />} last />
       </Group>
 
-      <Group title="Privacy" note="Stamps record the spot and time, never your coordinates. Location evidence is discarded after verification.">
-        <Row icon="eye-outline" tint={C.info} title="Public passport" sub={settings.publicPassport ? 'Anyone with your passport name can see your stamps' : 'Private. Only you can see your stamps'} right={<Toggle value={settings.publicPassport} onChange={(v) => updateSetting('publicPassport', v)} />} last />
+      <Group title="Privacy" note="Stamps record the spot and time, never your coordinates. Location evidence is discarded after verification. To publish your stamps, create a public passport on the Passport tab.">
+        <Row icon="eye-outline" tint={C.info} title="Public passport" sub="Manage it on the Passport tab" right={<Ionicons name="chevron-forward" size={18} color={C.muted} />} last />
       </Group>
 
       <Group title="Account">
-        <Row icon="mail-outline" title="Email" sub="you@example.com" />
-        <Row icon="wallet-outline" title="Wallet" sub="Invisible wallet · 0x7a3…f1c" />
+        <Row icon="finger-print-outline" title="Signed in with World ID" sub="One verified human, no password" />
         <Row icon="log-out-outline" tint={C.orange} title="Sign out" danger onPress={onSignOut} last />
       </Group>
 
@@ -343,8 +496,7 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
       <Group title="About">
         <Row icon="information-circle-outline" title="Version" sub={`World3 ${version}`} />
         <Row icon="git-network-outline" title="Network" sub="Ethereum Sepolia (testnet)" />
-        <Row icon="document-text-outline" title="Terms of use" right={<Ionicons name="chevron-forward" size={18} color={C.muted} />} onPress={() => {}} />
-        <Row icon="lock-closed-outline" title="Privacy policy" right={<Ionicons name="chevron-forward" size={18} color={C.muted} />} onPress={() => {}} last />
+        <Row icon="lock-closed-outline" title="Privacy" sub="Stamps never store your coordinates." last />
       </Group>
 
       <Text style={styles.footer}>Prototype for ETHGlobal Mumbai. Testnet only, not audited.</Text>
@@ -353,62 +505,81 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
 }
 
 const useStyles = makeStyles((C) => ({
-  title: { fontFamily: F.black, fontSize: 30, color: C.ink, letterSpacing: -0.8, marginBottom: 16 },
+  pp: { backgroundColor: C.card, borderRadius: 24, padding: 18, gap: 8 },
+  ppRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ppTitle: { fontFamily: F.bold, fontSize: 17, color: C.ink },
+  ppName: { fontFamily: F.mono, fontSize: 15, color: C.ink, marginTop: 2 },
+  ppBody: { fontFamily: F.reg, fontSize: 14, lineHeight: 21, color: C.muted },
+  ppButtons: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  ppLabel: { fontFamily: F.semi, fontSize: 13, color: C.ink, marginTop: 10 },
+  ppInputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.soft, borderRadius: 16, paddingHorizontal: 14, height: 50 },
+  ppInput: { flex: 1, fontFamily: F.mono, fontSize: 15, color: C.ink, padding: 0 },
+  ppSuffix: { fontFamily: F.mono, fontSize: 14, color: C.muted },
+  ppHint: { fontFamily: F.reg, fontSize: 13, lineHeight: 19, color: C.muted, marginTop: 4 },
+  ppLink: { fontFamily: F.semi, fontSize: 13, color: C.blue, marginTop: 10 },
+  ppNote: { fontFamily: F.reg, fontSize: 12, lineHeight: 18, color: C.muted, marginTop: 6 },
+  title: { fontFamily: F.bold, fontSize: 30, color: C.ink, letterSpacing: -0.8, marginBottom: 16 },
 
   card: { backgroundColor: C.blue, borderRadius: 28, padding: 20 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatar: { alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#FFFFFF' },
-  avatarText: { fontFamily: F.black },
-  name: { fontFamily: F.black, fontSize: 22, color: '#FFFFFF', letterSpacing: -0.4 },
-  ens: { fontFamily: 'monospace', fontSize: 13, color: '#CFE5F5', marginTop: 4 },
+  avatarText: { fontFamily: F.bold },
+  name: { fontFamily: F.bold, fontSize: 22, color: '#FFFFFF', letterSpacing: -0.4 },
+  camBadge: { position: 'absolute', right: 0, bottom: 0, width: 30, height: 30, borderRadius: 15, backgroundColor: '#A6D16C', borderWidth: 3, borderColor: '#0265AD', alignItems: 'center', justifyContent: 'center' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  nameInput: { padding: 0, borderBottomWidth: 1.5, borderBottomColor: '#A6D16C' },
+  themeSeg: { flexDirection: 'row', margin: 12, padding: 4, borderRadius: 22, backgroundColor: C.soft },
+  themeBtn: { flex: 1, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  themeBtnText: { fontFamily: F.reg, fontSize: 13, color: C.muted },
+  ens: { fontFamily: F.mono, fontSize: 13, color: '#CFE5F5', marginTop: 4 },
   badges: { flexDirection: 'row', marginTop: 10 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 26, borderRadius: 13 },
-  pillText: { fontFamily: F.bold, fontSize: 11 },
-  preview: { fontFamily: F.med, fontSize: 11, color: '#CFE5F5', marginTop: 14 },
+  pillText: { fontFamily: F.semi, fontSize: 11 },
+  preview: { fontFamily: F.reg, fontSize: 11, color: '#CFE5F5', marginTop: 14 },
 
   stats: { flexDirection: 'row', gap: 10, marginTop: 12 },
   stat: { flex: 1, backgroundColor: C.card, borderRadius: 18, paddingVertical: 14, alignItems: 'center' },
-  statNum: { fontFamily: F.black, fontSize: 24, color: C.ink },
-  statLabel: { fontFamily: F.med, fontSize: 11, color: C.muted, marginTop: 2 },
+  statNum: { fontVariant: ['tabular-nums'], fontFamily: F.bold, fontSize: 24, color: C.ink },
+  statLabel: { fontFamily: F.reg, fontSize: 11, color: C.muted, marginTop: 2 },
 
   segment: { flexDirection: 'row', backgroundColor: C.card, borderRadius: 26, padding: 4, marginTop: 18 },
   seg: { flex: 1, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: C.solid },
   segInner: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  segText: { fontFamily: F.bold, fontSize: 13, color: C.muted },
+  segText: { fontFamily: F.semi, fontSize: 13, color: C.muted },
 
-  section: { fontFamily: F.black, fontSize: 20, letterSpacing: -0.4, color: C.ink, marginTop: 26, marginBottom: 12 },
+  section: { fontFamily: F.bold, fontSize: 20, letterSpacing: -0.4, color: C.ink, marginTop: 26, marginBottom: 12 },
   empty: { backgroundColor: C.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 8 },
-  emptyText: { fontFamily: F.med, fontSize: 13, color: C.muted, textAlign: 'center' },
+  emptyText: { fontFamily: F.reg, fontSize: 13, color: C.muted, textAlign: 'center' },
   strip: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   mini: { width: '30%' },
   achGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   ach: { width: '47.5%', flexGrow: 1, backgroundColor: C.card, borderRadius: 20, padding: 14 },
   achIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  achTitle: { fontFamily: F.bold, fontSize: 14, color: C.ink },
-  achBody: { fontFamily: F.med, fontSize: 11, lineHeight: 15, color: C.muted, marginTop: 3 },
-  hint: { fontFamily: F.med, fontSize: 12, lineHeight: 17, color: C.muted, textAlign: 'center', marginTop: 10 },
+  achTitle: { fontFamily: F.semi, fontSize: 14, color: C.ink },
+  achBody: { fontFamily: F.reg, fontSize: 11, lineHeight: 15, color: C.muted, marginTop: 3 },
+  hint: { fontFamily: F.reg, fontSize: 12, lineHeight: 17, color: C.muted, textAlign: 'center', marginTop: 10 },
 
   groupWrap: { marginTop: 22 },
-  groupTitle: { fontFamily: F.bold, fontSize: 12, letterSpacing: 0.8, color: C.muted, marginBottom: 8, marginLeft: 6, textTransform: 'uppercase' },
+  groupTitle: { fontFamily: F.semi, fontSize: 12, letterSpacing: 0.8, color: C.muted, marginBottom: 8, marginLeft: 6, textTransform: 'uppercase' },
   group: { backgroundColor: C.card, borderRadius: 22, overflow: 'hidden' },
-  groupNote: { fontFamily: F.med, fontSize: 11, lineHeight: 16, color: C.muted, marginTop: 8, marginHorizontal: 8 },
+  groupNote: { fontFamily: F.reg, fontSize: 11, lineHeight: 16, color: C.muted, marginTop: 8, marginHorizontal: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, minHeight: 58 },
   rowLine: { borderBottomWidth: 1, borderBottomColor: C.line },
   rowIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  rowTitle: { fontFamily: F.bold, fontSize: 14, color: C.ink },
-  rowSub: { fontFamily: F.med, fontSize: 12, lineHeight: 16, color: C.muted, marginTop: 2 },
-  input: { fontFamily: F.bold, fontSize: 15, color: C.ink, paddingVertical: 2, paddingHorizontal: 0 },
+  rowTitle: { fontFamily: F.semi, fontSize: 14, color: C.ink },
+  rowSub: { fontFamily: F.reg, fontSize: 12, lineHeight: 16, color: C.muted, marginTop: 2 },
+  input: { fontFamily: F.semi, fontSize: 15, color: C.ink, paddingVertical: 2, paddingHorizontal: 0 },
 
   themeRow: { flexDirection: 'row', gap: 10, padding: 14 },
   themeOpt: { flex: 1, borderRadius: 16, borderWidth: 2, borderColor: C.line, padding: 8, alignItems: 'center' },
   themePreview: { width: '100%', height: 54, borderRadius: 10, overflow: 'hidden', flexDirection: 'row', borderWidth: 1, borderColor: C.line },
   themeLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
-  themeLabel: { fontFamily: F.med, fontSize: 12, color: C.muted },
+  themeLabel: { fontFamily: F.reg, fontSize: 12, color: C.muted },
 
   avatars: { flexDirection: 'row', gap: 10, marginTop: 10 },
   swatchRing: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   swatch: { width: 28, height: 28, borderRadius: 14 },
 
-  footer: { fontFamily: F.med, fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 22 },
+  footer: { fontFamily: F.reg, fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 22 },
 }));

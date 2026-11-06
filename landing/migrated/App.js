@@ -4,18 +4,15 @@ import { BackHandler, Image, Pressable, ScrollView, StyleSheet, Text, View } fro
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SplashScreen from 'expo-splash-screen';
-import {
-  useFonts,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_700Bold,
-  PlusJakartaSans_800ExtraBold,
-} from '@expo-google-fonts/plus-jakarta-sans';
+import { useFonts } from '@expo-google-fonts/plus-jakarta-sans';
 import * as SystemUI from 'expo-system-ui';
 import * as Haptics from 'expo-haptics';
+import * as SecureStore from 'expo-secure-store';
 import { F, ThemeProvider, makeStyles, useColors, useTheme } from './src/theme';
-import { loadFeedBase, refreshSpots, spots } from './src/spots';
+import { SERVERS, getFailStreak, loadFeedBase, refreshSpots, spots } from './src/spots';
 import { distanceMeters } from './src/geo';
 import { useLocation } from './src/useLocation';
+import { fetchMyCaptures, loadSession, signOut } from './src/world';
 import { Onboarding } from './src/Onboarding';
 import { SignIn } from './src/screens/SignIn';
 import { Home } from './src/screens/Home';
@@ -55,8 +52,20 @@ function AppInner({ startPhase }) {
   const [stack, setStack] = useState([]); // overlay screens on top of the tabs: { name, spotId }
   const [collected, setCollected] = useState({}); // spotId -> time captured
   const [scrollLock, setScrollLock] = useState(false);
+  const [mints, setMints] = useState({}); // spotId -> link to the mint transaction on Sepolia
   const [profile, setProfile] = useState({ name: 'Explorer', avatar: 'sky' });
-  const [settings, setSettings] = useState({ nearby: true, captures: true, haptics: true, publicPassport: false });
+  // the name and avatar colour are remembered on the phone
+  useEffect(() => {
+    SecureStore.getItemAsync('world3.profile').then((v) => { if (v) setProfile((p) => ({ ...p, ...JSON.parse(v) })); }).catch(() => {});
+  }, []);
+  const saveProfile = useCallback((next) => {
+    setProfile((p) => {
+      const n = typeof next === 'function' ? next(p) : next;
+      SecureStore.setItemAsync('world3.profile', JSON.stringify({ name: n.name, avatar: n.avatar, image: n.image ?? null })).catch(() => {});
+      return n;
+    });
+  }, []);
+  const [settings, setSettings] = useState({ nearby: true, captures: true, haptics: true });
   const updateSetting = (key, value) => setSettings((s) => ({ ...s, [key]: value }));
   const backOverride = useRef(null); // a screen can claim Android back (e.g. the capture flow's own steps)
   const user = useLocation();
@@ -64,18 +73,33 @@ function AppInner({ startPhase }) {
   // pull published spots from the dashboard server on start and every 20 s (silently keeps the bundled spots if unreachable)
   useEffect(() => {
     let live = true;
-    const pull = () => refreshSpots().then((changed) => live && changed && setFeedTick((n) => n + 1));
+    const pull = () => refreshSpots().then((changed) => live && (changed || getFailStreak() > 0) && setFeedTick((n) => n + 1));
     loadFeedBase().then(pull);
     const t = setInterval(pull, 20000);
     return () => { live = false; clearInterval(t); };
   }, []);
 
-  const [fontsLoaded] = useFonts({ PlusJakartaSans_500Medium, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold });
+  // a saved World ID session skips onboarding and sign-in
+  useEffect(() => {
+    let live = true;
+    loadFeedBase().then(() => loadSession()).then((u) => { if (live && u) setPhase('app'); });
+    return () => { live = false; };
+  }, []);
+
+  // stamps are kept on the server; load them whenever the person is in the app (after a restart, or on a new phone)
+  useEffect(() => {
+    if (phase !== 'app') return;
+    let live = true;
+    fetchMyCaptures().then((list) => { if (live && list.length) { setCollected((c) => ({ ...Object.fromEntries(list.map((x) => [x.spotId, Date.parse(x.at) || Date.now()])), ...c })); setMints(Object.fromEntries(list.filter((x) => x.mintUrl).map((x) => [x.spotId, x.mintUrl]))); } });
+    return () => { live = false; };
+  }, [phase]);
+
+  const [fontsLoaded] = [true]; // the page loads its own fonts
   const onLayout = useCallback(() => {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
 
-  const spotsWithDist = spots.map((s) => ({ ...s, dist: user.coords ? distanceMeters(user.coords, s.coord) : null }));
+  const spotsWithDist = spots.map((s) => ({ ...s, dist: user.coords && s.coord ? distanceMeters(user.coords, s.coord) : null }));
   const byId = (id) => spotsWithDist.find((s) => s.id === id);
 
   const push = (name, spot) => setStack((s) => [...s, { name, spotId: spot.id }]);
@@ -134,6 +158,7 @@ function AppInner({ startPhase }) {
               spot={spot}
               collectedAt={collected[spot.id]}
               onBack={pop}
+              quest={spot.requires ? (() => { const items = spot.requires.from.map((id) => ({ id, name: byId(id)?.name ?? `Stamp ${id}`, got: collected[id] != null })); return { need: spot.requires.min, total: items.length, have: items.filter((x) => x.got).length, items }; })() : null}
               onCapture={() => push('capture', spot)}
               onOpenStamp={() => push('stamp', spot)}
             />
@@ -148,20 +173,29 @@ function AppInner({ startPhase }) {
               registerBack={registerBack}
             />
           )}
-          {top.name === 'stamp' && <StampDetail spot={spot} collectedAt={collected[spot.id]} onBack={pop} />}
+          {top.name === 'stamp' && <StampDetail spot={spot} collectedAt={collected[spot.id]} onBack={pop} mintUrl={mints[spot.id] ?? null} onRefresh={() => fetchMyCaptures().then((list) => setMints(Object.fromEntries(list.filter((x) => x.mintUrl).map((x) => [x.spotId, x.mintUrl]))))} />}
         </View>
       </SafeAreaProvider>
     );
   }
 
+  // Explore and Globe are full-screen maps with the text laid over them; the other tabs scroll as normal pages
+  const full = tab === 'EXPLORE' || tab === 'GLOBE';
+
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.safe} onLayout={onLayout}>
+      {full && (
+        <View style={StyleSheet.absoluteFill}>
+          {tab === 'EXPLORE' && <Home spots={spotsWithDist} user={user} collected={collected} openSpot={(s) => push('spot', s)} onFix={() => setTab('PASSPORT')} />}
+          {tab === 'GLOBE' && <GlobeScreen />}
+        </View>
+      )}
+      <SafeAreaView style={[styles.safe, full && { backgroundColor: 'transparent' }]} onLayout={onLayout} pointerEvents="box-none">
         <StatusBar style={barStyle} />
-        <View style={styles.shell}>
-          <View style={styles.header}>
-            <View style={styles.brandRow}>
-              <Image source={{ uri: '/app-logo.png' }} style={styles.logo} />
+        <View style={styles.shell} pointerEvents="box-none">
+          <View style={[styles.header, full && styles.headerFloat]} pointerEvents="box-none">
+            <View style={[styles.brandRow, full && styles.chip]}>
+              <Image source={({ uri: '/app-logo.png' })} style={styles.logo} />
               <View>
                 <Text style={styles.hello}>Hello,</Text>
                 <Text style={styles.name} numberOfLines={1}>{profile.name.trim() || 'Explorer'}</Text>
@@ -173,31 +207,30 @@ function AppInner({ startPhase }) {
             </View>
           </View>
 
+          {!full && (
           <ScrollView
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             scrollEnabled={!scrollLock}
           >
-            {tab === 'EXPLORE' && (
-              <Home spots={spotsWithDist} user={user} collected={collected} openSpot={(s) => push('spot', s)} setScrollLock={setScrollLock} />
-            )}
             {tab === 'COLLECTION' && (
               <Collection collected={collected} openSpot={(s) => push('spot', s)} openStamp={(s) => push('stamp', s)} />
             )}
-            {tab === 'GLOBE' && <GlobeScreen setScrollLock={setScrollLock} />}
             {tab === 'PASSPORT' && (
               <ProfileScreen
                 collected={collected}
                 openStamp={(s) => push('stamp', s)}
                 profile={profile}
-                setProfile={setProfile}
+                setProfile={saveProfile}
                 settings={settings}
                 updateSetting={updateSetting}
-                onSignOut={() => { setPhase('signin'); setTab('EXPLORE'); }}
+                onSignOut={() => { signOut(); setPhase('signin'); setTab('EXPLORE'); }}
               />
             )}
           </ScrollView>
+          )}
+          {full && <View style={{ flex: 1 }} pointerEvents="none" />}
 
           <View style={styles.tabBar}>
             {TABS.map((t) => {
@@ -228,6 +261,8 @@ const useStyles = makeStyles((C) => ({
 
   header: { paddingHorizontal: 22, paddingTop: 8, paddingBottom: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerFloat: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5 },
+  chip: { backgroundColor: C.card, borderRadius: 26, padding: 4, paddingRight: 16, elevation: 3, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
   logo: { width: 46, height: 46, borderRadius: 15 },
   hello: { fontFamily: F.med, fontSize: 12, color: C.muted },
   name: { fontFamily: F.bold, fontSize: 16, color: C.ink },

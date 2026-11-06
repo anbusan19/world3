@@ -17,7 +17,7 @@ const squash = SWEEP.map((a) => (Math.abs(Math.round(Math.cos((a * Math.PI) / 18
 // 0 while the card faces you, rising to 1 once it is clearly turned (sampled every 15 degrees)
 const FINE = Array.from({ length: (RANGE * 2) / 15 + 1 }, (_, i) => -RANGE + i * 15);
 const EDGE = FINE.map((a) => Math.min(1, Math.max(0, (Math.abs(Math.sin((a * Math.PI) / 180)) - 0.25) / 0.45)));
-const LOGO = require('../assets/stamplogo-dark.png');
+const LOGO = ({ uri: '/stamplogo-dark.png' });
 const rand = (a, b) => a + Math.random() * (b - a);
 
 function Back({ w, h, spot }) {
@@ -36,7 +36,8 @@ function Back({ w, h, spot }) {
   );
 }
 
-export function Stamp3D({ spot, width = 220, onPress }) {
+// timed: spin a full turn on a fixed rhythm (the detail screen) instead of at random moments (the capture screen).
+export function Stamp3D({ spot, width = 220, onPress, timed = false }) {
   const height = Math.round(width / 0.82);
   const t = STAMP_THEMES[spot.theme] ?? STAMP_THEMES.coral;
   const rot = useRef(new Animated.Value(0)).current; // degrees around the vertical axis
@@ -82,15 +83,15 @@ export function Stamp3D({ spot, width = 220, onPress }) {
         while (from > 180) from -= 360;
         while (from < -180) from += 360;
         rot.setValue(from);
-        const turns = Math.ceil(rand(0.4, 2.4)); // 1, 2 or 3 half turns, so it lands on the back about half the time
-        const to = Math.round(from / 180) * 180 + (Math.random() < 0.5 ? -1 : 1) * turns * 180;
-        Animated.timing(rot, { toValue: to, duration: 700 + turns * 380, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }).start(({ finished }) => {
+        const turns = timed ? 2 : Math.ceil(rand(0.4, 2.4)); // timed: one full turn. random: 1, 2 or 3 half turns, so it lands on the back about half the time
+        const to = Math.round(from / 180) * 180 + (timed || Math.random() < 0.5 ? 1 : -1) * turns * 180;
+        Animated.timing(rot, { toValue: to, duration: timed ? 1700 : 700 + turns * 380, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }).start(({ finished }) => {
           if (!finished) return;
           sway(to);
           scheduleFlip();
         });
       });
-    }, rand(2600, 5200));
+    }, timed ? 4200 : rand(2600, 5200));
   };
 
   useEffect(() => {

@@ -9,7 +9,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 const MapCtx = createContext({ map: null, ready: false });
 const SrcCtx = createContext(null);
 
-export function Map({ mapStyle, children, onRegionDidChange }) {
+export function Map({ mapStyle, children, onRegionDidChange, attribution = true }) {
   const el = useRef(null);
   const [state, setState] = useState({ map: null, ready: false });
   const cb = useRef(onRegionDidChange);
@@ -17,7 +17,7 @@ export function Map({ mapStyle, children, onRegionDidChange }) {
   useEffect(() => {
     const map = new maplibregl.Map({ container: el.current, style: mapStyle, center: [0, 0], zoom: 1, attributionControl: false, pitchWithRotate: false, dragRotate: false, maxPitch: 0 });
     map.touchZoomRotate.disableRotation();
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+    if (attribution !== false) map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
     map.on('moveend', (e) => cb.current?.({ nativeEvent: { userInteraction: !!e.originalEvent, center: map.getCenter().toArray() } }));
     map.once('load', () => setState({ map, ready: true }));
     setState({ map, ready: false });

@@ -1,4 +1,4 @@
-import Svg, { Circle, Defs, Ellipse, G, Line, Path, Polygon, Rect } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, G, Line, LinearGradient, Path, Polygon, Rect, Stop } from 'react-native-svg';
 
 // Hand-drawn vector scenes for the stamps. All share one 160 x 180 canvas and are scaled with "slice", so they fill
 // whatever stamp size they sit in. Flat shapes plus one soft sky gradient, kept to the stamp palette.
@@ -22,8 +22,13 @@ function Gateway() {
   const INK = '#4A2412';
   return (
     <Frame>
-      
-      <Rect width="160" height="180" fill="#FFEAD8" />
+      <Defs>
+        <LinearGradient id="gwSky" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#FFC9A3" />
+          <Stop offset="1" stopColor="#FFEAD8" />
+        </LinearGradient>
+      </Defs>
+      <Rect width="160" height="180" fill="url(#gwSky)" />
 
       {/* sun and halo */}
       <Circle cx="122" cy="44" r="38" fill="#F26B21" opacity="0.10" />
@@ -119,8 +124,13 @@ function EthGlobal() {
   const cableTargets = [70, 80, 90, 100, 111, 122, 134, 147, 46, 36, 27, 18, 9];
   return (
     <Frame>
-      
-      <Rect width="160" height="180" fill="#EAF9FD" />
+      <Defs>
+        <LinearGradient id="ethSky" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#A9DDF0" />
+          <Stop offset="1" stopColor="#EAF9FD" />
+        </LinearGradient>
+      </Defs>
+      <Rect width="160" height="180" fill="url(#ethSky)" />
 
       {/* confetti */}
       <G>
@@ -206,8 +216,13 @@ function Csmt() {
   const pointed = (x, y, w, h) => `M${x} ${y + h} V${y + h * 0.35} Q${x} ${y} ${x + w / 2} ${y - 2} Q${x + w} ${y} ${x + w} ${y + h * 0.35} V${y + h} Z`;
   return (
     <Frame>
-      
-      <Rect width="160" height="180" fill="#FFF8DC" />
+      <Defs>
+        <LinearGradient id="csSky" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#FFE79A" />
+          <Stop offset="1" stopColor="#FFF8DC" />
+        </LinearGradient>
+      </Defs>
+      <Rect width="160" height="180" fill="url(#csSky)" />
 
       {/* sun behind the dome */}
       <Circle cx="80" cy="56" r="40" fill="#F26B21" opacity="0.10" />

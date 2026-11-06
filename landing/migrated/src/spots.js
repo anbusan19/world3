@@ -1,3 +1,4 @@
+import * as SecureStore from 'expo-secure-store';
 // coord is [longitude, latitude]. The two landmarks are real; the ETHGlobal event spot is a PLACEHOLDER
 // (Bandra Kurla Complex) until the actual venue is confirmed.
 // kind: 'geospatial' = outdoor landmark checked with the camera-based location fix; 'anchor' = scan a QR at the venue.
@@ -10,11 +11,35 @@ const BUNDLED = [
 // The list the app uses. Starts as the bundled spots and is replaced IN PLACE by the dashboard feed
 // (backend/), so every screen that imports `spots` sees the update on its next render.
 export const spots = [...BUNDLED];
+let eventInfo = null; // { name, endsAt, over } from the feed
+let failStreak = 0; // how many feed refreshes in a row could not reach the server
+export const getFailStreak = () => failStreak;
+// round-trip time to a server in ms, or null if it does not answer
+export async function pingServer(url) {
+  const t0 = Date.now();
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 4000);
+    const res = await fetch(`${url}/api/health`, { signal: ctl.signal });
+    clearTimeout(t);
+    return res.ok ? Date.now() - t0 : null;
+  } catch { return null; }
+}
+export const getEvent = () => eventInfo; // the main event
+let eventList = [{ id: 'ethmumbai', name: 'ETHGlobal Mumbai', blurb: '', theme: 'sky', startsAt: null, endsAt: new Date(Date.now() + 26 * 3600e3).toISOString(), status: 'live', over: false }];
+export const getEvents = () => eventList; // every event: { id, name, blurb, theme, startsAt, endsAt, status }
+export const eventOf = (spot) => eventList.find((e) => e.id === (spot?.eventId ?? 'ethmumbai')) ?? null;
 
 // Where the app fetches spots from. Default: the Mac over USB (`adb reverse tcp:3000 tcp:3000`). For testing away from
 // the cable, run `npm run share` in backend/ and paste the https URL it prints into Profile > Settings > Spot server
 // (saved on the phone). EXPO_PUBLIC_FEED_URL sets the default at build time.
-const DEFAULT_BASE = process.env.EXPO_PUBLIC_FEED_URL || 'http://127.0.0.1:3000';
+// Servers baked into the build: EXPO_PUBLIC_SERVERS="Main|https://api.example.com,Backup|https://backup.example.com".
+// The first one is the default. A person can switch in Profile > Settings > Developer if one is unreachable.
+export const SERVERS = String(process.env.EXPO_PUBLIC_SERVERS || '')
+  .split(',').map((x) => x.trim()).filter(Boolean)
+  .map((x) => { const [name, ...u] = x.split('|'); const url = u.join('|').trim().replace(/\/+$/, ''); return url ? { name: name.trim(), url } : null; })
+  .filter(Boolean);
+const DEFAULT_BASE = SERVERS[0]?.url || process.env.EXPO_PUBLIC_FEED_URL || 'http://127.0.0.1:3000';
 const BASE_KEY = 'world3.feedBase';
 let feedBase = DEFAULT_BASE;
 export const getFeedBase = () => feedBase;
@@ -24,24 +49,65 @@ export const normaliseBase = (v) => {
   if (!/^https?:\/\//i.test(t)) t = 'https://' + t;
   return t;
 };
-export async function loadFeedBase() {}
-export async function setFeedBase(v) { return String(v); }
+export async function loadFeedBase() {
+  try {
+    const v = await SecureStore.getItemAsync(BASE_KEY);
+    if (v) feedBase = normaliseBase(v);
+  } catch {}
+}
+export async function setFeedBase(v) {
+  feedBase = normaliseBase(v);
+  try { await SecureStore.setItemAsync(BASE_KEY, feedBase); } catch {}
+  return feedBase;
+}
 const TINTS = { coral: '#F9C9B0', sky: '#BFE3EC', sun: '#F6E27A', leaf: '#CFE8A8', ocean: '#9CC8EA' };
 
-function fromFeed(f) {
+function fromFeed(f, ended = false) {
   return {
+    ended,
     id: f.id, name: f.name, label: f.label, art: f.art, city: f.city,
-    type: String(f.type).toUpperCase(), kind: f.kind, coord: f.coord,
+    type: String(f.type).toUpperCase(), kind: f.kind, coord: f.coord ?? null,
     tint: TINTS[f.theme] ?? TINTS.coral, theme: f.theme, icon: f.icon,
     captureM: f.captureRadiusM, approachM: f.approachRadiusM,
     model: f.model ? { ...f.model, url: feedBase + f.model.url } : null,
+    eventId: f.eventId ?? 'ethmumbai', requires: f.requires ?? null,
+    arkiv: f.arkiv ?? null, // set when the spot is listed on Arkiv: { entityKey, owner, expiresOn }
   };
 }
 
 // Returns true when the list changed. On any failure the current list stays (offline = bundled spots).
 // `force` skips the unchanged check and returns the number of spots fetched (or -1 on failure), for the settings test.
-// Landing page: the spots are the bundled ones, nothing is fetched.
-export async function refreshSpots(force = false) { return force ? spots.length : false; }
+export async function refreshSpots(force = false) {
+  if (typeof window !== 'undefined') return force ? -1 : false; // the landing page shows the bundled spots and never calls a server
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 4000);
+    const res = await fetch(feedBase + '/api/v1/spots', { signal: ctl.signal });
+    clearTimeout(t);
+    if (!res.ok) { failStreak += 1; return force ? -1 : false; }
+    failStreak = 0;
+    const body = await res.json();
+    eventInfo = body.event ?? null;
+    eventList = body.events ?? eventList;
+    // After the event only the record of stamps remains: the places stay (so a collected stamp can still be opened) but have
+    // no coordinates, no model, and cannot be captured.
+    const live = (body.spots ?? []).map((f) => fromFeed(f));
+    const memories = (body.archive ?? []).map((f) => fromFeed(f, true));
+    if (!live.length && memories.length) {
+      const same = JSON.stringify(memories) === JSON.stringify(spots);
+      spots.splice(0, spots.length, ...memories);
+      return force ? memories.length : !same;
+    }
+    const next = [...live, ...memories];
+    if (!next.length) return force ? -1 : false;
+    if (!force && JSON.stringify(next) === JSON.stringify(spots)) return false;
+    spots.splice(0, spots.length, ...next);
+    return force ? next.length : true;
+  } catch {
+    failStreak += 1;
+    return force ? -1 : false;
+  }
+}
 
 export const NEAR_METERS = 1500; // "Near" badge in lists (browsing only)
 export const APPROACH_M = 100; // README: model appears, dimmed and locked

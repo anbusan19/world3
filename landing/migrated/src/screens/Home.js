@@ -1,105 +1,115 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MapCard } from '../MapCard';
-import { Meadow } from '../art/Nature';
 import { Stamp } from '../Stamp';
 import { formatDistance } from '../geo';
-import { CAPTURE_M, NEAR_METERS, shortName } from '../spots';
+import { NEAR_METERS, SERVERS, eventOf, getEvent, getFailStreak, shortName } from '../spots';
 import { F, makeStyles, useColors } from '../theme';
 
-export function Home({ spots, user, collected, openSpot, setScrollLock }) {
+// Explore: the real map fills the whole screen, and the words sit on top of it. A strip of spot cards floats above the
+// tab bar; tapping one flies the map there, and its arrow opens the spot.
+export function Home({ spots: all, user, collected, openSpot, onFix }) {
+  const trouble = getFailStreak() >= 2;
+  const spots = all.filter((s) => !s.ended); // after the event nothing is on the map
+  const over = !!getEvent()?.over;
   const styles = useStyles();
   const C = useColors();
-  const [selectedId, setSelectedId] = useState(spots[0].id);
+  const insets = useSafeAreaInsets();
+  const [selectedId, setSelectedId] = useState(spots[0]?.id);
+  const ev = getEvent();
+  const strip = useRef(null);
 
-  // the nearest spot you have not collected yet (falls back to list order when there is no GPS fix)
-  const todo = spots.filter((s) => collected[s.id] == null);
-  const next = [...todo].sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity))[0];
+  // nearest first when we know where you are
+  const ordered = [...spots].sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity)).slice(0, 12); // the 12 nearest keep the strip light
 
   return (
-    <>
-      <Text style={styles.eyebrow}>YOUR WORLD, COLLECTED</Text>
-      <Text style={styles.title}>
-        Go there.{'\n'}
-        <Text style={styles.titleLight}>Prove it.</Text>
-      </Text>
+    <View style={StyleSheet.absoluteFill}>
+      <MapCard fill topOffset={insets.top + 190} spots={spots} user={user} selectedId={selectedId} onSelect={setSelectedId} />
 
-      <Meadow />
-
-      <View style={styles.heading}>
-        <Text style={styles.headingTitle}>Around you</Text>
-        <Text style={styles.headingMeta}>real map</Text>
-      </View>
-      <MapCard spots={spots} user={user} selectedId={selectedId} onSelect={setSelectedId} setScrollLock={setScrollLock} />
-
-      <View style={styles.heading}>
-        <Text style={styles.headingTitle}>Nearby spots</Text>
-        <Text style={styles.headingMeta}>{spots.length} discovered</Text>
-      </View>
-
-      {spots.map((s) => {
-        const near = s.dist != null && s.dist <= NEAR_METERS;
-        const away = formatDistance(s.dist);
-        const got = collected[s.id] != null;
-        return (
-          <Pressable key={s.id} style={styles.row} onPress={() => openSpot(s)}>
-            <Stamp theme={s.theme} art={s.art} icon={s.icon} label={shortName(s)} holeColor={C.card} iconSize={26} labelSize={8} holes={7} style={styles.rowStamp} />
-            <View style={styles.rowInfo}>
-              <Text style={styles.rowName} numberOfLines={1}>{s.name}</Text>
-              <Text style={styles.rowMeta}>{away ? `${s.type} · ${away}` : s.type}</Text>
-            </View>
-            <View style={[styles.pill, (near || got) && styles.pillNear]}>
-              <Text style={[styles.pillText, (near || got) && styles.pillTextNear]}>{got ? 'Collected' : s.dist == null ? '—' : near ? 'Near' : 'Far'}</Text>
-            </View>
-          </Pressable>
-        );
-      })}
-
-      <View style={styles.capture}>
-        <View style={styles.captureTop}>
-          <Text style={styles.captureKicker}>NEXT STAMP</Text>
-          <Ionicons name={next ? 'lock-closed' : 'checkmark-circle'} size={18} color={C.green} />
+      {/* title, over the map */}
+      <View style={[styles.titleWrap, { top: insets.top + 76 }]} pointerEvents="none">
+        <View style={styles.titleCard}>
+          <Text style={styles.eyebrow}>YOUR WORLD, COLLECTED</Text>
+          <Text style={styles.title}>
+            Go there. <Text style={styles.titleLight}>Prove it.</Text>
+          </Text>
         </View>
-        <Text style={styles.captureTitle}>{next ? next.name : 'All collected.'}</Text>
-        <Text style={styles.captureCopy}>
-          {next ? `Get within ${CAPTURE_M} m to unlock your capture.` : 'Every spot is in your passport.'}
-        </Text>
-        {next && (
-          <Pressable style={({ pressed }) => [styles.captureBtn, pressed && { opacity: 0.85 }]} onPress={() => openSpot(next)}>
-            <Text style={styles.captureBtnText}>Open spot</Text>
-            <Ionicons name="arrow-forward" size={18} color="#0B0B0F" />
-          </Pressable>
-        )}
       </View>
-    </>
+
+      {trouble && (
+        <Pressable style={[styles.trouble, { top: insets.top + 150 }]} onPress={onFix}>
+          <Ionicons name="cloud-offline" size={16} color="#0B0B0F" />
+          <Text style={styles.troubleText}>Can’t reach the server.{SERVERS.length > 1 ? ' Tap to pick another one.' : ' Check Profile, Settings, Developer.'}</Text>
+        </Pressable>
+      )}
+
+      {over && spots.length === 0 && (
+        <View style={[styles.endedCard, { bottom: insets.bottom + 108 }]}>
+          <Text style={styles.endedTitle}>{ev?.name ?? 'The event'} has ended</Text>
+          <Text style={styles.endedBody}>The spots are gone and stamps can no longer be collected. Everything you collected stays in your passport.</Text>
+        </View>
+      )}
+
+      {/* spot cards, over the map */}
+      <View style={[styles.stripWrap, { bottom: insets.bottom + 108 }]} pointerEvents="box-none">
+        <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip} snapToInterval={SNAP} decelerationRate="fast">
+          {ordered.map((s) => {
+            const near = s.dist != null && s.dist <= NEAR_METERS;
+            const got = collected[s.id] != null;
+            const on = s.id === selectedId;
+            const away = formatDistance(s.dist);
+            const isQuest = s.kind === 'quest';
+            const unlocked = isQuest && s.requires && s.requires.from.filter((id) => collected[id] != null).length >= s.requires.min;
+            const ev = eventOf(s);
+            const tag = ev && ev.id !== 'ethmumbai' && ev.id !== 'india' ? ev.name : s.type;
+            return (
+              <Pressable key={s.id} onPress={() => setSelectedId(s.id)} style={[styles.card, on && styles.cardOn]}>
+                <Stamp theme={s.theme} art={s.art} icon={s.icon} label={shortName(s)} iconSize={20} labelSize={6} style={styles.thumb} />
+                <View style={styles.cardText}>
+                  <Text style={styles.cardName} numberOfLines={1}>{s.name}</Text>
+                  <Text style={styles.cardMeta} numberOfLines={1}>{got ? 'Collected' : isQuest ? `${tag} · quest` : away ? `${tag} · ${away}` : tag}</Text>
+                  <View style={[styles.pill, (near || got || unlocked) && styles.pillNear]}>
+                    <Text style={[styles.pillText, (near || got || unlocked) && { color: '#0B0B0F' }]}>{got ? 'In your passport' : isQuest ? (unlocked ? 'Claim now' : 'Quest · locked') : near ? 'Near · capture' : s.dist == null ? '—' : 'Far'}</Text>
+                  </View>
+                </View>
+                <Pressable style={styles.go} onPress={() => openSpot(s)} hitSlop={8}>
+                  <Ionicons name="arrow-forward" size={16} color={C.green} />
+                </Pressable>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    </View>
   );
 }
 
+const SNAP = 292;
+
 const useStyles = makeStyles((C) => ({
-  eyebrow: { fontFamily: F.bold, fontSize: 11, letterSpacing: 1.6, color: C.info },
-  title: { fontFamily: F.black, fontSize: 40, lineHeight: 44, letterSpacing: -1.2, color: C.ink, marginTop: 8, marginBottom: 20 },
-  titleLight: { fontFamily: F.med, color: C.ink },
+  titleWrap: { position: 'absolute', left: 16, right: 16 },
+  titleCard: { alignSelf: 'flex-start', backgroundColor: C.card, borderRadius: 26, paddingHorizontal: 18, paddingVertical: 12, elevation: 3, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+  eyebrow: { fontFamily: F.semi, fontSize: 10, letterSpacing: 1.6, color: C.info },
+  title: { fontFamily: F.bold, fontSize: 28, lineHeight: 33, letterSpacing: -1, color: C.ink, marginTop: 2 },
+  titleLight: { fontFamily: F.reg },
 
-  heading: { marginTop: 28, marginBottom: 10, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  headingTitle: { fontFamily: F.black, fontSize: 20, color: C.ink, letterSpacing: -0.4 },
-  headingMeta: { fontFamily: F.med, fontSize: 12, color: C.muted },
-
-  row: { backgroundColor: C.card, borderRadius: 22, padding: 10, marginBottom: 10, flexDirection: 'row', alignItems: 'center' },
-  rowStamp: { width: 58, height: 71 },
-  rowInfo: { flex: 1, paddingHorizontal: 13 },
-  rowName: { fontFamily: F.bold, fontSize: 14, color: C.ink },
-  rowMeta: { fontFamily: F.med, fontSize: 11, color: C.muted, marginTop: 4 },
-  pill: { paddingHorizontal: 12, height: 28, borderRadius: 14, backgroundColor: C.soft, justifyContent: 'center' },
+  trouble: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F6C453', borderRadius: 20, paddingHorizontal: 14, height: 40, elevation: 4 },
+  troubleText: { flex: 1, fontFamily: F.semi, fontSize: 12, color: '#0B0B0F' },
+  endedCard: { position: 'absolute', left: 16, right: 16, backgroundColor: C.card, borderRadius: 26, padding: 18, elevation: 4 },
+  endedTitle: { fontFamily: F.bold, fontSize: 18, color: C.ink, letterSpacing: -0.4 },
+  endedBody: { fontFamily: F.reg, fontSize: 13, lineHeight: 19, color: C.muted, marginTop: 6 },
+  stripWrap: { position: 'absolute', left: 0, right: 0 },
+  strip: { paddingHorizontal: 16, gap: 12 },
+  card: { width: 280, flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 26, padding: 10, borderWidth: 2, borderColor: 'transparent', elevation: 4, shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+  cardOn: { borderColor: C.green },
+  thumb: { width: 54, height: 66 },
+  cardText: { flex: 1, paddingHorizontal: 12 },
+  cardName: { fontFamily: F.semi, fontSize: 14, color: C.ink },
+  cardMeta: { fontFamily: F.reg, fontSize: 11, color: C.muted, marginTop: 2 },
+  pill: { alignSelf: 'flex-start', marginTop: 7, paddingHorizontal: 10, height: 22, borderRadius: 11, backgroundColor: C.soft, justifyContent: 'center' },
   pillNear: { backgroundColor: C.green },
-  pillText: { fontFamily: F.bold, fontSize: 11, color: C.muted },
-  pillTextNear: { color: '#0B0B0F' },
-
-  capture: { backgroundColor: C.panel, borderRadius: 28, padding: 20, marginTop: 14 },
-  captureTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  captureKicker: { fontFamily: F.bold, fontSize: 11, letterSpacing: 1.6, color: C.green },
-  captureTitle: { fontFamily: F.black, fontSize: 24, color: '#fff', letterSpacing: -0.5, marginTop: 10 },
-  captureCopy: { fontFamily: F.med, fontSize: 13, color: '#B9BCC6', marginTop: 6 },
-  captureBtn: { height: 52, borderRadius: 26, backgroundColor: C.green, marginTop: 18, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  captureBtnText: { fontFamily: F.bold, fontSize: 14, color: '#0B0B0F' },
+  pillText: { fontFamily: F.semi, fontSize: 10, color: C.muted },
+  go: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#0B0B0F', alignItems: 'center', justifyContent: 'center' },
 }));

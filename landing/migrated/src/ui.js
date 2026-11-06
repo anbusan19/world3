@@ -69,11 +69,11 @@ export function Chip({ label, icon, tone = 'light' }) {
 const useStyles = makeStyles((C) => ({
   back: { width: 46, height: 46, borderRadius: 23, backgroundColor: C.solid, alignItems: 'center', justifyContent: 'center' },
   btn: { height: 58, borderRadius: 29, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  btnText: { fontFamily: F.bold, fontSize: 16 },
+  btnText: { fontFamily: F.semi, fontSize: 16 },
   info: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, backgroundColor: C.card, borderRadius: 18, padding: 14, marginBottom: 8 },
   infoIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  infoTitle: { fontFamily: F.bold, fontSize: 14, color: C.ink },
-  infoBody: { fontFamily: F.med, fontSize: 12, lineHeight: 17, color: C.muted, marginTop: 3 },
+  infoTitle: { fontFamily: F.semi, fontSize: 14, color: C.ink },
+  infoBody: { fontFamily: F.reg, fontSize: 12, lineHeight: 17, color: C.muted, marginTop: 3 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, height: 30, borderRadius: 15 },
-  chipText: { fontFamily: F.bold, fontSize: 11 },
+  chipText: { fontFamily: F.semi, fontSize: 11 },
 }));

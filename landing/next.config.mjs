@@ -19,6 +19,10 @@ const nextConfig = {
       'expo-constants': noop,
       'expo-camera': noop,
       '@expo-google-fonts/plus-jakarta-sans': noop,
+      '@expo-google-fonts/geist-mono': noop,
+      'expo-image-picker': noop,
+      'expo-file-system/legacy': noop,
+      'expo-location': noop,
     },
   },
 };
