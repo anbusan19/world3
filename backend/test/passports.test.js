@@ -6,7 +6,7 @@ import path from 'node:path';
 import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../src/app.js';
-import { createPassports } from '../src/ens/passports.js';
+import { checkLabel, createPassports } from '../src/ens/passports.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SEED = 'test-seed-never-real';
@@ -47,7 +47,7 @@ test('nothing is public until a person asks, and capturing alone publishes nothi
 
 test('asking creates the name, restricts the backend, and publishes the stamps in order', async () => {
   const { svc, ens, done } = await make();
-  const first = svc.start('u1');
+  const first = await svc.start('u1');
   assert.equal(first.status, 'creating');
   await svc.idle();
   const p = svc.get('u1');
@@ -135,6 +135,48 @@ test('too little gas is reported plainly and nothing is spent', async () => {
   assert.equal(svc.get('u1').status, 'error');
   assert.match(svc.get('u1').error, /out of gas/);
   assert.equal(ens.log.length, 0);
+  await done();
+});
+
+test('a person can choose their own name, within the rules', async () => {
+  const { svc, ens, done } = await make();
+  await svc.start('u1', 'Anna-Travels');
+  await svc.idle();
+  assert.equal(svc.get('u1').name, 'anna-travels.wrld3.eth');
+  assert.equal(svc.get('u1').status, 'ready');
+  assert.deepEqual(ens.log.find((l) => l[0] === 'registerName').slice(0, 2), ['registerName', 'anna-travels']);
+  await done();
+});
+
+test('bad, reserved and taken names are refused with a reason, and nothing is spent', async () => {
+  const { svc, ens, done } = await make({ ens: fakeEns({ taken: ['anna'] }) });
+  for (const [label, why] of [['ab', /at least 3/], ['x'.repeat(21), /at most 20/], ['has space', /lowercase letters/], ['-start', /lowercase letters/], ['end-', /lowercase letters/], ['dou--ble', /lowercase letters/], ['émoji', /lowercase letters/], ['wrld3', /reserved/], ['World', /reserved/], ['admin', /reserved/], ['anna', /taken/]]) {
+    await assert.rejects(() => svc.start('u1', label), (e) => why.test(e.message), label);
+  }
+  assert.equal(ens.log.length, 0);
+  assert.deepEqual(svc.get('u1'), { status: 'none' }, 'a refused name leaves no half-made passport');
+  await done();
+});
+
+test('the name check is the same one used while typing, and accepts a pasted full name', async () => {
+  const { svc, done } = await make({ ens: fakeEns({ taken: ['anna'] }) });
+  assert.deepEqual(await svc.available('Zed-9.wrld3.eth'), { ok: true, label: 'zed-9' });
+  assert.equal((await svc.available('anna')).reason, 'That name is taken.');
+  assert.equal(checkLabel('a1b').ok, true);
+  assert.equal(checkLabel('1-2').ok, true);
+  assert.equal(checkLabel('xnfoo').ok, false);
+  await done();
+});
+
+test('a retry after a failure keeps the name already chosen, whatever is typed the second time', async () => {
+  const ens = fakeEns();
+  const { svc, done } = await make({ ens });
+  ens.failNext = 'registerName';
+  await svc.start('u1', 'first-pick'); await svc.idle();
+  assert.equal(svc.get('u1').status, 'error');
+  await svc.start('u1', 'different'); await svc.idle();
+  assert.equal(svc.get('u1').name, 'first-pick.wrld3.eth');
+  assert.equal(svc.get('u1').status, 'ready');
   await done();
 });
 
@@ -228,6 +270,21 @@ test('a person can fetch their own captures, and only theirs', async () => {
   assert.ok(mine.every((c) => c.spotId && c.at) && mine.every((c) => !('nullifier' in c) && !('userId' in c)), 'no identifiers are returned');
   const other = await signIn('0xB2');
   assert.deepEqual((await call('GET', '/api/v1/me/captures', null, other)).body.captures, []);
+});
+
+test('the name check and a chosen name work through the API, and a taken name is a 409', async () => {
+  const tok = await signIn('0xC3');
+  assert.equal((await call('GET', '/api/v1/passport/name?label=anna-api')).status, 401);
+  assert.deepEqual((await call('GET', '/api/v1/passport/name?label=anna-api', null, tok)).body, { ok: true, label: 'anna-api' });
+  assert.equal((await call('GET', '/api/v1/passport/name?label=wrld3', null, tok)).body.ok, false);
+  ens.taken.add('taken-one');
+  const clash = await call('POST', '/api/v1/passport', { label: 'taken-one' }, tok);
+  assert.equal(clash.status, 409);
+  assert.match(clash.body.error, /taken/);
+  const ok = await call('POST', '/api/v1/passport', { label: 'anna-api' }, tok);
+  assert.equal(ok.status, 202);
+  assert.equal(ok.body.passport.name, 'anna-api.wrld3.eth');
+  await passportsSvc.idle();
 });
 
 test('public must be true or false', async () => {
