@@ -12,3 +12,8 @@ backend/data/
 .env
 .env.*
 !.env.example
+
+# third-party agent skills installed with: npx skills add arkiv-network/skills
+.agents/
+.claude/skills/
+skills-lock.json
