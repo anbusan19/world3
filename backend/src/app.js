@@ -70,6 +70,7 @@ function readBody(req, max) {
   });
 }
 
+const restoreFails = new Map(); // address -> recent wrong recovery-code times
 async function readJson(req) {
   const raw = await readBody(req, 1024 * 1024);
   if (!raw.length) return {};
@@ -395,6 +396,21 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       const user = auth.user(bearer(req));
       if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
       return send(res, 200, { user: { id: user.id } });
+    }
+    if (p === '/api/v1/auth/recovery' && method === 'POST') {
+      const user = auth.user(bearer(req));
+      if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
+      return send(res, 200, { code: await auth.recoveryCode(user) });
+    }
+    if (p === '/api/v1/auth/restore' && method === 'POST') {
+      // guesses are limited per address: 8 wrong tries in 10 minutes locks that address out for the rest of the window
+      const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '').split(',')[0].trim();
+      const now = Date.now();
+      const log = (restoreFails.get(ip) ?? []).filter((t) => now - t < 600_000);
+      if (log.length >= 8) throw new CaptureError('slow_down', 'Too many tries. Wait a few minutes and try again.', 429);
+      const out = await auth.restore((await readJson(req)).code);
+      if (!out) { log.push(now); restoreFails.set(ip, log); throw new CaptureError('bad_recovery', 'That recovery code was not recognised.', 400); }
+      return send(res, 200, { ok: true, ...out });
     }
     if (p === '/api/v1/auth/signout' && method === 'POST') {
       await auth.signOut(bearer(req));

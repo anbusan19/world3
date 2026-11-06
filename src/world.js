@@ -30,6 +30,8 @@ const KIND_BY_CODE = {
   not_started: 'notstarted',
   locked: 'locked',
   not_configured: 'network',
+  bad_recovery: 'unverified',
+  slow_down: 'busy',
   no_spot: 'network',
 };
 
@@ -112,6 +114,20 @@ export async function signInWithWorldId({ onStage = () => {} } = {}) {
   const result = await askWorldId(req, 'signin');
   onStage(2);
   const out = await post('/api/v1/auth/verify', { nonce: req.rp_context.nonce, idkitResponse: result });
+  token = out.token;
+  try { await SecureStore.setItemAsync(TOKEN_KEY, token); } catch { /* stays signed in until the app closes */ }
+  return out.user;
+}
+
+// A recovery code: shown in Settings, lets the same person back in after a reinstall or on a new phone. One World ID proof
+// per person is all the sign-in action allows, so this is the way back in.
+export async function getRecoveryCode() {
+  const out = await post('/api/v1/auth/recovery', {});
+  return out.code;
+}
+
+export async function restoreAccount(code) {
+  const out = await post('/api/v1/auth/restore', { code });
   token = out.token;
   try { await SecureStore.setItemAsync(TOKEN_KEY, token); } catch { /* stays signed in until the app closes */ }
   return out.user;

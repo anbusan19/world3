@@ -53,6 +53,33 @@ export class Accounts {
     return { token, user: { id: user.id } };
   }
 
+  // A recovery code lets the same person back in after a reinstall or on a new phone without a second World ID proof
+  // (World ID allows one proof per person per action, so a returning sign-in cannot use one). Shown once, kept hashed;
+  // making a new one cancels the old. 100 bits of randomness, so it cannot be guessed.
+  async newRecoveryCode(user) {
+    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no look-alikes
+    const b = randomBytes(20);
+    let raw = '';
+    for (let i = 0; i < 20; i++) raw += A[b[i] % 32];
+    const stored = this.users.find((u) => u.id === user.id);
+    stored.recovery = sha(raw);
+    await this.#save();
+    return raw.match(/.{4}/g).join('-');
+  }
+
+  async restore(code, now) {
+    const raw = String(code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (raw.length !== 20) return null;
+    const h = sha(raw);
+    const user = this.users.find((u) => u.recovery === h);
+    if (!user) return null;
+    const token = randomBytes(32).toString('base64url');
+    this.sessions = this.sessions.filter((s) => s.expiresAt > now);
+    this.sessions.push({ hash: sha(token), userId: user.id, expiresAt: now + SESSION_DAYS * DAY });
+    await this.#save();
+    return { token, user: { id: user.id } };
+  }
+
   userFor(token, now) {
     if (!token) return null;
     const h = sha(token);
@@ -85,6 +112,8 @@ export function createAuthService({ world, accounts, action = 'signin', now = ()
       const nullifier = await world.verifyProof(idkitResponse, nonce, ACTION);
       return accounts.signIn(nullifier, now());
     },
+    recoveryCode: (user) => accounts.newRecoveryCode(user),
+    restore: (code) => accounts.restore(code, now()),
     user(token) {
       return accounts.userFor(token, now());
     },
