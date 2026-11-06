@@ -45,6 +45,7 @@ function fromFeed(f) {
     tint: TINTS[f.theme] ?? TINTS.coral, theme: f.theme, icon: f.icon,
     captureM: f.captureRadiusM, approachM: f.approachRadiusM,
     model: f.model ? { ...f.model, url: feedBase + f.model.url } : null,
+    arkiv: f.arkiv ?? null, // set when the spot is listed on Arkiv: { entityKey, owner, expiresOn }
   };
 }
 

@@ -55,7 +55,13 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
         <View style={styles.chipRow}>
           <Chip icon={spot.kind === 'anchor' ? 'qr-code' : 'camera'} label={spot.kind === 'anchor' ? 'Anchor spot · scan QR' : 'Geospatial spot'} />
           <Chip icon="navigate" label={away ? `${away} away` : 'Distance needs GPS'} />
+          {spot.arkiv && <Chip icon="cube" label="Listed on Arkiv" />}
         </View>
+        {spot.arkiv && (
+          <Text style={styles.arkiv}>
+            Public on Arkiv, with a rounded location. Entity <Text style={styles.mono}>{spot.arkiv.entityKey.slice(0, 8)}…{spot.arkiv.entityKey.slice(-6)}</Text>, listed until {spot.arkiv.expiresOn}.
+          </Text>
+        )}
 
         {/* distance state */}
         <View style={styles.card}>
@@ -116,6 +122,8 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
 }
 
 const useStyles = makeStyles((C) => ({
+  arkiv: { fontFamily: F.reg, fontSize: 12, lineHeight: 18, color: C.muted, textAlign: 'center', marginTop: 10, paddingHorizontal: 8 },
+  mono: { fontFamily: F.mono, fontSize: 11, color: C.ink },
   safe: { flex: 1, backgroundColor: C.bg },
   top: { height: 62, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topTitle: { fontFamily: F.semi, fontSize: 16, color: C.ink },
