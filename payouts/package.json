@@ -1,0 +1,13 @@
+{
+  "name": "wrld3-payouts",
+  "private": true,
+  "type": "module",
+  "description": "Sponsor funding and holder payouts for wrld3 stamps, built and tested on its own before it is joined to the app and the server.",
+  "scripts": {
+    "test": "forge test",
+    "e2e": "node sim/e2e.mjs"
+  },
+  "dependencies": {
+    "viem": "^2.21.0"
+  }
+}
