@@ -67,17 +67,27 @@
 
   function start() { if (!window.Shepherd) return; try { window.__w3tour?.cancel(); } catch { /* none running */ } window.__w3tour = build(); window.__w3tour.start(); }
 
-  // the four things every ad needs are always marked "Required" and turn green once filled
+  // Nothing is flagged up front. A field turns red, with a "Required" tag, only after the person leaves it empty, or presses
+  // Publish while something is still missing; it clears as soon as it is filled.
   function requiredMarks() {
-    const groups = [['#sponsor'], ['#headline'], ['#url'], ['#image']];
-    for (const [sel] of groups) {
-      const input = $(sel); const holder = input?.closest('.field'); if (!holder) continue;
-      holder.classList.add('req');
-      const update = () => holder.classList.toggle('filled', sel === '#image' ? !!$('#dropThumb img') : !!input.value.trim());
-      input.addEventListener('input', update); input.addEventListener('change', update);
-      if (sel === '#image') new MutationObserver(update).observe($('#dropThumb'), { childList: true });
-      update();
+    const fields = [['#sponsor', 'Your name'], ['#headline', 'Headline'], ['#url', 'Link'], ['#image', 'Image']].map(([sel]) => {
+      const input = $(sel); const holder = input?.closest('.field');
+      return holder ? { sel, input, holder } : null;
+    }).filter(Boolean);
+    const filled = (f) => (f.sel === '#image' ? !!$('#dropThumb img') : !!f.input.value.trim());
+    const refresh = (f, flag) => { if (flag) f.holder.classList.add('touched'); f.holder.classList.toggle('missing', f.holder.classList.contains('touched') && !filled(f)); };
+    for (const f of fields) {
+      const check = () => refresh(f, false);
+      f.input.addEventListener('input', check); f.input.addEventListener('change', check);
+      if (f.sel !== '#image') f.input.addEventListener('blur', () => refresh(f, true));
+      else new MutationObserver(check).observe($('#dropThumb'), { childList: true });
     }
+    // Publish is disabled until the form is valid, so a click on it lands on its wrapper: that is the moment to point out what is missing
+    $('#publishWrap')?.addEventListener('click', () => {
+      const missing = fields.filter((f) => !filled(f));
+      missing.forEach((f) => refresh(f, true));
+      missing[0]?.holder.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 
   function ready() {
