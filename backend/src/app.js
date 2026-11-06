@@ -4,6 +4,8 @@ import http from 'node:http';
 import path from 'node:path';
 import { Accounts, createAuthService } from './auth.js';
 import { createAds } from './ads.js';
+import { createEns } from './ens/passport.js';
+import { createPassports } from './ens/passports.js';
 import { Sponsors } from './sponsors.js';
 import { createArkiv, safeMessage } from './arkiv.js';
 import { Captures, captureConfigFromEnv, createCaptureService } from './capture.js';
@@ -75,7 +77,7 @@ async function readJson(req) {
 
 const sanitizeName = (s) => String(s ?? '').replace(/[^\w .()-]/g, '').slice(0, 80);
 
-export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = () => {}, capture: captureOpts = {}, arkiv: arkivOpts = {} }) {
+export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = () => {}, capture: captureOpts = {}, arkiv: arkivOpts = {}, ens: ensOpts = {} }) {
   const store = new Store(dataDir);
   await store.init(SEED);
   const arkiv = await createArkiv({ dataDir, ...arkivOpts });
@@ -93,6 +95,10 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     captureCount: (spotId) => captures.items.filter((c) => c.spotId === spotId).length,
     now: captureOpts.now,
   });
+  // opt-in public passports on ENS (off unless the ENS wallet and the owner seed are configured)
+  const ensClient = ensOpts.client ?? (process.env.ENS_PRIVATE_KEY ? await createEns({ privateKey: process.env.ENS_PRIVATE_KEY, rpcUrl: process.env.SEPOLIA_RPC_URL, dataDir }) : null);
+  const ownerSeed = ensOpts.ownerSeed ?? process.env.PASSPORT_OWNER_SEED;
+  const passports = ensClient && ownerSeed ? await createPassports({ dataDir, ens: ensClient, ownerSeed, captures, publicBase: ensOpts.publicBase ?? process.env.PUBLIC_BASE_URL ?? '' }) : null;
   const voucherSigner = createVoucherSigner(captureOpts.voucher ?? voucherConfigFromEnv());
   const capture = createCaptureService({ store, captures, world, accounts, voucherSigner, config: captureOpts.config ?? captureConfigFromEnv(), now: captureOpts.now });
   const auth = createAuthService({ world, accounts, action: captureOpts.signinAction ?? process.env.WORLD_ID_SIGNIN_ACTION ?? 'signin', now: captureOpts.now });
@@ -161,6 +167,22 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     if (p === '/api/v1/arkiv/spots' && method === 'GET') {
       if (!arkiv.enabled) throw new HttpError(503, 'Arkiv is not configured on this server.');
       return send(res, 200, { owner: arkiv.owner, eventSlug: arkiv.eventSlug, schema: 'world3.spot', spots: await arkiv.list() }, cors);
+    }
+
+    // ---- the person's own public passport (opt-in) --------------------------------------------------------------------
+    if (p === '/api/v1/passport' || p === '/api/v1/passport/public') {
+      const user = auth.user(bearer(req));
+      if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
+      if (!passports) throw new HttpError(503, 'Public passports are not set up on this server.');
+      if (p === '/api/v1/passport' && method === 'GET') return send(res, 200, { passport: passports.get(user.id), parent: ensClient.parent });
+      if (p === '/api/v1/passport' && method === 'POST') return send(res, 202, { passport: passports.start(user.id), parent: ensClient.parent });
+      if (p === '/api/v1/passport/public' && method === 'POST') {
+        const { public: flag } = await readJson(req);
+        if (typeof flag !== 'boolean') throw new HttpError(400, 'public must be true or false.');
+        const out = passports.setPublic(user.id, flag);
+        if (!out) throw new HttpError(409, 'You do not have a passport yet.');
+        return send(res, 200, { passport: out, parent: ensClient.parent });
+      }
     }
 
     // ---- the advertiser page: public, read-only facts --------------------------------------------------------------
@@ -243,7 +265,10 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       return send(res, 200, capture.issue(auth.user(bearer(req)), spotId));
     }
     if (p === '/api/v1/capture/verify' && method === 'POST') {
-      return send(res, 200, { ok: true, capture: await capture.verify(auth.user(bearer(req)), await readJson(req)) });
+      const who = auth.user(bearer(req));
+      const accepted = await capture.verify(who, await readJson(req));
+      passports?.onCapture(who.id); // a person with a public passport gets the new stamp published (in the background)
+      return send(res, 200, { ok: true, capture: accepted });
     }
 
     // ---- uploaded files -----------------------------------------------------------------------------------------
@@ -355,5 +380,5 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     log(`${req.method} ${req.url.split('?')[0]} ${res.statusCode} ${Date.now() - started}ms`);
   });
 
-  return { server, store, captures, voucherSigner, arkiv, ads, sponsors };
+  return { server, store, captures, voucherSigner, arkiv, ads, sponsors, passports };
 }
