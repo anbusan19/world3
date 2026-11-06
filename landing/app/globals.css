@@ -347,3 +347,18 @@ footer.site .foot-big { font-size: clamp(52px, 7.6vw, 128px); line-height: .88; 
 footer.site .foot-big span, footer.site .foot-big em { font-size: inherit; }
 footer.site .foot-links { position: static; background: none; box-shadow: none; padding: 0; margin: 0; border-radius: 0; }
 footer.site .wrap.in { width: min(100%, 1500px); } .foot-top, .foot-mid, .foot-bottom { width: 100%; }
+
+/* ---- phones: no sideways scroll, and less dead space between sections ---- */
+html, body { overflow-x: clip; -webkit-text-size-adjust: 100%; }
+img, video, canvas, svg { max-width: 100%; }
+@media (max-width: 700px) {
+  .sec { padding-block: 64px; }
+  .sec:not(.ocean) { border-radius: 36px 36px 0 0; margin-top: -36px; padding-top: 88px; padding-bottom: 64px; }
+  .sec.ocean { padding-top: 30vh; }          /* the blue gap under the hero, shorter on a phone */
+  .step { padding: 20px; border-radius: 28px; }
+  .block, .getcard, .bento .b { border-radius: 28px; }
+  .getcard { padding: 22px; }
+  .getqr img { width: 180px; height: 180px; }
+  .btn { min-height: 48px; }                 /* comfortable tap targets */
+  .nav a, .navlinks a { padding-block: 10px; }
+}
