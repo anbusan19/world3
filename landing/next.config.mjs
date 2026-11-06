@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const noop = './shims/noop-modules.js';
+// The public spot server (AWS). Share pages for stamps are served through this site, so a post on X links to wrld3.vercel.app
+// instead of a raw server address.
+const API = process.env.WRLD3_API_URL || 'https://15-252-207-174.sslip.io';
 const nextConfig = {
+  async rewrites() {
+    return [{ source: '/share/:path*', destination: `${API}/share/:path*` }];
+  },
   allowedDevOrigins: ['127.0.0.1'], // lets the dev server be opened as 127.0.0.1 too
   // The app's own screens (migrated/) run in the browser through react-native-web; native-only modules get web stand-ins.
   turbopack: {

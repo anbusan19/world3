@@ -135,6 +135,16 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   const chain = await createStampChain({ dataDir, privateKey: process.env.STAMP_OWNER_KEY || process.env.ENS_PRIVATE_KEY, rpcUrl: process.env.SEPOLIA_RPC_URL, contract: process.env.STAMP_CONTRACT, chainId: Number(process.env.CHAIN_ID) || 11155111, ...stampOpts });
   const chainBusy = new Set(); const chainErr = new Map();
   const chainMsg = (e) => String(e?.shortMessage ?? e?.message ?? 'failed').replace(/https?:\/\/\S+/g, '[url]').slice(0, 120);
+  // Mint a capture's stamp on chain through the relayer. A public RPC can fail now and then, and a failed mint must not leave a stamp
+  // "minting" forever, so it is retried (up to 6 tries) and a sweep every minute picks up any capture that still has no mint.
+  const mintTries = new Map(); const minting = new Set();
+  function relayMint(c) {
+    if (!chain.enabled || !c?.voucher || c.mintTx || minting.has(c.id) || (mintTries.get(c.id) ?? 0) >= 6) return;
+    minting.add(c.id); mintTries.set(c.id, (mintTries.get(c.id) ?? 0) + 1);
+    chain.mint(c.voucher).then((tx) => captures.setMint(c.id, tx)).catch((e) => console.error(`mint relay failed (try ${mintTries.get(c.id)}):`, chainMsg(e))).finally(() => minting.delete(c.id));
+  }
+  const mintSweep = () => { for (const c of captures.items) relayMint(c); };
+  if (chain.enabled) { setTimeout(mintSweep, 5_000).unref(); setInterval(mintSweep, 60_000).unref(); }
   function syncChain(spot) {
     if (!chain.enabled || !spot.published) return;
     chainBusy.add(spot.id); chainErr.delete(spot.id);
@@ -435,7 +445,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       { const closed = eventGate(body?.spotId); if (closed) throw closed; }
       // a person has no wallet in the app yet: the server holds one for them (the same address that owns their passport name)
       const accepted = await capture.verify(who, { ...body, recipient: body?.recipient ?? (who && passports ? passports.ownerFor(who.id) : undefined) });
-      if (chain.enabled && accepted.voucher) chain.mint(accepted.voucher).then((tx) => captures.setMint(accepted.id, tx)).catch((e) => console.error('mint relay failed:', chainMsg(e)));
+      if (chain.enabled && accepted.voucher) relayMint(accepted);
       passports?.onCapture(who.id); // a person with a public passport gets the new stamp published (in the background)
       return send(res, 200, { ok: true, capture: accepted });
     }

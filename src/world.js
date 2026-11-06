@@ -249,7 +249,9 @@ export async function shareStamp(spot) {
   const text = `I collected ${spot.name} on WRLD³. A stamp you can only get by being there, proved with World ID. #ETHGlobal #WorldID`;
   const base = getFeedBase();
   if (/^https:\/\//i.test(base)) {
-    const url = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(`${base}/share/stamp/${spot.id}`)}`;
+    // the link in the post is the public website (it forwards /share to the server), not the server's own address
+    const site = String(process.env.EXPO_PUBLIC_SITE_URL || 'https://wrld3.vercel.app').replace(/\/+$/, '');
+    const url = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(`${site}/share/stamp/${spot.id}`)}`;
     try { await Linking.openURL(url); return 'x'; } catch { /* fall through to the share sheet */ }
   }
   try { await Share.share({ message: text }); } catch { /* cancelled */ }
