@@ -2,7 +2,7 @@
   "expo": {
     "name": "wrld3",
     "slug": "wrld3",
-    "scheme": "world3",
+    "scheme": "wrld3",
     "version": "1.0.2",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
