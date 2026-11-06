@@ -220,6 +220,16 @@ test('opting in creates the passport; a later capture is published automatically
   assert.equal(ens.written.split(',').length, 2, 'the new capture was published without the person doing anything');
 });
 
+test('a person can fetch their own captures, and only theirs', async () => {
+  assert.equal((await call('GET', '/api/v1/me/captures')).status, 401);
+  const tok = await signIn('0xA1');
+  const mine = (await call('GET', '/api/v1/me/captures', null, tok)).body.captures;
+  assert.ok(mine.length >= 2);
+  assert.ok(mine.every((c) => c.spotId && c.at) && mine.every((c) => !('nullifier' in c) && !('userId' in c)), 'no identifiers are returned');
+  const other = await signIn('0xB2');
+  assert.deepEqual((await call('GET', '/api/v1/me/captures', null, other)).body.captures, []);
+});
+
 test('public must be true or false', async () => {
   const tok = await signIn('0xA1');
   assert.equal((await call('POST', '/api/v1/passport/public', { public: 'yes' }, tok)).status, 400);

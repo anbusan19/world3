@@ -169,6 +169,13 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       return send(res, 200, { owner: arkiv.owner, eventSlug: arkiv.eventSlug, schema: 'world3.spot', spots: await arkiv.list() }, cors);
     }
 
+    // the person's own captures (so the app can show their stamps again after a restart or on a new phone)
+    if (p === '/api/v1/me/captures' && method === 'GET') {
+      const user = auth.user(bearer(req));
+      if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
+      return send(res, 200, { captures: captures.items.filter((c) => c.userId === user.id).map((c) => ({ spotId: c.spotId, at: c.at })) });
+    }
+
     // ---- the person's own public passport (opt-in) --------------------------------------------------------------------
     if (p === '/api/v1/passport' || p === '/api/v1/passport/public') {
       const user = auth.user(bearer(req));
