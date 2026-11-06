@@ -29,6 +29,7 @@ function friendly(e) {
   const text = String(e?.shortMessage ?? e?.message ?? '');
   if (e?.code === 4001 || /reject|denied|declin/i.test(text)) return 'You declined the request in your wallet.';
   if (/insufficient|funds/i.test(text)) return 'Your wallet does not have enough tGLM for the gas. Get some at the faucet.';
+  if (/EntityMutation|gas|revert/i.test(text)) return 'Arkiv rejected the transaction. Larger images need more gas; try a smaller image (under 60 KB), and check you are on the Rabdi network with a little tGLM.';
   return 'Arkiv did not accept that. Check your wallet is on the Rabdi network and has tGLM, then try again.';
 }
 async function getJson(path) {
@@ -235,9 +236,13 @@ function renderCampaigns() {
 }
 
 // ---- writes (each one is signed in the sponsor's wallet) ----------------------------------------------------------
-async function txParams() {
-  // explicit gas and the network's current gas price: Rabdi writes must not be left to the wallet's own estimate
-  return { gas: 1_000_000n, gasPrice: BigInt(await S.provider.request({ method: 'eth_gasPrice' })) };
+// Gas grows with the image: Arkiv charges per stored byte (measured: 20 KB ~0.9M gas, 60 KB ~2.6M, 95 KB ~4.1M at 1 gwei, so a full
+// 100 KB ad costs about 0.005 tGLM). A fixed 1M limit made every image above ~25 KB fail, so size the limit to the payload.
+// Only gas USED is paid; the limit just has to be high enough. Pause, resume and delete get a roomy fixed limit.
+export const gasForCreative = (bytes) => 400_000n + 48n * BigInt(bytes);
+async function txParams(creativeBytes) {
+  const gas = creativeBytes != null ? gasForCreative(creativeBytes) : 5_000_000n;
+  return { gas, gasPrice: BigInt(await S.provider.request({ method: 'eth_gasPrice' })) };
 }
 async function ready() {
   if (!S.provider || !S.wallet) throw new Error('not connected');
@@ -350,7 +355,7 @@ async function publish(ev) {
     await ready();
     say(out, 'Confirm in your wallet…');
     // the entity outlives the campaign by a week
-    const res = await S.wallet.createEntity(CampaignSchema, values, { expiration: ExpirationTime.fromDays(days + 7) }, await txParams());
+    const res = await S.wallet.createEntity(CampaignSchema, values, { expiration: ExpirationTime.fromDays(days + 7) }, await txParams(values.creative.length));
     say(out, 'Published.', 'ok');
     result.hidden = false;
     const card = `${location.origin}/share/ad/${res.entityKey}`;
