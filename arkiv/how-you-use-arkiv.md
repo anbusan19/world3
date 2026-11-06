@@ -18,11 +18,13 @@
 | Public, queryable entities | The spot screen shows **Listed on Arkiv** with the entity key and expiry, and anyone can run `backend/scripts/arkiv-query.mjs` to see the same spots without our server. |
 | Owner-only writes | Only the organizer can list or change a spot. A copy of our schema by someone else is ignored. |
 | Expiry | "listed until 2026-12-06" on the spot screen. |
+| Sponsor-owned campaigns | A sponsor's ad appears on the stamp screen right after a verified capture, labelled Sponsored. Only the sponsor's wallet can change or pause it. |
 | Delete | Unticking "List on Arkiv" or deleting a spot removes it from the public list. |
 
 **What is real today:** two spots (Gateway of India, CSMT) written and read back on Rabdi, the dashboard switch, the public
-list route, and the app chip.
-**What is not built:** sponsor campaigns and ads. They are planned (see `docs/ads-and-campaigns.md`) and not part of what we claim.
+list route, and the app chip. **Sponsor campaigns:** one demo campaign is on Rabdi, written with the advertiser tool; the server reads it,
+validates it, and the app shows it as a "Sponsored" card on the stamp screen after a verified capture.
+**What is not built:** payouts to stamp holders, Swarm for large images, and campaigns written from a browser wallet (today a sponsor uses the CLI).
 
 ## What we kept off Arkiv, and why
 

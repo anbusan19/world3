@@ -8,8 +8,8 @@
 2. **Spots survive the backend.** Our server is a laptop at a hackathon. If it disappears, the public list does not.
 3. **Expiry the operator cannot forget.** An event spot is meant to end. The chain removes it on schedule; with a database
    somebody has to run a cleanup job, and a forgotten stale pin sends people to the wrong place.
-4. **Provable ownership.** Each entity has an owner wallet. A sponsor's campaign (planned) would be written and owned by
-   the sponsor's own wallet, so the organizer could pause it in our app but could not forge or rewrite it.
+4. **Provable ownership.** Each entity has an owner wallet. A sponsor's campaign is written and owned by the sponsor's own wallet,
+   so the organizer can decline to show it but cannot forge or rewrite it, and the sponsor can pause or delete it without us.
 
 **What we did not move, and why.** Everything personal, and everything big (see `how-you-use-arkiv.md`). Arkiv is a public
 record: a database stays the right home for captures, accounts and models.

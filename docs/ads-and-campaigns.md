@@ -1,6 +1,12 @@
 # Sponsor campaigns, ads and payouts (plan)
 
-Status: **plan**, nothing here is built yet except the stamp contract and voucher signer. Testnet only.
+Status: **Layers A and B are built** (spots and campaigns on Arkiv; the ad is shown on the stamp screen after a verified capture, with
+impression counts). **Layer C (escrow and payouts) is not built.** Large creatives on Swarm and a browser-wallet advertiser page are not
+built. Testnet only.
+
+Two choices differ from the plan below: the ad is shown **after** a verified capture (on the "Stamp collected" screen), not on the verify
+step, so a sponsor only pays for attention from a verified person who really was there; and advertisers publish with a command-line tool
+(`backend/scripts/campaign-create.mjs`) for now.
 
 ## The idea
 

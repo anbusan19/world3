@@ -34,10 +34,25 @@ lifetime is about 182 days. Unticking the box, unpublishing, or deleting the spo
 
 **Who can change it:** only the organizer wallet (Arkiv's owner-only rule). Our dashboard is the only thing that holds that key.
 
-## Entities planned, not built yet
+### `world3.campaign` (built)
+A sponsor's ad for one spot. **Written and owned by the sponsor's own wallet**, with `backend/scripts/campaign-create.mjs`. The ad image
+is stored *inside* the entity (up to ~100 KB), so there is no second storage system and it expires with the campaign.
 
-`world3.campaign` (sponsor ads, written by each sponsor's own wallet, creative stored in the entity if under 128 KiB) and
-`world3.event`. See `docs/ads-and-campaigns.md`. **Nothing about ads or sponsors is on Arkiv today.**
+| Field | Type | Indexed | What it is |
+|---|---|---|---|
+| `eventSlug`, `spotId` | str | yes | where it runs |
+| `status` | str | yes | `active` or `paused` (the sponsor can pause their own) |
+| `startsAt`, `endsAt` | u64 | yes | unix seconds |
+| `sponsor`, `headline`, `alt`, `clickUrl` | str | no | shown text and the https link |
+| `mime`, `sha256`, `width`, `height` | str / i32 | no | declared type, digest and size of the image |
+| `creative` | bytes | no | the image (PNG, JPEG, WebP or GIF, at most 100 KB, at most 1280 px) |
+
+The server shows a campaign only if the owner wallet is approved (`ARKIV_SPONSORS`, plus the organizer), it is active and inside its
+dates, the image is a real file of the declared type and size and matches its digest, and the link is plain https. Anyone can copy the
+schema name, so the tag alone proves nothing. Entities expire 7 days after the campaign ends.
+
+**Nothing about the people who see an ad is on Arkiv.** Impressions are counted by our server, once per verified person.
+**Not built:** escrow and payouts, Swarm for large creatives, and an ad on the World ID verify step.
 
 ## Run the query yourself
 
