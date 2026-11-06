@@ -6,6 +6,8 @@ import http from 'node:http';
 const UP_HOST = process.env.UPSTREAM_HOST ?? '127.0.0.1';
 const UP_PORT = Number(process.env.UPSTREAM_PORT ?? 3000);
 const PORT = Number(process.env.PROXY_PORT ?? 3001);
+// websites (hostnames) allowed to call the faucet from a browser, e.g. the advertiser page on Vercel: PUBLIC_SITE_HOSTS=sponsors.example.vercel.app
+const SITE_HOSTS = String(process.env.PUBLIC_SITE_HOSTS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 const ALLOWED = [
   /^\/api\/health$/,
@@ -48,7 +50,7 @@ export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } =
     if (req.method === 'OPTIONS') { res.writeHead(204, { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET, HEAD' }); return res.end(); }
     // the one write the public front allows: asking the testnet faucet for tGLM
     if (req.method === 'POST' && url.pathname === '/api/v1/faucet') {
-      try { if (new URL(req.headers.origin ?? '').host !== req.headers.host) return deny(403, 'Cross-site requests are not allowed.'); } catch { return deny(403, 'Cross-site requests are not allowed.'); }
+      try { const oh = new URL(req.headers.origin ?? '').host; if (oh !== req.headers.host && !SITE_HOSTS.includes(oh)) return deny(403, 'Cross-site requests are not allowed.'); } catch { return deny(403, 'Cross-site requests are not allowed.'); }
       let size = 0;
       const up = http.request({ host: upstreamHost, port: upstreamPort, method: 'POST', path: url.pathname, headers: {
         host: `${upstreamHost}:${upstreamPort}`, 'content-type': 'application/json', 'x-requested-with': 'wrld3-dashboard',
