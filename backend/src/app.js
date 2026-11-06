@@ -226,6 +226,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     // ---- the advertiser page: public, read-only facts --------------------------------------------------------------
     if (p === '/api/v1/sponsors/info' && method === 'GET') {
       const addr = url.searchParams.get('address');
+      if (addr) await sponsors.autoAdd(addr);
       return send(res, 200, {
         eventSlug: arkiv.eventSlug ?? process.env.ARKIV_EVENT_SLUG ?? 'ethglobal-mumbai-2026',
         arkivEnabled: arkiv.enabled,
@@ -238,6 +239,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       const owner = url.searchParams.get('owner') ?? '';
       if (!/^0x[0-9a-fA-F]{40}$/.test(owner)) throw new HttpError(400, 'owner must be a wallet address.');
       if (!arkiv.enabled) return send(res, 200, { campaigns: [], approved: false });
+      await sponsors.autoAdd(owner);
       const approved = sponsors.isApproved(owner) || owner.toLowerCase() === arkiv.owner.toLowerCase();
       const rows = await arkiv.readCampaignsFor(owner).catch(() => { throw new HttpError(502, 'Arkiv could not be read right now.'); });
       const campaigns = [];
@@ -253,12 +255,17 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       if (method === 'GET') {
         const out = [];
         for (const sp of sponsors.list()) out.push({ ...sp, campaigns: arkiv.enabled ? await arkiv.readCampaignsFor(sp.address).then((r) => r.length).catch(() => null) : null });
-        return send(res, 200, { sponsors: out, organizer: arkiv.owner ?? null });
+        return send(res, 200, { sponsors: out, organizer: arkiv.owner ?? null, open: sponsors.isOpen(), openMax: sponsors.openMax });
       }
       if (method === 'POST') {
         const { address, name } = await readJson(req);
         try { return send(res, 201, { sponsor: await sponsors.add(address, name) }); } catch (e) { throw new HttpError(400, e.message); }
       }
+    }
+    if (p === '/api/sponsors/open' && method === 'PUT') {
+      const { open } = await readJson(req);
+      if (typeof open !== 'boolean') throw new HttpError(400, 'open must be true or false.');
+      return send(res, 200, { open: await sponsors.setOpen(open) });
     }
     const spRoute = p.match(/^\/api\/sponsors\/(0x[0-9a-fA-F]{40})$/);
     if (spRoute && method === 'DELETE') return send(res, 200, { removed: await sponsors.remove(spRoute[1]) });

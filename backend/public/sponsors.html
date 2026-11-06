@@ -21,6 +21,11 @@
       <p>A campaign is shown in the app only if it was written by a wallet on this list (or by your own organizer wallet). Approvals apply immediately. Advertisers publish from <a href="/sponsor.html">the advertiser page</a> and send you their wallet address.</p>
     </section>
     <section class="card">
+      <h2>Hackathon mode</h2>
+      <label class="sw" style="display:flex;gap:12px;align-items:center;font-weight:700"><span class="switch"><input id="open" type="checkbox"><i></i></span><span id="openText">Auto-approve every wallet that opens the advertiser page</span></label>
+      <p class="fine">On: a sponsor connects, gets free tGLM and their ad can run with no step from you (limited to the first 30 wallets). Off: only wallets you approve below can run ads. You can still remove anyone at any time.</p>
+    </section>
+    <section class="card">
       <h2>Approved sponsors</h2>
       <form id="add" class="row" autocomplete="off">
         <label class="field" style="margin:0;flex:2 1 280px"><span>Wallet address</span><input id="address" placeholder="0x…" spellcheck="false"></label>

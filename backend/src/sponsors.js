@@ -10,17 +10,23 @@ export class Sponsors {
 
   constructor(dir, fromEnv = []) {
     this.file = path.join(dir, 'sponsors.json');
-    this.items = []; // { address (lowercase), name, addedAt }
+    this.items = []; // { address (lowercase), name, addedAt, auto? }
+    this.open = false; // hackathon mode: any wallet that shows up is approved on the spot (up to openMax of them)
+    this.openMax = 30;
     this.env = fromEnv.map((a) => a.toLowerCase());
   }
 
   async init() {
     await mkdir(path.dirname(this.file), { recursive: true });
-    if (existsSync(this.file)) this.items = JSON.parse(await readFile(this.file, 'utf8')).sponsors ?? [];
+    if (existsSync(this.file)) {
+      const j = JSON.parse(await readFile(this.file, 'utf8'));
+      this.items = j.sponsors ?? [];
+      this.open = !!j.open;
+    }
   }
 
   #save() {
-    const data = JSON.stringify({ version: 1, sponsors: this.items }, null, 2);
+    const data = JSON.stringify({ version: 1, open: this.open, sponsors: this.items }, null, 2);
     this.#queue = this.#queue.then(async () => { const tmp = `${this.file}.tmp`; await writeFile(tmp, data); await rename(tmp, this.file); });
     return this.#queue;
   }
@@ -28,6 +34,18 @@ export class Sponsors {
   addresses() { return [...new Set([...this.env, ...this.items.map((s) => s.address)])]; }
   isApproved(address) { return !!address && this.addresses().includes(String(address).toLowerCase()); }
   list() { return [...this.items.map((s) => ({ ...s, source: 'dashboard' })), ...this.env.filter((a) => !this.items.some((s) => s.address === a)).map((address) => ({ address, name: '', source: 'env' }))]; }
+
+  isOpen() { return this.open; }
+  async setOpen(flag) { this.open = !!flag; await this.#save(); return this.open; }
+  // Open mode only: approve a wallet that just showed up. Capped, so the list (and the Arkiv reads for it) cannot grow without limit.
+  async autoAdd(address, now = Date.now()) {
+    if (!this.open || !isAddress(String(address ?? ''), { strict: false })) return false;
+    if (this.isApproved(address)) return true;
+    if (this.items.filter((s) => s.auto).length >= this.openMax) return false;
+    this.items.push({ address: String(address).toLowerCase(), name: 'Self-approved (open mode)', addedAt: new Date(now).toISOString(), auto: true });
+    await this.#save();
+    return true;
+  }
 
   async add(address, name, now = Date.now()) {
     if (!isAddress(String(address), { strict: false })) throw new Error('That is not a wallet address.');

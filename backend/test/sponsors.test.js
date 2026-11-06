@@ -96,3 +96,22 @@ test('removing a sponsor stops their ads from being eligible straight away', asy
   await j(`/api/sponsors/${ACME}`, { method: 'DELETE', headers: H });
   assert.equal((await j(`/api/v1/sponsors/info?address=${ACME}`)).body.approved, false);
 });
+
+test('open mode approves wallets that show up, up to a cap, and can be switched off', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'sp-'));
+  const sp = new Sponsors(dir); await sp.init();
+  sp.openMax = 2;
+  const w = (n) => '0x' + String(n).repeat(40);
+  assert.equal(await sp.autoAdd(w(1)), false); // closed by default
+  await sp.setOpen(true);
+  assert.equal(await sp.autoAdd(w(1)), true);
+  assert.equal(await sp.autoAdd(w(1)), true); // already approved, not counted twice
+  assert.equal(await sp.autoAdd(w(2)), true);
+  assert.equal(await sp.autoAdd(w(3)), false); // cap reached
+  assert.equal(await sp.autoAdd('nope'), false);
+  const again = new Sponsors(dir); await again.init(); // survives a restart
+  assert.equal(again.isOpen(), true);
+  assert.ok(again.isApproved(w(2)));
+  await sp.setOpen(false);
+  assert.equal(await sp.autoAdd(w(4)), false);
+});

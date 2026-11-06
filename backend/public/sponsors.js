@@ -12,7 +12,8 @@ async function api(method, path, body) {
 }
 
 async function load() {
-  const { sponsors, organizer } = await api('GET', '/api/sponsors');
+  const { sponsors, organizer, open } = await api('GET', '/api/sponsors');
+  $('#open').checked = !!open;
   $('#org').textContent = organizer ?? 'Arkiv is not set up';
   $('#empty').hidden = sponsors.length > 0;
   $('#table').hidden = sponsors.length === 0;
@@ -45,3 +46,8 @@ $('#add').addEventListener('submit', async (ev) => {
 });
 load().catch((e) => say(e.message, 'bad'));
 setInterval(() => load().catch(() => {}), 20000);
+
+$('#open').addEventListener('change', async (ev) => {
+  try { const r = await api('PUT', '/api/sponsors/open', { open: ev.target.checked }); say(r.open ? 'Hackathon mode is on: new wallets are approved automatically.' : 'Hackathon mode is off: only wallets you approve can run ads.', 'ok'); }
+  catch (e) { ev.target.checked = !ev.target.checked; say(e.message, 'bad'); }
+});
