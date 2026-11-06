@@ -47,6 +47,8 @@ and refuses everything else, so the organizer dashboard and its edit API cannot 
 9. **Update later:** `sudo bash /opt/wrld3/deploy/lightsail/update.sh`.
 
 ## Point the app at it
+Live sites: landing https://wrld3.vercel.app, sponsor page https://wrld3-sponsors.vercel.app (the proxy lists them in `PUBLIC_SITE_HOSTS`).
+
 Build the APK with both servers, so people get a switch in **Profile, Settings, Connection**:
 ```
 EXPO_PUBLIC_SERVERS="AWS|https://15-252-207-174.sslip.io,Laptop|https://<your-tunnel>.trycloudflare.com" scripts/build-apk.sh

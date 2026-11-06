@@ -7,6 +7,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 export async function loadSession() { return null; }
 export async function signInWithWorldId({ onStage = () => {} } = {}) { onStage(0); await wait(500); onStage(1); await wait(500); return { id: 'demo' }; }
 export async function signOut() {}
+export async function getRecoveryCode() { return 'DEMO-CODE-ONLY-NOT-REAL'; }
+export async function restoreAccount() { return { id: 'demo' }; }
 export async function captureWithWorldId({ onStage = () => {} } = {}) { onStage(0); await wait(600); onStage(1); await wait(700); onStage(2); await wait(500); return { id: 'demo' }; }
 export async function fetchAd() { return null; }
 export function reportImpression() {}
