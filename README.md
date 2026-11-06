@@ -502,10 +502,24 @@ wrld3 server: `cd backend && npm install && node scripts/arkiv-query.mjs`. Detai
 
 Submission checklist:
 
-- Public repo with an open-source license and an AI-usage statement
+- Public repo with an open-source license ([LICENSE](LICENSE)) and an AI-usage statement ([How AI was used](#how-ai-was-used))
 - Live demo link (the passport page) and a demo video
 - README sections: how each sponsor is used, wallet addresses that wrote Arkiv entities and one runnable query
 - `/arkiv/*.md` files and `WORLD_FEEDBACK.md`
 - Clear labels for anything mocked or simulated
+
+## Author and license
+
+Released under the [MIT License](LICENSE). Built by [@anbusan19](https://github.com/anbusan19) for ETHGlobal Mumbai (November 5-7, 2026).
+
+### How AI was used
+
+This project was built with **Claude Code** (Anthropic) working in the repository under the author's direction.
+
+- **Done by the author:** the idea and product decisions, the choice of sponsors and tracks, the spot list and coordinates, all testing on a real phone, accounts and keys, deployment, and every release.
+- **Done with Claude Code:** most of the code, including the app, the backend and dashboards, the landing page and the Stamp contract; the generated 3D coin models; the tests; the docs; and the submission text.
+- **Not AI output:** the sponsors' logos and the Aqua Line poster reference, which are the authors' or the sponsors' own assets.
+
+Everything was run and checked by the author before it was released. Do not treat the code as audited.
 
 wrld3 is an independent project. It uses World ID but is **not affiliated with World**.
