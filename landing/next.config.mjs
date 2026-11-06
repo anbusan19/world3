@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const noop = './shims/noop-modules.js';
 const nextConfig = {
+  allowedDevOrigins: ['127.0.0.1'], // lets the dev server be opened as 127.0.0.1 too
   // The app's own screens (migrated/) run in the browser through react-native-web; native-only modules get web stand-ins.
   turbopack: {
     resolveExtensions: ['.web.tsx', '.web.ts', '.web.jsx', '.web.js', '.tsx', '.ts', '.jsx', '.js', '.mjs', '.json'],

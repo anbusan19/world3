@@ -2,6 +2,9 @@ import { AppPhone, HeroGlobe, OnboardingArts, PassportBook } from '@/components/
 import NavMenu from '@/components/NavMenu';
 import { Walk } from '@/components/Walk';
 import DitherField from '@/components/DitherField';
+import Counter from '@/components/Counter';
+import Reveal from '@/components/Reveal';
+import { Blob, Dot, Squiggle } from '@/components/Squiggle';
 import { Birds, Boat, Wave } from '@/components/Nature';
 
 const Icon = ({ d }) => (
@@ -24,6 +27,18 @@ const CHECKS = [
   ['Privacy', 'No coordinates onchain', 'Location evidence is discarded after checking. Passports are private unless you share them.', 'M5 11h14v9H5Zm3 0V8a4 4 0 0 1 8 0v3'],
 ];
 
+const NUMS = [
+  [1, '', 'human per stamp, per spot. World ID makes it one.'],
+  [0, '', 'exact coordinates on a public chain. Spots are shown rounded.'],
+  [3, '', 'checks on every capture: where you are, that you are a person, and that the request is fresh.'],
+  [80, ' s', 'to create a public passport on ENS, from one tap.'],
+];
+const BLOCKS = [
+  ['/sponsors/world.svg', 'World ID', 'Proves you are one unique human, without telling us who you are.', 'Checked on our server for every capture, and once more to sign in.'],
+  ['/sponsors/ens.svg', 'ENS', 'Your passport is a name anyone can look up, like a7k2.wrld3.eth.', 'Your stamps are one record on it. We can write that record and nothing else.'],
+  ['/sponsors/arkiv.svg', 'Arkiv', 'Spots and sponsor ads live as public records, owned by their authors.', 'Read them yourself, no World3 server needed.'],
+];
+
 const DONE = [
   ['Android app', 'with map, spot list, passport and settings, in light and dark.'],
   ['AR capture', 'with a real 3D model placed at the spot’s coordinate, growing as you walk up to it.'],
@@ -40,6 +55,7 @@ const NEXT = [
 export default function Home() {
   return (
     <>
+      <Reveal />
       {/* hero */}
       <div className="hero-track" id="top">
       <header className="hero sky">
@@ -63,7 +79,7 @@ export default function Home() {
                 {/* eslint-disable @next/next/no-img-element */}
                 <a href="https://world.org" target="_blank" rel="noreferrer"><img src="/sponsors/world.svg" alt="" width="26" height="26" />World</a>
                 <a href="https://ens.domains" target="_blank" rel="noreferrer"><img src="/sponsors/ens.svg" alt="" width="26" height="26" />ENS</a>
-                <a href="https://arxiv.org" target="_blank" rel="noreferrer"><img src="/sponsors/arxiv.svg" alt="" width="26" height="26" />arXiv</a>
+                <a href="https://arkiv.network" target="_blank" rel="noreferrer"><img src="/sponsors/arkiv.svg" alt="" width="26" height="26" />Arkiv</a>
                 {/* eslint-enable @next/next/no-img-element */}
               </div>
             </div>
@@ -86,16 +102,59 @@ export default function Home() {
       {/* how it works */}
       <section className="sec ocean" id="steps">
         <div className="wrap pad">
-          <div className="head">
+          <div className="head reveal">
             <p className="eyebrow">How it works</p>
             <h2>Three things, in order.</h2>
           </div>
           <div className="steps">
             {STEPS.map(([a, b, body], i) => (
-              <div className="step" key={a}>
+              <div className="step" key={a} style={{ '--i': i }}>
                 <div className="art"><OnboardingArts index={i} /></div>
                 <h3>{a}<em>{b}</em></h3>
                 <p>{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* numbers */}
+      <section className="sec numbers" id="numbers">
+        <Squiggle className="sq1" color="#F6E27A" />
+        <Blob className="sq2" color="#F9C9B0" />
+        <Dot className="sq3" color="#0265AD" />
+        <div className="wrap pad">
+          <div className="head reveal">
+            <p className="eyebrow">By the numbers</p>
+            <h2>A few numbers behind every stamp.</h2>
+          </div>
+          <div className="nums">
+            {NUMS.map(([n, suffix, text], i) => (
+              <div className="num reveal" key={text} style={{ transitionDelay: `${i * 90}ms` }}>
+                <b><Counter to={n} suffix={suffix} /></b>
+                <span>{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* built with */}
+      <section className="sec blocks" id="built">
+        <div className="wrap pad">
+          <div className="head reveal">
+            <p className="eyebrow">Built with</p>
+            <h2>Three open building blocks.</h2>
+            <p className="lede">Each one does one job, and each one can be checked by anyone, without asking us.</p>
+          </div>
+          <div className="blockgrid">
+            {BLOCKS.map(([logo, name, line, how]) => (
+              <div className="block reveal" key={name}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logo} alt="" width="44" height="44" />
+                <h3>{name}</h3>
+                <p>{line}</p>
+                <small>{how}</small>
               </div>
             ))}
           </div>
@@ -135,7 +194,7 @@ export default function Home() {
       <section className="sec sky" id="proof">
         <Wave color="#FFF7D1" flip />
         <div className="wrap pad">
-          <div className="head">
+          <div className="head reveal">
             <p className="eyebrow">Proof of presence</p>
             <h2>A stamp only means something if it can’t be faked.</h2>
             <p className="lede">Location rewards fail when bots and GPS spoofers farm them. Every capture is treated as evidence, and the backend decides. The phone never gets to say where it is.</p>
@@ -222,7 +281,7 @@ export default function Home() {
       <section className="sec sun" id="status">
         <Wave color="#CFE8A8" flip />
         <div className="wrap pad">
-          <div className="head">
+          <div className="head reveal">
             <p className="eyebrow">Where it stands</p>
             <h2>A prototype, built in the open.</h2>
             <p className="lede">Made for ETHGlobal Mumbai. The capture experience runs on a real phone. The verification and onchain parts are next.</p>
@@ -241,13 +300,16 @@ export default function Home() {
       </section>
 
       <footer className="site pad">
-        <Wave color="#FFF7D1" flip />
         <Birds className="birds2" />
         <Boat className="boat" w={110} />
         <div className="wrap in">
-          <strong>World3</strong>
-          <span>Built for ETHGlobal Mumbai, November 5–7, 2026. Testnet only, not audited.</span>
-          <span>World3 is an independent project. It uses World ID and is not affiliated with World.</span>
+          <p className="signoff reveal">Go there.<br /><span>Prove it.</span><br /><em>Keep it.</em></p>
+          <a className="pillcta" href="#launch"><span>Try the app</span><i aria-hidden="true">›</i></a>
+          <div className="foot-notes">
+            <strong>World3</strong>
+            <span>Built for ETHGlobal Mumbai, November 5–7, 2026. Testnet only, not audited.</span>
+            <span>World3 is an independent project. It uses World ID and is not affiliated with World.</span>
+          </div>
         </div>
       </footer>
     </>

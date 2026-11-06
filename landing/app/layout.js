@@ -12,7 +12,11 @@ export const viewport = { themeColor: '#E6F7FB' };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={display.variable}>
+    <html lang="en" className={display.variable} suppressHydrationWarning>
+      <head>
+        {/* lets the CSS hide .reveal elements only when JavaScript will bring them back */}
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
+      </head>
       <body>{children}</body>
     </html>
   );
