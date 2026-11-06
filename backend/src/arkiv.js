@@ -7,6 +7,7 @@ import { and, eq } from '@arkiv-network/sdk/query';
 import { bool, defineSchema, i32, str } from '@arkiv-network/sdk/schema';
 import { http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
+import { CampaignSchema } from './campaign.js';
 
 // Spots as public Arkiv entities, so anyone can discover them without asking the World3 backend, and they disappear on
 // their own when the event is over. The organizer's wallet owns and writes them; this server only reads them back.
@@ -164,6 +165,23 @@ export async function createArkiv({ dataDir, config = arkivConfigFromEnv(), clie
       await ledger.set(String(spotId), null);
       return !!existing;
     }),
+
+    // every campaign entity from the given owners (sponsors write them from their own wallets). Values are returned as
+    // plain objects with the creative as hex; the caller validates everything before showing any of it.
+    async readCampaigns(owners, eventSlug = config.eventSlug) {
+      const out = [];
+      for (const o of owners) {
+        const { entities } = await publicClient
+          .select({ $key: true, $owner: true, $expiresAt: true, spotId: true, status: true, startsAt: true, endsAt: true, sponsor: true, headline: true, clickUrl: true, alt: true, mime: true, sha256: true, width: true, height: true, creative: true })
+          .from(CampaignSchema)
+          .ownedBy(o)
+          .where(eq('eventSlug', eventSlug))
+          .limit(100)
+          .fetch();
+        out.push(...entities.map(flat));
+      }
+      return out;
+    },
 
     // the public list, read back from the chain (the part of the app that "reads from Arkiv")
     async list() {
