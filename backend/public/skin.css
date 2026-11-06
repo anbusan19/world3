@@ -122,13 +122,10 @@ main > .hero > *:not(.hero-globe), .xp .intro > *:not(.hero-globe) { position: r
 @media (prefers-color-scheme: dark) { @media (prefers-reduced-motion: reduce) { .shepherd-target, .field.w3-todo { animation: none; } }
 
 /* a field the sponsor skipped: red, with a tag, until it is filled */
-:root { --miss: #D93A2B; }
-@media (prefers-color-scheme: dark) { :root { --miss: #FF6B5B; } }
-.field.missing input:not([type=file]), .field.missing select { border-color: var(--miss); box-shadow: 0 0 0 3px color-mix(in srgb, var(--miss) 22%, transparent); }
+:root { --miss: #B5483C; }
+@media (prefers-color-scheme: dark) { :root { --miss: #C9675C; } }
+.field.missing input:not([type=file]), .field.missing select { border-color: var(--miss); box-shadow: 0 0 0 3px color-mix(in srgb, var(--miss) 16%, transparent); }
 .field.missing .drop { border-color: var(--miss); background: color-mix(in srgb, var(--miss) 8%, var(--card)); }
 .field.missing > span:first-of-type { color: var(--miss); }
-.field.missing > span:first-of-type::after { content: 'Required'; margin-left: 8px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--miss); color: #fff; }
-.field.missing { animation: nudge .35s; }
-@keyframes nudge { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+.field.missing > span:first-of-type::after { content: 'Required'; margin-left: 8px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--miss) 22%, transparent); color: var(--miss); }
 #publishWrap { display: inline-block; } #publishWrap > .btn:disabled { pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .field.missing { animation: none; } }
