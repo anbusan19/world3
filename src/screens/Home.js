@@ -5,16 +5,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { MapCard } from '../MapCard';
 import { Stamp } from '../Stamp';
 import { formatDistance } from '../geo';
-import { NEAR_METERS, shortName } from '../spots';
+import { NEAR_METERS, getEvent, shortName } from '../spots';
 import { F, makeStyles, useColors } from '../theme';
 
 // Explore: the real map fills the whole screen, and the words sit on top of it. A strip of spot cards floats above the
 // tab bar; tapping one flies the map there, and its arrow opens the spot.
-export function Home({ spots, user, collected, openSpot }) {
+export function Home({ spots: all, user, collected, openSpot }) {
+  const spots = all.filter((s) => !s.ended); // after the event nothing is on the map
+  const over = !!getEvent()?.over;
   const styles = useStyles();
   const C = useColors();
   const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState(spots[0]?.id);
+  const ev = getEvent();
   const strip = useRef(null);
 
   // nearest first when we know where you are
@@ -33,6 +36,13 @@ export function Home({ spots, user, collected, openSpot }) {
           </Text>
         </View>
       </View>
+
+      {over && (
+        <View style={[styles.endedCard, { bottom: insets.bottom + 108 }]}>
+          <Text style={styles.endedTitle}>{ev?.name ?? 'The event'} has ended</Text>
+          <Text style={styles.endedBody}>The spots are gone and stamps can no longer be collected. Everything you collected stays in your passport.</Text>
+        </View>
+      )}
 
       {/* spot cards, over the map */}
       <View style={[styles.stripWrap, { bottom: insets.bottom + 108 }]} pointerEvents="box-none">
@@ -73,6 +83,9 @@ const useStyles = makeStyles((C) => ({
   title: { fontFamily: F.bold, fontSize: 28, lineHeight: 33, letterSpacing: -1, color: C.ink, marginTop: 2 },
   titleLight: { fontFamily: F.reg },
 
+  endedCard: { position: 'absolute', left: 16, right: 16, backgroundColor: C.card, borderRadius: 26, padding: 18, elevation: 4 },
+  endedTitle: { fontFamily: F.bold, fontSize: 18, color: C.ink, letterSpacing: -0.4 },
+  endedBody: { fontFamily: F.reg, fontSize: 13, lineHeight: 19, color: C.muted, marginTop: 6 },
   stripWrap: { position: 'absolute', left: 0, right: 0 },
   strip: { paddingHorizontal: 16, gap: 12 },
   card: { width: 280, flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 26, padding: 10, borderWidth: 2, borderColor: 'transparent', elevation: 4, shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },

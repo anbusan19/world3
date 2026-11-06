@@ -11,6 +11,8 @@ const BUNDLED = [
 // The list the app uses. Starts as the bundled spots and is replaced IN PLACE by the dashboard feed
 // (backend/), so every screen that imports `spots` sees the update on its next render.
 export const spots = [...BUNDLED];
+let eventInfo = null; // { name, endsAt, over } from the feed
+export const getEvent = () => eventInfo;
 
 // Where the app fetches spots from. Default: the Mac over USB (`adb reverse tcp:3000 tcp:3000`). For testing away from
 // the cable, run `npm run share` in backend/ and paste the https URL it prints into Profile > Settings > Spot server
@@ -38,10 +40,11 @@ export async function setFeedBase(v) {
 }
 const TINTS = { coral: '#F9C9B0', sky: '#BFE3EC', sun: '#F6E27A', leaf: '#CFE8A8', ocean: '#9CC8EA' };
 
-function fromFeed(f) {
+function fromFeed(f, ended = false) {
   return {
+    ended,
     id: f.id, name: f.name, label: f.label, art: f.art, city: f.city,
-    type: String(f.type).toUpperCase(), kind: f.kind, coord: f.coord,
+    type: String(f.type).toUpperCase(), kind: f.kind, coord: f.coord ?? null,
     tint: TINTS[f.theme] ?? TINTS.coral, theme: f.theme, icon: f.icon,
     captureM: f.captureRadiusM, approachM: f.approachRadiusM,
     model: f.model ? { ...f.model, url: feedBase + f.model.url } : null,
@@ -59,7 +62,15 @@ export async function refreshSpots(force = false) {
     clearTimeout(t);
     if (!res.ok) return force ? -1 : false;
     const body = await res.json();
-    const next = (body.spots ?? []).map(fromFeed);
+    eventInfo = body.event ?? null;
+    // After the event only the record of stamps remains: the places stay (so a collected stamp can still be opened) but have
+    // no coordinates, no model, and cannot be captured.
+    const next = eventInfo?.over ? (body.archive ?? []).map((f) => fromFeed(f, true)) : (body.spots ?? []).map((f) => fromFeed(f));
+    if (eventInfo?.over) {
+      const same = JSON.stringify(next) === JSON.stringify(spots);
+      spots.splice(0, spots.length, ...next);
+      return force ? next.length : !same;
+    }
     if (!next.length) return force ? -1 : false;
     if (!force && JSON.stringify(next) === JSON.stringify(spots)) return false;
     spots.splice(0, spots.length, ...next);

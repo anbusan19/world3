@@ -210,7 +210,11 @@ function renderKpis() {
   const el = $('#kpis'); if (!el) return;
   const n = state.spots.length, pub = state.spots.filter((s) => s.published).length;
   const tiles = [[n, 'spots', ''], [pub, 'published', 'green'], [n - pub, 'drafts', ''], [state.spots.filter((s) => s.model).length, 'with a 3D model', ''], [state.spots.filter((s) => s.arkiv).length, 'on Arkiv', '']];
-  el.innerHTML = tiles.map(([v, l, c]) => `<div class="kpi ${c}"><b>${v}</b><span>${l}</span></div>`).join('');
+  el.innerHTML = tiles.map(([v, l, c]) => `<div class="kpi ${c}"><b data-to="${v}">${v}</b><span>${l}</span></div>`).join('');
+  if (!renderKpis.done && !matchMedia('(prefers-reduced-motion: reduce)').matches) { // count up once, the first time
+    renderKpis.done = true;
+    el.querySelectorAll('b').forEach((b) => { const to = Number(b.dataset.to); const t0 = performance.now(); const tick = (t) => { const k = Math.min(1, (t - t0) / 900); b.textContent = Math.round(to * (1 - (1 - k) ** 3)); if (k < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
+  }
 }
 
 function renderList() {
@@ -601,6 +605,37 @@ function bindEvents() {
   addEventListener('beforeunload', (e) => { if (isDirty()) { e.preventDefault(); e.returnValue = ''; } });
 }
 
+/* ------------------------------------ event clock ------------------------------------ */
+
+let eventInfo = null;
+function renderEvent() {
+  const chip = $('#eventChip'); if (!chip || !eventInfo) return;
+  const e = eventInfo; const ms = e.endsAt ? Date.parse(e.endsAt) - Date.now() : null;
+  chip.classList.toggle('over', ms != null && ms <= 0);
+  if (ms == null) chip.textContent = 'No end time set';
+  else if (ms <= 0) chip.textContent = `${e.name} is over · spots hidden`;
+  else {
+    const m = Math.floor(ms / 60000); const d = Math.floor(m / 1440); const h = Math.floor((m % 1440) / 60);
+    chip.textContent = `Ends in ${d ? `${d} d ` : ''}${h || d ? `${h} h` : `${m} min`} · ${new Date(e.endsAt).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}`;
+  }
+}
+async function loadEvent() { try { eventInfo = await api('GET', '/api/event'); renderEvent(); } catch { /* the chip just stays as it was */ } }
+function wireEvent() {
+  const form = $('#eventForm'); if (!form) return;
+  $('#eventChip').addEventListener('click', () => {
+    form.hidden = !form.hidden; $('#eventChip').setAttribute('aria-expanded', String(!form.hidden));
+    if (!form.hidden && eventInfo?.endsAt) { const d = new Date(eventInfo.endsAt); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); $('#eventEnd').value = d.toISOString().slice(0, 16); }
+  });
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    try { eventInfo = await api('PUT', '/api/event', { endsAt: new Date($('#eventEnd').value).toISOString() }); renderEvent(); form.hidden = true; toast('Event end time saved.'); } catch (e) { toast(e.message, 'bad'); }
+  });
+  $('#eventClear').addEventListener('click', async () => {
+    try { eventInfo = await api('PUT', '/api/event', { endsAt: null }); renderEvent(); form.hidden = true; toast('The event has no end time now.'); } catch (e) { toast(e.message, 'bad'); }
+  });
+  loadEvent(); setInterval(renderEvent, 30000); setInterval(loadEvent, 60000);
+}
+
 /* ------------------------------------- boot ------------------------------------- */
 
 async function pingStatus() {
@@ -641,4 +676,5 @@ async function boot() {
   setInterval(pingStatus, 15000);
 }
 
+wireEvent();
 boot();

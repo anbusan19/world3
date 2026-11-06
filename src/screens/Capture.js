@@ -25,6 +25,7 @@ const FAILS = {
   expired: { icon: 'hourglass', title: 'Request expired', body: 'That capture request ran out of time or was already used. Start again.' },
   busy: { icon: 'cloud-offline', title: 'World ID unavailable', body: 'World ID could not be reached. Try again in a moment.' },
   signedout: { icon: 'person-remove', title: 'Signed out', body: 'Your session ended. Sign out and sign in with World ID again, then retry.' },
+  ended: { icon: 'time', title: 'The event has ended', body: 'This stamp could only be collected during the event. Stamps you already collected stay in your passport.' },
   network: { icon: 'cloud-offline', title: 'Server unreachable', body: 'We could not reach the World3 server. Check the Spot server setting in Passport, then try again.' },
 };
 

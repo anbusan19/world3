@@ -26,6 +26,7 @@ const KIND_BY_CODE = {
   nonce: 'expired',
   world_unreachable: 'busy',
   signed_out: 'signedout',
+  event_over: 'ended',
   not_configured: 'network',
   no_spot: 'network',
 };

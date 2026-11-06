@@ -56,3 +56,31 @@ body > main:not(.grid):not(.xp) > #s-connect, body > main:not(.grid):not(.xp) > 
 
 .xp .intro { background: var(--green); color: #0B0B0F; border-radius: 36px; padding: clamp(22px, 3.4vw, 44px); min-height: 240px; display: flex; flex-direction: column; justify-content: flex-end; }
 .xp .intro p, .xp .intro b { color: #1D2A0A; }
+
+/* ---- header without a background, and motion ---- */
+.top { position: static; background: transparent; box-shadow: none; border-radius: 0; margin: 6px clamp(10px, 2vw, 24px) 2px; padding: 8px 4px; }
+.top .link, .top .navlink, .status, .chip, .eventchip { background: color-mix(in srgb, var(--card) 70%, transparent); }
+.eventbox { position: relative; }
+.eventchip { border: 0; border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: 12px; color: var(--ink); cursor: pointer; }
+.eventchip:hover { background: var(--green); color: #0B0B0F; }
+.eventchip.over { color: var(--danger); }
+.eventform { position: absolute; right: 0; top: 42px; z-index: 30; width: 300px; background: var(--card); border-radius: 22px; padding: 16px; box-shadow: var(--shadow, 0 10px 30px rgba(0,0,0,.2)); animation: rise .25s both; }
+.eventform label { display: grid; gap: 6px; font-weight: 700; font-size: 12px; } .eventform input { height: 40px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--soft); padding: 0 10px; }
+.eventform .row2 { display: flex; gap: 8px; margin-top: 10px; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+@keyframes pop { from { opacity: 0; scale: .4; } }
+@keyframes breathe { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 60%, transparent); } 50% { box-shadow: 0 0 0 7px transparent; } }
+@keyframes drift { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(12px, -10px); } }
+.top, .kpi, .panel, .mapwrap, .card, .tile, main > .hero, .xp .intro { animation: rise .55s cubic-bezier(.2, .7, .2, 1) backwards; }
+.kpi:nth-child(2) { animation-delay: .05s; } .kpi:nth-child(3) { animation-delay: .1s; } .kpi:nth-child(4) { animation-delay: .15s; } .kpi:nth-child(5) { animation-delay: .2s; }
+.grid > :nth-child(1) { animation-delay: .1s; } .grid > :nth-child(2) { animation-delay: .2s; } .grid > :nth-child(3) { animation-delay: .3s; }
+main > :nth-child(2) { animation-delay: .08s; } main > :nth-child(3) { animation-delay: .16s; } main > :nth-child(4) { animation-delay: .24s; } main > :nth-child(5) { animation-delay: .32s; }
+.spots li { animation: rise .4s cubic-bezier(.2, .7, .2, 1) backwards; }
+.spots li:nth-child(2) { animation-delay: .05s; } .spots li:nth-child(3) { animation-delay: .1s; } .spots li:nth-child(4) { animation-delay: .15s; } .spots li:nth-child(5) { animation-delay: .2s; } .spots li:nth-child(n+6) { animation-delay: .25s; }
+.pin { animation: pop .45s cubic-bezier(.2, 1.5, .4, 1) backwards; }
+.status.ok i { animation: breathe 2.2s infinite; }
+main > .hero, .xp .intro { position: relative; overflow: hidden; }
+main > .hero::after, .xp .intro::after { content: ''; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: color-mix(in srgb, #fff 28%, transparent); animation: drift 9s ease-in-out infinite; pointer-events: none; }
+.card:hover, .tile:hover { transform: translateY(-2px); transition: transform .2s; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

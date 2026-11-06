@@ -106,7 +106,7 @@ function AppInner() {
     if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
 
-  const spotsWithDist = spots.map((s) => ({ ...s, dist: user.coords ? distanceMeters(user.coords, s.coord) : null }));
+  const spotsWithDist = spots.map((s) => ({ ...s, dist: user.coords && s.coord ? distanceMeters(user.coords, s.coord) : null }));
   const byId = (id) => spotsWithDist.find((s) => s.id === id);
 
   const push = (name, spot) => setStack((s) => [...s, { name, spotId: spot.id }]);

@@ -18,6 +18,14 @@
   <header class="top">
     <div class="brand"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="World3"></picture><em>Spots</em></div>
     <div class="grow"></div>
+    <div class="eventbox">
+      <button id="eventChip" class="eventchip" type="button" aria-expanded="false" title="When the event ends, the spots disappear and ads stop">Event: …</button>
+      <form id="eventForm" class="eventform" hidden>
+        <label>Event ends<input id="eventEnd" type="datetime-local" required></label>
+        <div class="row2"><button class="btn primary sm" type="submit">Save</button><button id="eventClear" class="btn sm" type="button">No end time</button></div>
+        <p class="fine">After this time the app no longer gets the spots, nothing can be captured and no ad is shown.</p>
+      </form>
+    </div>
     <span id="status" class="status"><i></i><span>Connecting…</span></span>
     <a class="link on" href="/">Spots</a>
     <a class="link" href="/sponsors.html">Sponsors</a>

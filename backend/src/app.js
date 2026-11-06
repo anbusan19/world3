@@ -14,6 +14,7 @@ import { createVoucherSigner, voucherConfigFromEnv } from './voucher.js';
 import { GlbError, LIMITS, parseGlb } from './glb.js';
 import { SEED } from './seed.js';
 import { explore } from './explorer.js';
+import { EventClock } from './event.js';
 import { FaucetError, createFaucet } from './faucet.js';
 import { Store, toPublic } from './store.js';
 import { validateSpot } from './validate.js';
@@ -89,6 +90,10 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
   const accounts = new Accounts(dataDir);
   await accounts.init();
   const world = createWorld({ config: captureOpts.worldConfig ?? worldConfigFromEnv(), fetchImpl: captureOpts.fetchImpl, now: captureOpts.now });
+  const events = new EventClock(dataDir, { endsAt: process.env.EVENT_ENDS_AT || null, ...(captureOpts.event ?? {}) });
+  await events.init();
+  const nowMs = () => (captureOpts.now ? captureOpts.now() : Date.now());
+  const eventOver = () => events.over(nowMs());
   const sponsors = new Sponsors(dataDir, (arkivOpts.sponsors ?? (process.env.ARKIV_SPONSORS ?? '').split(',')).map((a) => a.trim()).filter(Boolean));
   await sponsors.init();
   const ads = await createAds({
@@ -160,7 +165,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     if (p === '/api/v1/spots' && method === 'GET') {
       // NOTE: the README wants the app to see only coarse locations and the server to decide capture, so exact
       // coordinates here are a prototype shortcut. Round them (or drop them) before a real launch.
-      const body = JSON.stringify({ spots: store.list().filter((s) => s.published).map((s) => { const a = arkivInfo(s.id); return { ...toPublic(s), ...(a && s.onArkiv ? { arkiv: { entityKey: a.entityKey, owner: a.owner, expiresOn: a.expiresOn } } : {}) }; }) });
+      const body = JSON.stringify({ event: events.snapshot(nowMs()), archive: eventOver() ? store.list().filter((s) => s.published).map((s) => ({ id: s.id, name: s.name, label: s.label, city: s.city, type: s.type, theme: s.theme, art: s.art, icon: s.icon })) : undefined, spots: store.list().filter((s) => s.published && !eventOver()).map((s) => { const a = arkivInfo(s.id); return { ...toPublic(s), ...(a && s.onArkiv ? { arkiv: { entityKey: a.entityKey, owner: a.owner, expiresOn: a.expiresOn } } : {}) }; }) });
       const etag = `"${createHash('sha1').update(body).digest('hex').slice(0, 16)}"`;
       if (req.headers['if-none-match'] === etag) return send(res, 304, '', { etag, ...cors });
       return send(res, 200, body, { 'content-type': 'application/json; charset=utf-8', etag, 'cache-control': 'no-cache', ...cors });
@@ -169,7 +174,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     // what is public on Arkiv right now, read back from the chain (anyone can run the same query without this server)
     if (p === '/api/v1/arkiv/spots' && method === 'GET') {
       if (!arkiv.enabled) throw new HttpError(503, 'Arkiv is not configured on this server.');
-      return send(res, 200, { owner: arkiv.owner, eventSlug: arkiv.eventSlug, schema: 'world3.spot', spots: await arkiv.list() }, cors);
+      return send(res, 200, { owner: arkiv.owner, eventSlug: arkiv.eventSlug, schema: 'world3.spot', event: events.snapshot(nowMs()), spots: eventOver() ? [] : await arkiv.list() }, cors);
     }
 
     // testnet faucet: a sponsor gets a little tGLM to run an ad (worthless test token; limited per wallet and per day)
@@ -230,6 +235,7 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       return send(res, 200, {
         eventSlug: arkiv.eventSlug ?? process.env.ARKIV_EVENT_SLUG ?? 'ethglobal-mumbai-2026',
         arkivEnabled: arkiv.enabled,
+        event: events.snapshot(nowMs()),
         organizer: arkiv.owner ?? null,
         approved: addr ? sponsors.isApproved(addr) || (!!arkiv.owner && addr.toLowerCase() === arkiv.owner.toLowerCase()) : null,
         spots: store.list().filter((s) => s.published).map((s) => ({ id: s.id, name: s.name, label: s.label, city: s.city })),
@@ -244,10 +250,19 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       const rows = await arkiv.readCampaignsFor(owner).catch(() => { throw new HttpError(502, 'Arkiv could not be read right now.'); });
       const campaigns = [];
       for (const r of rows) {
-        const st = approved ? await ads.statusOf(r.$key) : { shown: false, reason: 'waiting for the organizer to approve this wallet', impressions: 0, captures: null };
+        const st = eventOver() ? { shown: false, reason: 'the event has ended', impressions: 0, captures: null } : approved ? await ads.statusOf(r.$key) : { shown: false, reason: 'waiting for the organizer to approve this wallet', impressions: 0, captures: null };
         campaigns.push({ key: r.$key, spotId: r.spotId, status: r.status, startsAt: r.startsAt, endsAt: r.endsAt, sponsor: r.sponsor, headline: r.headline, clickUrl: r.clickUrl, width: r.width, height: r.height, expiresAtBlock: r.$expiresAt, ...st });
       }
       return send(res, 200, { approved, campaigns });
+    }
+
+    // ---- organizer: when the event ends (dashboard only) -------------------------------------------------------------
+    if (p === '/api/event') {
+      if (method === 'GET') return send(res, 200, events.snapshot(nowMs()));
+      if (method === 'PUT') {
+        const body = await readJson(req);
+        try { return send(res, 200, await events.set({ endsAt: body.endsAt === undefined ? undefined : body.endsAt, name: body.name })); } catch (e) { throw new HttpError(400, e.message); }
+      }
     }
 
     // ---- organizer: approve sponsor wallets (same-origin dashboard only) ------------------------------------------------
@@ -275,12 +290,14 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     if (adRoute && method === 'GET') {
       const user = auth.user(bearer(req));
       if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
+      if (eventOver()) return send(res, 200, { ad: null }); // ads end with the event
       return send(res, 200, { ad: await ads.pick(adRoute[1], user).catch(() => null) });
     }
     if (p === '/api/v1/ads/impression' && method === 'POST') {
       const user = auth.user(bearer(req));
       if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
       const { campaign } = await readJson(req);
+      if (eventOver()) return send(res, 200, { counted: false });
       return send(res, 200, await ads.record(user, String(campaign ?? '')));
     }
     if (p === '/api/v1/ads/stats' && method === 'GET') return send(res, 200, { campaigns: await ads.stats().catch(() => []), rejected: ads.rejected() }, cors);
@@ -306,10 +323,12 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
 
     // ---- capture: the backend decides (a signed-in person, a fresh World ID proof, evidence checked here) -----------
     if (p === '/api/v1/capture/nonce' && method === 'POST') {
+      if (eventOver()) throw new CaptureError('event_over', `${events.name} has ended. Stamps can no longer be collected.`, 410);
       const { spotId } = await readJson(req);
       return send(res, 200, capture.issue(auth.user(bearer(req)), spotId));
     }
     if (p === '/api/v1/capture/verify' && method === 'POST') {
+      if (eventOver()) throw new CaptureError('event_over', `${events.name} has ended. Stamps can no longer be collected.`, 410);
       const who = auth.user(bearer(req));
       const accepted = await capture.verify(who, await readJson(req));
       passports?.onCapture(who.id); // a person with a public passport gets the new stamp published (in the background)

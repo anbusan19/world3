@@ -85,6 +85,11 @@ export function SpotDetail({ spot, collectedAt, onBack, onCapture, onOpenStamp }
 
         {done ? (
           <PrimaryButton label="View your stamp" icon="albums" onPress={onOpenStamp} style={{ marginTop: 16 }} />
+        ) : spot.ended ? (
+          <>
+            <PrimaryButton label="Event has ended" icon="time" tone="green" disabled onPress={() => {}} style={{ marginTop: 16 }} />
+            <Text style={styles.why}>This stamp could only be collected during the event. It can no longer be captured.</Text>
+          </>
         ) : (
           <>
             <PrimaryButton

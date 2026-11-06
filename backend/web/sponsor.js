@@ -123,6 +123,16 @@ async function easySetup() {
   } finally { b.disabled = false; }
 }
 
+// ads end with the event: no campaign can be set to run past it
+const eventEndSec = () => (S.info?.event?.endsAt ? Math.floor(Date.parse(S.info.event.endsAt) / 1000) : null);
+function showEvent() {
+  const e = S.info?.event; const note = $('#eventNote'); if (!note) return;
+  if (!e?.endsAt) { note.hidden = true; return; }
+  note.hidden = false;
+  note.textContent = e.over ? `${e.name} has ended, so new campaigns cannot run.` : `Ads end with ${e.name}: ${new Date(e.endsAt).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}. Your campaign stops then, even if you choose more days.`;
+  note.className = `fine ${e.over ? 'bad' : ''}`;
+}
+
 async function adopt(account, chain = chainFor()) {
   S.account = account;
   S.onRabdi = BigInt(await S.provider.request({ method: 'eth_chainId' })) === CHAIN_ID;
@@ -166,6 +176,7 @@ function reset() {
 // ---- server facts ---------------------------------------------------------------------------------------------------
 async function refreshInfo() {
   S.info = await getJson(`/api/v1/sponsors/info${S.account ? `?address=${S.account}` : ''}`);
+  showEvent();
   const sel = $('#spot');
   const keep = sel.value;
   sel.replaceChildren(...S.info.spots.map((s) => node('option', { value: s.id }, `${s.name}${s.city ? ` · ${s.city}` : ''}`)));
@@ -261,7 +272,7 @@ function draft(days = Number($('#days').value)) {
   const now = Math.floor(Date.now() / 1000);
   return {
     eventSlug: S.info?.eventSlug ?? 'ethglobal-mumbai-2026', spotId: $('#spot').value, sponsor: $('#sponsor').value, headline: $('#headline').value, clickUrl: $('#url').value,
-    alt: $('#alt').value || $('#headline').value, startsAt: now, endsAt: now + days * 86400, creative: S.image?.bytes ?? new Uint8Array(0),
+    alt: $('#alt').value || $('#headline').value, startsAt: now, endsAt: Math.min(now + days * 86400, eventEndSec() ?? Infinity), creative: S.image?.bytes ?? new Uint8Array(0),
   };
 }
 
@@ -275,6 +286,7 @@ function validate() {
     try { campaignValues(draft()); } catch (e) { problem = e instanceof CampaignError ? e.message : 'Check the form.'; }
   }
   if (!$('#sponsor').value && !problem) problem = 'Your name is required.';
+  if (!problem && S.info?.event?.over) problem = 'The event has ended, so new campaigns cannot run.';
   const shown = S.image && !problem ? '' : (S.image || $('#sponsor').value || $('#headline').value || $('#url').value) ? problem : '';
   $('#problem').textContent = shown;
   const can = !problem && !!S.wallet && S.onRabdi && !S.busy;
