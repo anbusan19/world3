@@ -26,7 +26,22 @@ const ALLOWED = [
   /^\/api\/v1\/faucet\/info$/,
 ];
 
+// The phone app's own API. These are the only non-public routes the front forwards, and only with the method listed.
+// The organizer dashboard's routes (/api/spots, /api/events, /api/sponsors, /api/chain/sync, ads stats ...) are NOT here.
+const APP_GET = [/^\/api\/v1\/me$/, /^\/api\/v1\/me\/captures$/, /^\/api\/v1\/passport$/, /^\/api\/v1\/passport\/name$/, /^\/api\/v1\/vouchers$/];
+const APP_POST = [/^\/api\/v1\/auth\/(nonce|verify|signout)$/, /^\/api\/v1\/capture\/(nonce|verify)$/, /^\/api\/v1\/passport(\/public)?$/, /^\/api\/v1\/ads\/impression$/];
+const APP_BODY_MAX = 512 * 1024;
+
+// a small per-address limit, since this front faces the internet: reads 1500 a minute, writes 300 a minute (a venue puts many phones behind one address)
+function limiter() {
+  const hits = new Map();
+  setInterval(() => hits.clear(), 60_000).unref();
+  return (ip, write) => { const k = `${ip}|${write ? 'w' : 'r'}`; const n = (hits.get(k) ?? 0) + 1; hits.set(k, n); return n <= (write ? 300 : 1500); };
+}
+const clientIp = (req) => String(req.headers['cf-connecting-ip'] ?? req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '').split(',')[0].trim();
+
 export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } = {}) {
+  const allow = limiter();
   return http.createServer((req, res) => {
     const url = new URL(req.url, 'http://x');
     const deny = (code, msg) => { res.writeHead(code, { 'content-type': 'text/plain', 'access-control-allow-origin': '*' }); res.end(msg); };
@@ -44,11 +59,27 @@ export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } =
       req.on('end', () => up.end());
       return undefined;
     }
+    if (req.method === 'POST' && APP_POST.some((re) => re.test(url.pathname))) {
+      if (!allow(clientIp(req), true)) return deny(429, 'Slow down.');
+      if (req.headers.origin) return deny(403, 'Not for browsers.'); // the phone app sends no Origin header
+      let size = 0; let dead = false;
+      const up = http.request({ host: upstreamHost, port: upstreamPort, method: 'POST', path: url.pathname, headers: {
+        host: `${upstreamHost}:${upstreamPort}`, 'content-type': req.headers['content-type'] ?? 'application/json', 'x-requested-with': 'wrld3-app',
+        ...(req.headers.authorization ? { authorization: req.headers.authorization } : {}), 'x-forwarded-for': clientIp(req),
+      } }, (r) => { res.writeHead(r.statusCode, { 'content-type': r.headers['content-type'] ?? 'application/json' }); r.pipe(res); });
+      up.on('error', () => !dead && deny(502, 'The spots server is not running.'));
+      up.setTimeout(30000, () => up.destroy());
+      req.on('data', (c) => { size += c.length; if (size > APP_BODY_MAX) { dead = true; up.destroy(); deny(413, 'Too large.'); req.destroy(); } else up.write(c); });
+      req.on('end', () => !dead && up.end());
+      return undefined;
+    }
     if (req.method !== 'GET' && req.method !== 'HEAD') return deny(405, 'Read-only.');
-    if (!ALLOWED.some((re) => re.test(url.pathname))) return deny(404, 'Not found.');
+    const appRead = APP_GET.some((re) => re.test(url.pathname));
+    if (!allow(clientIp(req), false)) return deny(429, 'Slow down.');
+    if (!appRead && !ALLOWED.some((re) => re.test(url.pathname))) return deny(404, 'Not found.');
 
     const headers = { host: `${upstreamHost}:${upstreamPort}`, 'x-forwarded-host': String(req.headers['x-forwarded-host'] ?? req.headers.host ?? ''), 'x-forwarded-proto': String(req.headers['x-forwarded-proto'] ?? 'https').split(',')[0] };
-    for (const h of ['if-none-match', 'accept', 'range']) if (req.headers[h]) headers[h] = req.headers[h];
+    for (const h of ['if-none-match', 'accept', 'range', ...(appRead ? ['authorization'] : [])]) if (req.headers[h]) headers[h] = req.headers[h];
     const up = http.request({ host: upstreamHost, port: upstreamPort, method: req.method, path: url.pathname, headers }, (r) => {
       res.writeHead(r.statusCode, r.headers);
       r.pipe(res);

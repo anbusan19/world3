@@ -44,5 +44,21 @@ test('proxy forwards the feed and files only, read-only', async () => {
   assert.equal((await post(port, '/api/v1/faucet')).status, 403); // no origin at all
   assert.equal((await post(port, '/api/spots', { origin: `http://127.0.0.1:${port}` })).status, 405); // nothing else
   assert.equal(seen.length, before + 1);
+  // the phone app's own API goes through, with its marker and bearer token; the organizer's routes still do not
+  const seenBefore = seen.length;
+  const sendApp = (m, path, headers = {}, body = '{}') => new Promise((resolve, reject) => {
+    const q = http.request({ host: '127.0.0.1', port, path, method: m, headers: { 'content-type': 'application/json', ...headers } }, (r) => { let b = ''; r.on('data', (c) => (b += c)); r.on('end', () => resolve({ status: r.statusCode, body: b })); });
+    q.on('error', reject); q.end(m === 'POST' ? body : undefined);
+  });
+  assert.equal((await sendApp('POST', '/api/v1/auth/nonce')).status, 200);
+  assert.equal((await sendApp('POST', '/api/v1/capture/verify', { authorization: 'Bearer abc' })).status, 200);
+  assert.equal((await sendApp('GET', '/api/v1/me', { authorization: 'Bearer abc' })).status, 200);
+  assert.equal(seen.length, seenBefore + 3);
+  assert.match(seen[seen.length - 2], /^POST \/api\/v1\/capture\/verify/);
+  assert.equal((await sendApp('POST', '/api/v1/auth/nonce', { origin: 'https://evil.example' })).status, 403); // browsers are refused
+  for (const p of ['/api/spots', '/api/sponsors', '/api/chain/sync', '/api/events']) assert.equal((await sendApp('POST', p)).status, 405); // organizer routes stay closed
+  assert.equal((await sendApp('GET', '/api/v1/ads/stats')).status, 404);
+  assert.equal((await sendApp('GET', '/api/spots')).status, 404);
+  assert.equal(seen.length, seenBefore + 3); // none of the refused ones reached the server
   proxy.close(); up.close();
 });

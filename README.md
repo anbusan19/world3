@@ -507,4 +507,3 @@ Submission checklist:
 - Clear labels for anything mocked or simulated
 
 wrld3 is an independent project. It uses World ID but is **not affiliated with World**.
-

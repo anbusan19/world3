@@ -24,3 +24,5 @@ Do NOT run two independent copies and let phones use either: each has its own `d
 once per server, and sessions, passports and sponsors would differ. For a standby, keep ONE primary and sync `backend/data` to the
 second machine every minute; to fail over, point the domain/tunnel at the standby. The in-app "Server" list is for people who
 cannot reach the primary from their network, and says plainly that each server keeps its own sign-in and stamps.
+
+See [deploy-lightsail.md](deploy-lightsail.md) for the step-by-step AWS Lightsail setup (scripts in `deploy/lightsail/`).

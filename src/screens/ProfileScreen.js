@@ -374,6 +374,51 @@ function Group({ title, children, note }) {
   );
 }
 
+// A two-way switch between the servers baked into the build (for example AWS and the organizer's laptop). It only shows when
+// the build has more than one; each server keeps its own sign-in and stamps, so after a switch you may need to sign in again.
+function ServerToggle({ onSynced }) {
+  const C = useColors();
+  const styles = useStyles();
+  const [base, setBase] = useState(getFeedBase());
+  const [ping, setPing] = useState({});
+  const [msg, setMsg] = useState('');
+  useEffect(() => {
+    let live = true;
+    Promise.all(SERVERS.map(async (sv) => [sv.url, await pingServer(sv.url)])).then((r) => live && setPing(Object.fromEntries(r)));
+    return () => { live = false; };
+  }, [base]);
+  if (SERVERS.length < 2) return null;
+  const pick = async (sv) => {
+    if (sv.url === base) return;
+    setMsg(`Switching to ${sv.name}…`);
+    const b = await setFeedBase(sv.url);
+    setBase(b);
+    const n = await refreshSpots(true);
+    setMsg(n < 0 ? `Could not reach ${sv.name}.` : `Using ${sv.name} · ${n} spot${n === 1 ? '' : 's'}`);
+    if (n >= 0) onSynced?.();
+  };
+  return (
+    <View style={styles.row}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.rowTitle}>Server</Text>
+        <Text style={styles.rowSub}>{msg || 'Switch if one is slow or unreachable. Each server keeps its own sign-in and stamps.'}</Text>
+        <View style={{ flexDirection: 'row', backgroundColor: C.bg, borderRadius: 22, padding: 4, marginTop: 12 }}>
+          {SERVERS.map((sv) => {
+            const on = sv.url === base;
+            const ms = ping[sv.url];
+            return (
+              <Pressable key={sv.url} onPress={() => pick(sv)} style={{ flex: 1, height: 44, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, backgroundColor: on ? C.solid : 'transparent' }} accessibilityRole="switch" accessibilityState={{ checked: on }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: ms === undefined ? C.muted : ms === null ? C.orange : '#8CC152' }} />
+                <Text style={{ fontFamily: F.semi, fontSize: 13, color: on ? C.onSolid : C.ink }}>{sv.name}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function SpotServer({ onSynced }) {
   const C = useColors();
   const styles = useStyles();
@@ -508,6 +553,8 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
         <Row icon="finger-print-outline" title="Signed in with World ID" sub="One verified human, no password" />
         <Row icon="log-out-outline" tint={C.orange} title="Sign out" danger onPress={onSignOut} last />
       </Group>
+
+      {SERVERS.length > 1 ? <Group title="Connection"><ServerToggle /></Group> : null}
 
       <Group title="Developer">
         <SpotServer />
