@@ -1,26 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Camera, GeoJSONSource, Layer, Map } from '@maplibre/maplibre-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { globeStyle } from '../mapStyle';
 import { BLINK_SECONDS, EMPTY, buildFeedGeoJSON } from '../globeFeed';
-import { ago, useCaptureFeed } from '../demoFeed';
-import { F, STAMP_THEMES, makeStyles, useColors } from '../theme';
+import { useCaptureFeed } from '../demoFeed';
+import { F, makeStyles, useColors } from '../theme';
 
 // The real MapLibre map shown as a 3D globe in the cartoon style. Every capture on the network blinks at the
 // coordinates where the stamp was minted. The events are SIMULATED (see demoFeed.js) and labelled as such.
 
 const wrapLng = (lng) => ((((lng + 180) % 360) + 360) % 360) - 180;
 
-export function GlobeScreen({ setScrollLock }) {
+export function GlobeScreen() {
   const styles = useStyles();
   const C = useColors();
+  const insets = useSafeAreaInsets();
+  const { width: W, height: H } = useWindowDimensions();
+  const fitZoom = Math.log2((W * Math.PI) / 512) + 0.2; // the globe's width matches the screen's
   const camera = useRef(null);
   const center = useRef([72.8, 16]);
   const pausedUntil = useRef(0);
   const events = useRef([]);
   const [geo, setGeo] = useState({ points: EMPTY });
-  const [, setNow] = useState(0);
 
   const { items, total } = useCaptureFeed((ev) => {
     events.current.push({ from: [ev.spot.lng, ev.spot.lat], t0: Date.now() });
@@ -49,130 +52,85 @@ export function GlobeScreen({ setScrollLock }) {
     return () => clearInterval(id);
   }, []);
 
-  // keep "ago" labels counting
-  useEffect(() => {
-    const id = setInterval(() => setNow((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-
   const latest = items[0];
 
   return (
-    <>
-      <Text style={styles.title}>Globe</Text>
-      <Text style={styles.sub}>Every stamp captured on the network blinks here, right where it was minted.</Text>
-
-      <View
-        style={styles.card}
-        onTouchStart={() => { pausedUntil.current = Date.now() + 6000; setScrollLock(true); }}
-        onTouchEnd={() => { pausedUntil.current = Date.now() + 4000; setScrollLock(false); }}
-        onTouchCancel={() => setScrollLock(false)}
+    <View style={[styles.full, { width: W, height: H }]}>
+      <Map
+        style={{ position: 'absolute', left: 0, top: insets.top + 215, width: W, height: H - insets.top - 215 - insets.bottom - 120 }}
+        mapStyle={globeStyle}
+        androidView="texture"
+        logo={false}
+        compass={false}
+        touchPitch={false}
+        touchRotate={false}
+        attribution={false}
+        onRegionDidChange={(e) => {
+          if (e.nativeEvent.userInteraction) { center.current = e.nativeEvent.center; pausedUntil.current = Date.now() + 5000; }
+        }}
       >
-        <Map
-          style={StyleSheet.absoluteFill}
-          mapStyle={globeStyle}
-          androidView="texture"
-          logo={false}
-          compass={false}
-          touchPitch={false}
-          touchRotate={false}
-          attributionPosition={{ bottom: 6, right: 6 }}
-          onRegionDidChange={(e) => {
-            if (e.nativeEvent.userInteraction) center.current = e.nativeEvent.center;
-          }}
-        >
-          <Camera ref={camera} initialViewState={{ center: center.current, zoom: 1.35 }} minZoom={0.6} maxZoom={9} />
+        <Camera ref={camera} initialViewState={{ center: center.current, zoom: fitZoom }} minZoom={fitZoom - 0.4} maxZoom={9} />
 
-          <GeoJSONSource id="feed-points" data={geo.points}>
-            <Layer
-              id="feed-ring"
-              type="circle"
-              filter={['==', ['get', 'kind'], 'ring']}
-              paint={{ 'circle-radius': ['get', 'r'], 'circle-color': '#FFFFFF', 'circle-opacity': 0, 'circle-stroke-color': ['get', 'color'], 'circle-stroke-width': 3, 'circle-stroke-opacity': ['get', 'o'] }}
-            />
-            <Layer
-              id="feed-dot"
-              type="circle"
-              filter={['==', ['get', 'kind'], 'dot']}
-              paint={{ 'circle-radius': ['get', 'r'], 'circle-color': '#FFFFFF', 'circle-opacity': ['get', 'o'], 'circle-stroke-color': '#F26B21', 'circle-stroke-width': 3, 'circle-stroke-opacity': ['get', 'o'] }}
-            />
-          </GeoJSONSource>
+        <GeoJSONSource id="feed-points" data={geo.points}>
+          <Layer
+            id="feed-ring"
+            type="circle"
+            filter={['==', ['get', 'kind'], 'ring']}
+            paint={{ 'circle-radius': ['get', 'r'], 'circle-color': '#F26B21', 'circle-opacity': ['*', 0.25, ['get', 'o']], 'circle-stroke-color': '#F26B21', 'circle-stroke-width': 1.2, 'circle-stroke-opacity': ['get', 'o'] }}
+          />
+          <Layer
+            id="feed-dot"
+            type="circle"
+            filter={['==', ['get', 'kind'], 'dot']}
+            paint={{ 'circle-radius': ['get', 'r'], 'circle-color': '#FFFFFF', 'circle-opacity': ['get', 'o'] }}
+          />
+        </GeoJSONSource>
+      </Map>
 
-        </Map>
-
-        <View style={styles.topRow} pointerEvents="none">
-          <View style={styles.live}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE · DEMO FEED</Text>
-          </View>
-          <View style={styles.count}>
-            <Text style={styles.countNum}>{total}</Text>
-            <Text style={styles.countLabel}>captured</Text>
-          </View>
+      {/* words over the globe */}
+      <View style={[styles.top, { top: insets.top + 76 }]} pointerEvents="none">
+        <View style={styles.live}>
+          <View style={styles.liveDot} />
+          <Text style={styles.liveText}>LIVE · DEMO FEED</Text>
         </View>
-
-        {latest && (
-          <View style={styles.toast} pointerEvents="none">
-            <Ionicons name="checkmark-circle" size={16} color={C.green} />
-            <Text style={styles.toastText} numberOfLines={1}>
-              <Text style={styles.toastWho}>{latest.who}</Text> captured {latest.spot.name}
-            </Text>
-          </View>
-        )}
+        <View style={styles.count}>
+          <Text style={styles.countNum}>{total}</Text>
+          <Text style={styles.countLabel}>captured</Text>
+        </View>
       </View>
-      <Text style={styles.hint}>Drag to spin, pinch to zoom in on the map.</Text>
-
-      <View style={styles.feedHead}>
-        <Text style={styles.feedTitle}>Network activity</Text>
-        <Text style={styles.feedMeta}>simulated</Text>
+      <View style={[styles.head, { top: insets.top + 124 }]} pointerEvents="none">
+        <Text style={styles.title}>Globe</Text>
+        <Text style={styles.sub}>Every stamp minted blinks here, right where it happened.</Text>
       </View>
-      {items.slice(0, 5).map((ev) => {
-        const t = STAMP_THEMES[ev.spot.theme];
-        return (
-          <View key={ev.id} style={styles.row}>
-            <View style={[styles.bubble, { backgroundColor: t.frame }]}>
-              <Ionicons name={ev.spot.icon} size={18} color={t.accent} />
-            </View>
-            <View style={styles.rowText}>
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                <Text style={styles.mono}>{ev.who}</Text> captured {ev.spot.name}
-              </Text>
-              <Text style={styles.rowMeta}>{ev.spot.city} · {ago(ev.at)}</Text>
-            </View>
-          </View>
-        );
-      })}
-      {items.length === 0 && <Text style={styles.waiting}>Waiting for the first capture…</Text>}
-    </>
+
+      {latest && (
+        <View style={[styles.toast, { bottom: insets.bottom + 108 }]} pointerEvents="none">
+          <Ionicons name="checkmark-circle" size={16} color={C.green} />
+          <Text style={styles.toastText} numberOfLines={1}>
+            <Text style={styles.toastWho}>{latest.who}</Text> captured {latest.spot.name}
+          </Text>
+        </View>
+      )}
+    </View>
   );
 }
 
 const useStyles = makeStyles((C) => ({
-  title: { fontFamily: F.bold, fontSize: 30, color: C.ink, letterSpacing: -0.8 },
-  sub: { fontFamily: F.reg, fontSize: 13, lineHeight: 19, color: C.muted, marginTop: 6, marginBottom: 18 },
-  card: { height: 440, borderRadius: 28, backgroundColor: '#000', overflow: 'hidden' }, // space
+  full: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000' }, // space
 
-  topRow: { position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  top: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   live: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 12, height: 30, borderRadius: 15 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.green },
   liveText: { fontFamily: F.semi, fontSize: 10, letterSpacing: 0.8, color: '#fff' },
-  count: { flexDirection: 'row', alignItems: 'baseline', gap: 5, backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 12, height: 30, borderRadius: 15, alignItems: 'center' },
+  count: { flexDirection: 'row', gap: 5, backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 12, height: 30, borderRadius: 15, alignItems: 'center' },
   countNum: { fontFamily: F.bold, fontSize: 16, color: '#fff' },
   countLabel: { fontFamily: F.reg, fontSize: 11, color: 'rgba(255,255,255,0.7)' },
 
-  toast: { position: 'absolute', left: 14, right: 14, bottom: 14, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 14, height: 40, borderRadius: 20 },
+  head: { position: 'absolute', left: 20, right: 20 },
+  title: { fontFamily: F.bold, fontSize: 32, color: '#fff', letterSpacing: -1 },
+  sub: { fontFamily: F.reg, fontSize: 13, lineHeight: 19, color: 'rgba(255,255,255,0.7)', marginTop: 4, maxWidth: 280 },
+
+  toast: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 14, height: 40, borderRadius: 20 },
   toastText: { flex: 1, fontFamily: F.reg, fontSize: 12, color: '#fff' },
   toastWho: { fontFamily: F.semi, color: C.green },
-  hint: { fontFamily: F.reg, fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 10 },
-
-  feedHead: { marginTop: 22, marginBottom: 10, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  feedTitle: { fontFamily: F.bold, fontSize: 20, color: C.ink, letterSpacing: -0.4 },
-  feedMeta: { fontFamily: F.reg, fontSize: 11, color: C.muted },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 18, padding: 10, marginBottom: 8 },
-  bubble: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  rowText: { flex: 1, paddingLeft: 12 },
-  rowTitle: { fontFamily: F.semi, fontSize: 13, color: C.ink },
-  mono: { fontFamily: F.mono },
-  rowMeta: { fontFamily: F.reg, fontSize: 11, color: C.muted, marginTop: 2 },
-  waiting: { fontFamily: F.reg, fontSize: 12, color: C.muted, textAlign: 'center', padding: 16 },
 }));

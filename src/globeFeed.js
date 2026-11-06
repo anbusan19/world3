@@ -6,7 +6,7 @@ import { greatCircle } from './geo';
 
 const clamp01 = (n) => Math.max(0, Math.min(1, n));
 export const EMPTY = { type: 'FeatureCollection', features: [] };
-export const BLINK_SECONDS = 2.4;
+export const BLINK_SECONDS = 3.2;
 
 const pt = (coord, props) => ({ type: 'Feature', properties: props, geometry: { type: 'Point', coordinates: coord } });
 
@@ -15,14 +15,10 @@ export function buildFeedGeoJSON(events, now) {
   for (const e of events) {
     const age = (now - e.t0) / 1000;
     if (age < 0 || age > BLINK_SECONDS) continue;
-    // two rings leave the spot one after the other
-    for (const delay of [0, 0.45]) {
-      const k = (age - delay) / 1.4;
-      if (k >= 0 && k < 1) points.push(pt(e.from, { kind: 'ring', r: 4 + 24 * k, o: (1 - k) * 0.9, color: '#F26B21' }));
-    }
-    // the dot itself blinks on and off, then fades
-    const on = age < 1.6 ? (Math.floor(age / 0.2) % 2 === 0 ? 1 : 0.25) : clamp01((BLINK_SECONDS - age) / 0.8);
-    points.push(pt(e.from, { kind: 'dot', r: 5.5, o: on }));
+    const k = age / BLINK_SECONDS; // 0 -> 1
+    // a soft, small ring that widens and fades while a tiny dot swells and fades: one quiet pulse
+    points.push(pt(e.from, { kind: 'ring', r: 3 + 9 * k, o: 0.5 * (1 - k) * (1 - k) }));
+    points.push(pt(e.from, { kind: 'dot', r: 2.2, o: Math.sin(Math.PI * k) * 0.9 }));
   }
   return { points: { type: 'FeatureCollection', features: points } };
 }

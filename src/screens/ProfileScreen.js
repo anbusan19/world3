@@ -6,7 +6,8 @@ import { Stamp } from '../Stamp';
 import { PrimaryButton } from '../ui';
 import { usePassport } from '../usePassport';
 import { getFeedBase, refreshSpots, setFeedBase, shortName, spots } from '../spots';
-import { DARK, F, LIGHT, STAMP_THEMES, makeStyles, useColors, useTheme } from '../theme';
+import { WorldMark } from '../art/WorldMark';
+import { F, STAMP_THEMES, makeStyles, useColors, useTheme } from '../theme';
 
 // Profile tab = a header (avatar, name, passport name, stats) plus two sections: Passport and Settings.
 // The name, avatar and switches live in memory (app state) and reset on restart; only the colour theme is remembered on the device.
@@ -40,7 +41,7 @@ export function ProfileScreen({ collected, openStamp, profile, setProfile, setti
 
   return (
     <>
-      <Header profile={profile} stats={stats} passport={pp.passport} />
+      <Header profile={profile} setProfile={setProfile} stats={stats} passport={pp.passport} />
 
       <View style={styles.segment}>
         {[
@@ -85,8 +86,13 @@ export function Avatar({ name, theme, size = 84 }) {
   );
 }
 
-function Header({ profile, stats, passport }) {
+function Header({ profile, setProfile, stats, passport }) {
   const styles = useStyles();
+  const C = useColors();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const startEdit = () => { setDraft(profile.name); setEditing(true); };
+  const finish = () => { setProfile((p) => ({ ...p, name: draft.trim() || 'Explorer' })); setEditing(false); };
   const ready = passport?.status === 'ready';
   return (
     <>
@@ -95,11 +101,31 @@ function Header({ profile, stats, passport }) {
         <View style={styles.headRow}>
           <Avatar name={profile.name} theme={profile.avatar} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.name} numberOfLines={1}>{profile.name || 'Explorer'}</Text>
+            {editing ? (
+              <TextInput
+                value={draft}
+                onChangeText={setDraft}
+                onBlur={finish}
+                onSubmitEditing={finish}
+                autoFocus
+                selectTextOnFocus
+                maxLength={18}
+                autoCorrect={false}
+                returnKeyType="done"
+                placeholder="Your name"
+                placeholderTextColor={C.muted}
+                style={[styles.name, styles.nameInput]}
+              />
+            ) : (
+              <Pressable onPress={startEdit} style={styles.nameRow} hitSlop={6}>
+                <Text style={styles.name} numberOfLines={1}>{profile.name || 'Explorer'}</Text>
+                <Ionicons name="pencil" size={14} color={C.muted} />
+              </Pressable>
+            )}
             <Text style={styles.ens} numberOfLines={1}>{ready ? passport.name : 'No public passport yet'}</Text>
             <View style={styles.badges}>
               <View style={[styles.pill, { backgroundColor: '#A6D16C' }]}>
-                <Ionicons name="shield-checkmark" size={12} color="#0B0B0F" />
+                <WorldMark size={13} color="#0B0B0F" />
                 <Text style={[styles.pillText, { color: '#0B0B0F' }]}>Verified human</Text>
               </View>
             </View>
@@ -348,36 +374,6 @@ function Toggle({ value, onChange }) {
   return <Switch value={value} onValueChange={onChange} trackColor={{ true: C.green, false: C.line }} thumbColor="#FFFFFF" />;
 }
 
-// a small picture of how each theme looks
-function ThemeOption({ mode, label, icon, selected, onPress }) {
-  const styles = useStyles();
-  const C = useColors();
-  const half = (P, flex = 1) => (
-    <View style={{ flex, backgroundColor: P.bg, padding: 6, justifyContent: 'center', gap: 4 }}>
-      <View style={{ height: 10, borderRadius: 4, backgroundColor: P.card }} />
-      <View style={{ height: 7, width: '60%', borderRadius: 4, backgroundColor: P.solid }} />
-    </View>
-  );
-  return (
-    <Pressable onPress={onPress} style={[styles.themeOpt, selected && { borderColor: C.green }]}>
-      <View style={styles.themePreview}>
-        {mode === 'system' ? (
-          <>
-            {half(LIGHT)}
-            {half(DARK)}
-          </>
-        ) : (
-          half(mode === 'dark' ? DARK : LIGHT)
-        )}
-      </View>
-      <View style={styles.themeLabelRow}>
-        <Ionicons name={icon} size={14} color={selected ? C.ink : C.muted} />
-        <Text style={[styles.themeLabel, selected && { color: C.ink, fontFamily: F.semi }]}>{label}</Text>
-      </View>
-    </Pressable>
-  );
-}
-
 function SettingsSection({ profile, setProfile, settings, updateSetting, onSignOut }) {
   const styles = useStyles();
   const C = useColors();
@@ -386,32 +382,17 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
 
   return (
     <>
-      <Group title="Appearance" note={mode === 'system' ? `Following your phone: currently ${isDark ? 'dark' : 'light'}.` : undefined}>
-        <View style={styles.themeRow}>
-          <ThemeOption mode="system" label="System" icon="phone-portrait-outline" selected={mode === 'system'} onPress={() => setMode('system')} />
-          <ThemeOption mode="light" label="Light" icon="sunny-outline" selected={mode === 'light'} onPress={() => setMode('light')} />
-          <ThemeOption mode="dark" label="Dark" icon="moon-outline" selected={mode === 'dark'} onPress={() => setMode('dark')} />
+      <Group title="Appearance">
+        <View style={styles.themeSeg}>
+          {[['system', 'System'], ['light', 'Light'], ['dark', 'Dark']].map(([m, label]) => (
+            <Pressable key={m} onPress={() => setMode(m)} style={[styles.themeBtn, mode === m && { backgroundColor: C.solid }]}>
+              <Text style={[styles.themeBtnText, mode === m && { color: C.onSolid, fontFamily: F.semi }]}>{label}</Text>
+            </Pressable>
+          ))}
         </View>
       </Group>
 
-      <Group title="Profile">
-        <View style={[styles.row, styles.rowLine]}>
-          <View style={[styles.rowIcon, { backgroundColor: C.info + '22' }]}>
-            <Ionicons name="person-outline" size={18} color={C.info} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowSub}>Display name</Text>
-            <TextInput
-              value={profile.name}
-              onChangeText={(t) => setProfile((p) => ({ ...p, name: t }))}
-              placeholder="Explorer"
-              placeholderTextColor={C.muted}
-              maxLength={18}
-              autoCorrect={false}
-              style={styles.input}
-            />
-          </View>
-        </View>
+      <Group title="Profile" note="Tap your name at the top of this page to change it.">
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
             <Text style={styles.rowTitle}>Avatar colour</Text>
@@ -439,8 +420,7 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
       </Group>
 
       <Group title="Account">
-        <Row icon="mail-outline" title="Email" sub="you@example.com" />
-        <Row icon="wallet-outline" title="Wallet" sub="Invisible wallet · 0x7a3…f1c" />
+        <Row icon="finger-print-outline" title="Signed in with World ID" sub="One verified human, no password" />
         <Row icon="log-out-outline" tint={C.orange} title="Sign out" danger onPress={onSignOut} last />
       </Group>
 
@@ -451,8 +431,7 @@ function SettingsSection({ profile, setProfile, settings, updateSetting, onSignO
       <Group title="About">
         <Row icon="information-circle-outline" title="Version" sub={`World3 ${version}`} />
         <Row icon="git-network-outline" title="Network" sub="Ethereum Sepolia (testnet)" />
-        <Row icon="document-text-outline" title="Terms of use" right={<Ionicons name="chevron-forward" size={18} color={C.muted} />} onPress={() => {}} />
-        <Row icon="lock-closed-outline" title="Privacy policy" right={<Ionicons name="chevron-forward" size={18} color={C.muted} />} onPress={() => {}} last />
+        <Row icon="lock-closed-outline" title="Privacy" sub="Stamps never store your coordinates." last />
       </Group>
 
       <Text style={styles.footer}>Prototype for ETHGlobal Mumbai. Testnet only, not audited.</Text>
@@ -481,6 +460,11 @@ const useStyles = makeStyles((C) => ({
   avatar: { alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#FFFFFF' },
   avatarText: { fontFamily: F.bold },
   name: { fontFamily: F.bold, fontSize: 22, color: '#FFFFFF', letterSpacing: -0.4 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  nameInput: { padding: 0, borderBottomWidth: 1.5, borderBottomColor: '#A6D16C' },
+  themeSeg: { flexDirection: 'row', margin: 12, padding: 4, borderRadius: 22, backgroundColor: C.soft },
+  themeBtn: { flex: 1, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  themeBtnText: { fontFamily: F.reg, fontSize: 13, color: C.muted },
   ens: { fontFamily: F.mono, fontSize: 13, color: '#CFE5F5', marginTop: 4 },
   badges: { flexDirection: 'row', marginTop: 10 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 26, borderRadius: 13 },

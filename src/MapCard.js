@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Camera, Map, ViewAnnotation } from '@maplibre/maplibre-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getCartoonStyle } from './mapStyle';
@@ -35,10 +35,11 @@ function gpsLabel(user) {
 
 // spots: [{ id, name, coord: [lng, lat], tint, icon, dist }]
 // user: { status, coords }
-export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
+export function MapCard({ spots, user, selectedId, onSelect, setScrollLock, fill = false, topOffset = 12 }) {
   const styles = useStyles();
   const C = useColors();
   const { isDark } = useTheme();
+  const win = useWindowDimensions();
   const camera = useRef(null);
   const nearby = user.coords ? spots.filter((s) => s.dist == null || s.dist <= RADIUS_M) : spots;
   const shown = nearby.length ? nearby : spots;
@@ -54,6 +55,13 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
     else groups.push({ lng: sp.coord[0], lat: sp.coord[1], items: [sp] });
   }
 
+  const firstSel = useRef(true);
+  useEffect(() => {
+    if (firstSel.current) { firstSel.current = false; return; }
+    const sp = spots.find((x) => x.id === selectedId);
+    if (sp && fill) camera.current?.flyTo({ center: sp.coord, zoom: Math.max(zoom, 12), duration: 900 });
+  }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const centred = useRef(false);
   useEffect(() => {
     if (user.coords && !centred.current) {
@@ -67,11 +75,11 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
 
   return (
     <View
-      style={styles.card}
+      style={fill ? [styles.cardFill, { width: win.width, height: win.height }] : styles.card}
       // The map pans on touch; stop the page scrolling while a finger is on it.
-      onTouchStart={() => setScrollLock(true)}
-      onTouchEnd={() => setScrollLock(false)}
-      onTouchCancel={() => setScrollLock(false)}
+      onTouchStart={() => setScrollLock?.(true)}
+      onTouchEnd={() => setScrollLock?.(false)}
+      onTouchCancel={() => setScrollLock?.(false)}
     >
       <Map
         style={StyleSheet.absoluteFill}
@@ -129,7 +137,7 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
         )}
       </Map>
 
-      <View style={styles.topRow} pointerEvents="box-none">
+      <View style={[styles.topRow, fill && { top: topOffset }]} pointerEvents="box-none">
         <View style={styles.tag}>
           <View style={[styles.dot, user.status === 'granted' && { backgroundColor: user.source === 'gps' && user.accuracy <= 25 ? GREEN : '#F6C453' }]} />
           <Text style={styles.tagText}>{user.status === 'granted' ? gpsLabel(user) : GPS_TEXT[user.status]}</Text>
@@ -146,17 +154,18 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
         </View>
       </View>
 
-      <View style={styles.info} pointerEvents="none">
+      {!fill && <View style={styles.info} pointerEvents="none">
         <Text style={styles.infoName} numberOfLines={1}>{selected.name}</Text>
         <Text style={styles.infoMeta}>
           {selected.dist != null ? `${formatDistance(selected.dist)} away` : 'Distance needs GPS'}
         </Text>
-      </View>
+      </View>}
     </View>
   );
 }
 
 const useStyles = makeStyles((C) => ({
+  cardFill: { ...StyleSheet.absoluteFillObject, backgroundColor: '#0265AD' },
   card: { height: 320, borderRadius: 28, overflow: 'hidden', backgroundColor: '#0265AD' },
 
   pinWrap: { alignItems: 'center' },
