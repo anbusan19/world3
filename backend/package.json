@@ -23,6 +23,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@worldcoin/idkit-server": "^1.2.0",
     "obscenity": "^0.4.6",
+    "sharp": "^0.35.5",
     "viem": "^2.57.16"
   },
   "devDependencies": {

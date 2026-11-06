@@ -403,7 +403,8 @@ async function publish(ev) {
     say(out, 'Published.', 'ok');
     result.hidden = false;
     const card = `${location.origin}/share/ad/${res.entityKey}`;
-    const post = `https://x.com/intent/post?text=${encodeURIComponent(`We're live on WRLD³ at ${S.info?.event?.name ?? 'the event'}: ${$('#sponsor').value}. ${$('#headline').value}`)}&url=${encodeURIComponent(card)}`;
+    const tweet = `${$('#sponsor').value} is live on WRLD³ at ${S.info?.event?.name ?? 'the event'}. ${$('#headline').value}`.replace(/\s+/g, ' ').trim();
+    const post = `https://x.com/intent/post?text=${encodeURIComponent(tweet.length > 230 ? `${tweet.slice(0, 229)}…` : tweet)}&url=${encodeURIComponent(card)}`; // the link counts as 23 characters on X
     const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
     result.replaceChildren(node('b', {}, 'Your campaign is on Arkiv.'), node('br'), 'Entity ', node('code', {}, res.entityKey), node('br'),
       S.info?.approved ? 'Your wallet is approved, so it should appear in the app within a minute.' : 'Next step: send the organizer your wallet address so they can approve it. It is shown in step 2.',

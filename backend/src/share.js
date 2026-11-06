@@ -117,3 +117,17 @@ export function sharePage({ title, description, image, url }) {
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#F5F1E4;font:500 16px/1.5 system-ui,sans-serif;color:#0B0B0F}main{max-width:640px;padding:24px;text-align:left}img{width:100%;border-radius:28px;display:block}h1{letter-spacing:-.03em;margin:18px 0 6px}p{margin:0;color:#4B4F59}</style>
 </head><body><main><img src="${esc(image)}" alt="${esc(title)}" width="${W}" height="${H}"><h1>${esc(title)}</h1><p>${esc(description)}</p></main></body></html>`;
 }
+
+// The card is drawn by resvg, which can embed PNG and JPEG pictures but silently draws NOTHING for WebP (the white box on the card).
+// The advertiser page shrinks every ad to WebP, so convert anything that is not PNG or JPEG to a PNG first. If the converter is not
+// installed or the picture cannot be read, the card is still made, without the picture.
+export async function renderableImage(buf, mime) {
+  if (!buf || !buf.length) return { creative: null, mime };
+  if (mime === 'image/png' || mime === 'image/jpeg') return { creative: buf, mime };
+  try {
+    const { default: sharp } = await import('sharp');
+    return { creative: await sharp(buf, { animated: false }).png().toBuffer(), mime: 'image/png' };
+  } catch {
+    return { creative: null, mime };
+  }
+}

@@ -16,7 +16,7 @@ import { SEED } from './seed.js';
 import { explore } from './explorer.js';
 import { Events } from './events.js';
 import { createStampChain } from './stampchain.js';
-import { adCardSvg, sharePage, stampCardSvg, toPng } from './share.js';
+import { adCardSvg, renderableImage, sharePage, stampCardSvg, toPng } from './share.js';
 import { FaucetError, createFaucet } from './faucet.js';
 import { Store, toPublic } from './store.js';
 import { validateSpot } from './validate.js';
@@ -251,7 +251,8 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
         if (!c) throw new HttpError(404, 'This campaign is not live (yet).');
         let creative = null; try { creative = await readFile(path.join(ads.dir, c.file)); } catch { /* no picture */ }
         eventName = events.of(store.get(c.spotId)).name;
-        svg = adCardSvg({ sponsor: c.sponsor, headline: c.headline, creative, mime: c.mime, eventName });
+        const pic = await renderableImage(creative, c.mime); // resvg cannot draw WebP, which is what every ad is stored as
+        svg = adCardSvg({ sponsor: c.sponsor, headline: c.headline, creative: pic.creative, mime: pic.mime, eventName });
         title = `${c.sponsor} is live on WRLD³`; description = `${c.headline} · Seen by verified humans at ${eventName}.`;
       } else {
         const spot = store.list().find((x) => x.id === id && x.published);

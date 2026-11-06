@@ -107,3 +107,8 @@ td { padding: 12px 10px; border-top: 1px solid var(--line); vertical-align: top;
 
 /* a link that looks like the buttons next to it (the Arkiv faucet) */
 a.btn { display: inline-flex; align-items: center; text-decoration: none; color: inherit; }
+
+/* the share card after publishing: the picture, then two clear buttons side by side */
+.sharebox .row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+.sharebox .btn { padding: 0 22px; height: 46px; background: var(--soft); }
+.sharebox .btn.green { background: var(--green); color: #0B0B0F; }
