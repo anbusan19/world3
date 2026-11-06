@@ -21,10 +21,10 @@
 | Sponsor-owned campaigns | A sponsor's ad appears on the stamp screen right after a verified capture, labelled Sponsored. Only the sponsor's wallet can change or pause it. |
 | Delete | Unticking "List on Arkiv" or deleting a spot removes it from the public list. |
 
-**What is real today:** two spots (Gateway of India, CSMT) written and read back on Rabdi, the dashboard switch, the public
+**What is real today:** four spots (Gateway of India, CSMT, ETHGlobal Mumbai, World) written and read back on Rabdi (World appears several times, see `schema.md`), the dashboard switch, the public
 list route, and the app chip. **Sponsor campaigns:** one demo campaign is on Rabdi, written with the advertiser tool; the server reads it,
 validates it, and the app shows it as a "Sponsored" card on the stamp screen after a verified capture.
-**Advertisers** use a web page (`/sponsor.html`) or a command: they connect their own wallet, publish, and pause or delete their own campaign. The organizer approves wallets on `/sponsors.html`. The browser wallet step has not yet been tested by us with a real wallet.
+**Advertisers** use a web page (`/sponsor.html`) or a command: they connect their own wallet, publish, and pause or delete their own campaign. The organizer approves wallets on `/sponsors.html`. Sponsor campaigns with ad images are written the same way from the hosted advertiser page.
 **What is not built:** payouts to stamp holders and Swarm for large images.
 
 ## What we kept off Arkiv, and why

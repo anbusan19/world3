@@ -8,7 +8,7 @@ a stamp for being there. Sponsors are a planned third group.
 **Can they try it today?** Yes, in a limited way:
 - Anyone can read the public spots with `node backend/scripts/arkiv-query.mjs` (no key needed).
 - The Android app (APK) shows the spots and the "Listed on Arkiv" chip. Capturing needs World App and a real visit to the spot.
-- TO CONFIRM: a hosted demo link, and whether the APK will be shared publicly.
+- A hosted landing page with the APK download and QR: https://wrld3.vercel.app. The advertiser page is https://wrld3-sponsors.vercel.app. The APK is on the public GitHub releases page.
 
 **Will you keep building it after Mumbai?** TO CONFIRM by the team. The plan in `docs/ads-and-campaigns.md` (sponsor campaigns, payouts)
 and the roadmap in the README are the direction; none of it is promised until the team decides.

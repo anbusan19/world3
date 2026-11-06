@@ -22,6 +22,16 @@ a broken feature; most are things we would have liked the docs or SDK to say.
 7. **Query-then-create is not unique.** The index can lag right after a write, so "find the spot, else create" can duplicate. We
    keep our own record of the entity key and serialize writes (also from the skills, not the main docs).
 
+8. **The documented gas floor is not enough for entities with large bytes.** The docs give 1,000,000 as the gas floor for one operation.
+   A sponsor ad of more than about 25 KB failed with `EntityMutationError` at that limit. From our measurements the cost is about
+   400,000 + 48 per byte of payload, so a 100 KB creative needs about 5.2 M. Reproduce: `createEntity` with a 60 KB `creative`
+   and `gas: 1_000_000n`. We now scale the gas to the payload, and we also shrink images to about 40 KB. *Wanted:* a gas estimate
+   for Arkiv writes, or a formula in the docs.
+9. **One stuck transaction blocks every later write from that wallet, and nothing says so.** A write at nonce 34 stayed pending, so the
+   dashboard's Save hung with no error. The fix was to resend nonce 34 with a higher gas price (`cast send --nonce 34 --gas-price 200gwei --async`).
+   Our retries in the meantime wrote duplicate entities. We added a 45 s limit on the Arkiv step and a 90 s client timeout, but the
+   SDK call has no timeout of its own. *Wanted:* a timeout option on writes, and a way to see and replace a pending transaction.
+
 What worked first time: `createEntity`, the `select().from().ownedBy().where().limit().fetch()` chain, `patchEntity`, `extendEntity`,
 and `deleteEntity` on Rabdi with an access key; writes cost a fraction of a tGLM.
 
