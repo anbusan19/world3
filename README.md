@@ -4,7 +4,7 @@
 
 **Live:** [wrld3.vercel.app](https://wrld3.vercel.app) · [advertise](https://wrld3-sponsors.vercel.app) · [download the APK](https://github.com/anbusan19/world3/releases/latest)
 
-Built for **ETHGlobal Mumbai** (Nov 5-7, 2026). Android app (React Native / Expo, AR capture), World ID, ENSv2, Arkiv, and a public web passport page.
+Built for **ETHGlobal Mumbai** (Nov 5-7, 2026). Android app (React Native / Expo, AR capture), World ID, ENSv2, Arkiv, and the public wrld3 passport page.
 
 > **Status: prototype.** Testnet only (Sepolia for contracts and ENS, Arkiv testnet), not audited. Items in the status table are ticked only after being verified on a real device.
 
@@ -20,7 +20,7 @@ Built for **ETHGlobal Mumbai** (Nov 5-7, 2026). Android app (React Native / Expo
 6. [Spot states: distance and the capture zone](#spot-states-distance-and-the-capture-zone)
 7. [Proof of presence](#proof-of-presence)
 8. [World ID: one human, one stamp](#world-id-one-human-one-stamp)
-9. [ENSv2: the passport](#ensv2-the-passport)
+9. [ENSv2: the wrld3 passport](#ensv2-the-wrld3-passport)
 10. [Arkiv: discoverable spots and campaigns](#arkiv-discoverable-spots-and-campaigns)
 11. [The stamp token](#the-stamp-token)
 12. [Privacy](#privacy)
@@ -58,7 +58,7 @@ Any reward tied to being somewhere has the same weakness. If presence can be fak
 - **Spots.** A venue, landmark or memorabilia item is pinned in the real world with a 3D model. Spots and sponsor campaigns are published as public Arkiv entities.
 - **Capture.** You walk up to it, see it through your phone camera, and tap to capture it.
 - **Proof.** The capture needs a location fix and a **World ID** proof of unique personhood, checked by the backend, not trusted from the phone.
-- **Keep.** A capture gives you a signed voucher that stays private in your app. You choose when to mint it as a **non-transferable stamp**. Your **ENS name is your passport**, and you choose whether it shows your stamps.
+- **Keep.** A capture gives you a signed voucher that stays private in your app. You choose when to mint it as a **non-transferable stamp**. Your **wrld3 passport** lives on your ENS name, and you choose whether it shows your stamps.
 
 Wallets are invisible at capture time: sign in, tap, done.
 
@@ -223,12 +223,12 @@ World ID's proofs are zero-knowledge: they show you are a unique human without r
 
 How per-action uniqueness is exposed in the current IDKit, and how verification returns on native Android, are still to be confirmed against the docs.
 
-## ENSv2: the passport
+## ENSv2: the wrld3 passport
 
-Your ENS name is your passport. This is central to the product, not a display feature.
+The **wrld3 passport** is our own product, built on ENSv2: a traveler's stamps live on their ENS name, and anyone can read them from a public page. It is not an ENS product (ENS has no "passport" of its own); ENSv2 is what makes it work, and it is central to the product, not a display feature.
 
-- **Passport name.** Each traveler gets a **generated pseudonymous subname** under the project's parent name (no real names), so a passport is readable and portable instead of `0x84...`.
-- **Limited write permission.** The backend is granted the right to edit **only stamp-related records** on a traveler's name, through ENSv2's Enhanced Access Control and a Permissioned Resolver. The traveler owns the name. The backend cannot take it, transfer it or change anything else.
+- **Passport name.** Each traveler's wrld3 passport has a **generated pseudonymous subname** under the project's parent name (no real names), so a passport is readable and portable instead of `0x84...`.
+- **Limited write permission.** The backend is granted the right to edit **only stamp-related records** on a traveler's name, through ENSv2's Enhanced Access Control and a Permissioned Resolver. The goal is that the traveler owns the name; for now, because the app has no wallet yet, the server holds it on their behalf (the app says so). Either way the backend cannot transfer it or change anything else.
 - **Proof, not a claim.** The repo includes a test showing the backend **can** write its allowed record and **cannot** edit other records or move the name.
 - **Opt-in stamp records.** Writing stamps to ENS happens only if the traveler enables passport sharing. Stamps are private by default.
 - **ENS is a view, not a ledger.** ENS text records cannot be listed without knowing their keys (to be confirmed for the permissioned resolver), so the passport page builds the stamp list from the ERC-1155 contract and the spot list from Arkiv. ENS records hold the traveler's chosen summary or pointer.
@@ -273,7 +273,7 @@ A public travel history reveals where someone lives, when they are away, and the
 |---|---|---|
 | Stamps on a public chain | An address received a stamp for a spot at a time | Private by default; mint on demand |
 | Real-time minting | "This address is at venue X right now" | Delayed, relayed minting |
-| ENS passport name | Ties an address to a person | Generated pseudonymous names, no PII |
+| wrld3 passport name (ENS) | Ties an address to a person | Generated pseudonymous names, no PII |
 | ENS records | Duplicate the visited places publicly | Opt-in only |
 | Sensitive spots | A clinic, school or home-adjacent pin | Spots are moderated; no private or sensitive places |
 | The backend | Sees the full capture history | Cannot be removed. Stated plainly below |
@@ -428,7 +428,7 @@ Work in this order. Later phases start only when earlier ones work end to end.
 |---|---|---|
 | 0 | ENS spike on Sepolia | Backend writes its allowed record and is refused on anything else |
 | 1 | Core Android flow: capture verifier, real World ID with both refusal paths, stamp contract with voucher, mint on demand | A real capture issues a voucher and a stamp mints on Sepolia |
-| 2 | ENS passport records (opt-in) and the web passport page | A fresh name resolves live and lists stamps |
+| 2 | wrld3 passport records on ENS (opt-in) and the web passport page | A fresh name resolves live and lists stamps |
 | 3 | Arkiv with sponsor-owned campaign entities and map reads | Entity written, queried and shown in the app |
 | 4 | Privacy basics: delayed minting, generated names, spot moderation | Visible in the demo |
 | 5 | Required files and a full demo recording | Checklist complete |
@@ -453,7 +453,7 @@ The React Native / Expo Android app shell exists. The integrations below remain 
 | Refusal paths (unverified, repeat capture) | [ ] |
 | Voucher issuance and stamp mint on Sepolia | [ ] |
 | Mint relay and delayed minting | [ ] |
-| ENSv2 passport name and permissioned stamp records | [x] app flow built (opt-in "Create my public passport" on the Passport tab; server creates the name and publishes stamps, updates after each capture; the backend holds the name's owner key for now). Proof:  `wrld3.eth` registered on Sepolia; a passport's own resolver lets the backend write only `world3.stamps` and nothing else (proved on-chain by `backend/scripts/ens-spike.mjs`). Created by a real person's request on a real phone: not yet tested |
+| wrld3 passport: ENSv2 name and permissioned stamp records | [x] app flow built (opt-in "Create my public passport" on the Passport tab; server creates the name and publishes stamps, updates after each capture; the backend holds the name's owner key for now). Proof:  `wrld3.eth` registered on Sepolia; a passport's own resolver lets the backend write only `world3.stamps` and nothing else (proved on-chain by `backend/scripts/ens-spike.mjs`). Created by a real person's request on a real phone: not yet tested |
 | Public passport page | [x] `/p/<name>` reads the stamps from ENS in the visitor's browser (try `/p/spikef99n`); needs a passport created through the app flow, not built yet |
 | Arkiv spot write and in-app read | [x] two spots live on Rabdi, shown in the app as "Listed on Arkiv" and a demo sponsor campaign shown after a verified capture (payouts not built) |
 | Geospatial pose and VPS availability check | [ ] roadmap |
@@ -493,7 +493,7 @@ Built for **ETHGlobal Mumbai**.
 | Sponsor | Integration |
 |---|---|
 | **World** | IDKit proof of human on every capture, verified on the backend, with demonstrated refusal paths and an integration debrief |
-| **ENS** | ENSv2 passport on Sepolia: generated subname per traveler, permissioned stamp records with a permission test, live passport page as the demo link |
+| **ENS** | The wrld3 passport on ENSv2 (Sepolia): generated subname per traveler, permissioned stamp records with a permission test, live passport page as the demo link |
 | **Arkiv** | Spot and sponsor-campaign entities written to Arkiv testnet by their owners, with an in-app feature that reads them |
 
 **Arkiv, for judges.** Writer wallet: `0xf47cB2e4353F5daF04fA7AF0955551ab7DB74b52` (Rabdi testnet, chain id 7794095). Run one query with no
