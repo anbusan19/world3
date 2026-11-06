@@ -12,7 +12,7 @@ const ALLOWED = [
   /^\/api\/v1\/spots$/,
   /^\/files\/(models|images)\/[A-Za-z0-9._-]+$/,
   // the advertiser page and the two read-only facts it needs. The organizer's approval routes (/api/sponsors) are deliberately not here.
-  /^\/(sponsor\.html|sponsor\.css|skin\.css|sponsor\.bundle\.js|hero-globe\.bundle\.js|logo\.png|title-light\.png|title-dark\.png)$/,
+  /^\/(sponsor\.html|sponsor\.css|skin\.css|sponsor\.bundle\.js|tour\.js|hero-globe\.bundle\.js|logo\.png|title-light\.png|title-dark\.png)$/,
   /^\/api\/v1\/sponsors\/(info|campaigns)$/,
   // the public passport page (it reads ENS itself; only the spots' names and art come from us)
   /^\/(passport\.html|passport\.css|skin\.css|passport\.bundle\.js|title-light\.png|title-dark\.png)$/,

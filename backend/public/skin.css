@@ -87,3 +87,21 @@ main > .hero > *:not(.hero-globe), .xp .intro > *:not(.hero-globe) { position: r
 .card:hover, .tile:hover { transform: translateY(-2px); transition: transform .2s; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 .xp .intro p { max-width: 44ch; }
+
+/* ---- the sponsor tour (Shepherd.js), in the page's own look ---- */
+.tourbtn { background: color-mix(in srgb, var(--card) 70%, transparent); }
+.shepherd-modal-overlay-container.shepherd-modal-is-visible path { fill: rgba(8, 10, 14, .62); }
+.shepherd-element.w3-tour { background: var(--card); color: var(--ink); border-radius: 24px; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); max-width: 380px; font-family: inherit; animation: rise .3s both; }
+.w3-tour .shepherd-arrow:before { background: var(--card); }
+.w3-tour .shepherd-header { background: transparent; padding: 18px 20px 0; }
+.w3-tour .shepherd-title { font-weight: 800; font-size: 17px; letter-spacing: -.02em; color: var(--ink); }
+.w3-tour .shepherd-cancel-icon { color: var(--muted); font-size: 24px; }
+.w3-tour .shepherd-text { color: var(--muted); font-size: 14px; line-height: 1.55; padding: 8px 20px 4px; }
+.w3-tour .shepherd-footer { padding: 8px 20px 18px; gap: 8px; }
+.w3-tour .shepherd-button { border-radius: 999px; height: 38px; padding: 0 18px; font-weight: 700; font-family: inherit; background: var(--solid); color: var(--on-solid); border: 0; }
+.w3-tour .shepherd-button.shepherd-button-secondary { background: var(--soft); color: var(--ink); }
+.w3-tour .shepherd-button:hover:not(:disabled) { filter: brightness(.95); background: var(--solid); color: var(--on-solid); }
+.w3-tour .shepherd-button.shepherd-button-secondary:hover:not(:disabled) { background: var(--line); color: var(--ink); }
+.shepherd-has-title .shepherd-content .shepherd-header { background: transparent !important; }
+.shepherd-has-title .shepherd-content .shepherd-header h3, .w3-tour .shepherd-title { color: var(--ink) !important; }
+.shepherd-element.w3-tour .shepherd-content { border-radius: 24px; }

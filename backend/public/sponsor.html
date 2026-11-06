@@ -9,12 +9,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/sponsor.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11.2.0/dist/css/shepherd.css">
   <link rel="stylesheet" href="/skin.css">
 </head>
 <body>
   <header class="top">
     <a class="brand" href="/sponsor.html"><picture><source media="(prefers-color-scheme: dark)" srcset="/title-dark.png"><img src="/title-light.png" height="30" alt="World3"></picture><em>Advertise</em></a>
     <span class="grow"></span>
+    <button id="tourBtn" class="btn sm tourbtn" type="button">Take the tour</button>
     <span id="chip" class="chip" hidden></span>
     <button id="connectTop" class="btn dark" type="button">Connect wallet</button>
   </header>
@@ -102,6 +104,8 @@
   </main>
 
   <footer class="foot">World3 is a prototype on a test network. Not audited. Not affiliated with World or Arkiv.</footer>
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11.2.0/dist/js/shepherd.min.js"></script>
+  <script src="/tour.js"></script>
   <script type="module" src="/sponsor.bundle.js"></script>
   <script type="module" src="/hero-globe.bundle.js"></script>
 </body>
