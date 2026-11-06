@@ -176,7 +176,7 @@ export function Onboarding({ onDone }) {
       <View style={styles.topRow}>
         {index > 0 ? (
           <Pressable style={styles.backBtn} onPress={() => go(-1)} hitSlop={8}>
-            <Ionicons name="arrow-back" size={22} color={C.onSolid} />
+            <Ionicons name="arrow-back" size={24} color={C.ink} />
           </Pressable>
         ) : (
           <View style={styles.backSpacer} />
@@ -217,7 +217,7 @@ const useStyles = makeStyles((C) => ({
   safe: { flex: 1, backgroundColor: C.bg },
 
   topRow: { height: 56, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: C.solid, alignItems: 'center', justifyContent: 'center' },
+  backBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   backSpacer: { width: 46, height: 46 },
   skip: { paddingHorizontal: 16, height: 38, borderRadius: 19, backgroundColor: C.card, justifyContent: 'center' },
   skipText: { fontFamily: F.semi, fontSize: 13, color: C.ink },
