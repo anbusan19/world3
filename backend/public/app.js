@@ -15,7 +15,7 @@ const THEMES = {
 };
 const THEME_NAMES = { coral: 'Coral', sky: 'Sky', sun: 'Sun', leaf: 'Leaf', ocean: 'Ocean' };
 const ARTS = [['', 'None (use the model image)'], ['gateway', 'Gateway of India'], ['ethglobal', 'ETHGlobal Mumbai'], ['csmt', 'CSMT station']];
-const FIELDS = ['name', 'label', 'city', 'type', 'kind', 'lat', 'lng', 'captureRadiusM', 'approachRadiusM', 'heading', 'scale', 'heightOffsetM', 'theme', 'art', 'published'];
+const FIELDS = ['name', 'label', 'city', 'type', 'kind', 'lat', 'lng', 'captureRadiusM', 'approachRadiusM', 'heading', 'scale', 'heightOffsetM', 'theme', 'art', 'published', 'onArkiv'];
 const NUMBERS = new Set(['lat', 'lng', 'captureRadiusM', 'approachRadiusM', 'heading', 'scale', 'heightOffsetM']);
 const DEFAULT_CENTER = [72.8347, 18.9322];
 
@@ -249,7 +249,9 @@ function renderEditor() {
     <div class="ehead">
       <div class="stampbox" data-stamp="head"></div>
       <div style="flex:1;min-width:0"><span class="id">SPOT ${spot.id}</span><h3 data-title></h3>
-        <label class="sw" style="margin-top:8px"><span class="switch"><input type="checkbox" data-f="published" ${d.published ? 'checked' : ''}><i></i></span><span data-pubtext></span></label></div>
+        <label class="sw" style="margin-top:8px"><span class="switch"><input type="checkbox" data-f="published" ${d.published ? 'checked' : ''}><i></i></span><span data-pubtext></span></label>
+        <label class="sw" style="margin-top:6px"><span class="switch"><input type="checkbox" data-f="onArkiv" ${d.onArkiv ? 'checked' : ''}><i></i></span><span>List on Arkiv (public: name and a rounded location, about 100 m)</span></label>
+        <div class="fine" data-arkivtext style="margin-top:4px"></div></div>
     </div>
     <div class="scroll">
       <div class="sec"><h4>Basics</h4>
@@ -300,6 +302,11 @@ function refreshDerived() {
     el.closest('.field')?.classList.toggle('bad', !!errs[el.dataset.e]);
   }
   const title = $('[data-title]'); if (title) title.textContent = d.name || 'Untitled spot';
+  const ak = $('[data-arkivtext]');
+  if (ak) {
+    const a = spot.arkivInfo;
+    ak.textContent = !spot.arkivEnabled ? 'Arkiv is not set up on this server.' : a ? `On Arkiv: entity ${a.entityKey.slice(0, 10)}…${a.entityKey.slice(-6)}, expires ${a.expiresOn}.` : d.onArkiv && !d.published ? 'Publish the spot first; Arkiv only lists published spots.' : d.onArkiv ? 'Save to put it on Arkiv.' : 'Not on Arkiv.';
+  }
   const pub = $('[data-pubtext]'); if (pub) pub.textContent = d.published ? 'Published: the app can see it' : 'Draft: only you can see it';
   const head = $('[data-stamp="head"]'); if (head) head.innerHTML = stampSvg(d, spot.id, imageUrl(spot), 96);
   renderStampImage();
@@ -428,10 +435,10 @@ async function save() {
     const d = state.draft;
     const body = { ...d, name: d.name.trim(), label: d.label.trim().toUpperCase(), city: d.city.trim(), art: d.art || null };
     for (const k of NUMBERS) body[k] = Number(body[k]);
-    const { spot: next } = await api('PUT', `/api/spots/${spot.id}`, body);
+    const { spot: next, arkivError } = await api('PUT', `/api/spots/${spot.id}`, body);
     replaceSaved(next);
     state.draft = pick(next);
-    toast('Saved');
+    toast(arkivError ? `Saved, but Arkiv said: ${arkivError}` : 'Saved');
     renderEditor();
     renderList();
     syncMarkers();

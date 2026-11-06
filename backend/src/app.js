@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { Accounts, createAuthService } from './auth.js';
+import { createArkiv, safeMessage } from './arkiv.js';
 import { Captures, captureConfigFromEnv, createCaptureService } from './capture.js';
 import { CaptureError, createWorld, worldConfigFromEnv } from './world.js';
 import { createVoucherSigner, voucherConfigFromEnv } from './voucher.js';
@@ -72,9 +73,10 @@ async function readJson(req) {
 
 const sanitizeName = (s) => String(s ?? '').replace(/[^\w .()-]/g, '').slice(0, 80);
 
-export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = () => {}, capture: captureOpts = {} }) {
+export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = () => {}, capture: captureOpts = {}, arkiv: arkivOpts = {} }) {
   const store = new Store(dataDir);
   await store.init(SEED);
+  const arkiv = await createArkiv({ dataDir, ...arkivOpts });
   const captures = new Captures(dataDir);
   await captures.init();
   const accounts = new Accounts(dataDir);
@@ -87,6 +89,21 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
 
   const loopback = ['127.0.0.1', 'localhost', '::1'].includes(host);
   const hostOk = (h) => !loopback || /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(h ?? ''); // blocks DNS-rebinding
+
+  // Arkiv: a spot is public there only when it is published AND the organizer ticked "On Arkiv". A failure never blocks saving.
+  const arkivInfo = (id) => (arkiv.enabled ? arkiv.status(id) : null);
+  const withArkiv = (spot) => ({ ...spot, arkivInfo: arkivInfo(spot.id), arkivEnabled: arkiv.enabled });
+  async function syncArkiv(spot) {
+    if (!arkiv.enabled) return null;
+    try {
+      if (spot.onArkiv && spot.published) await arkiv.publish(spot);
+      else if (arkiv.status(spot.id)) await arkiv.unpublish(spot.id);
+      return null;
+    } catch (e) {
+      console.error('arkiv sync failed:', safeMessage(e));
+      return safeMessage(e);
+    }
+  }
 
   const needSpot = (id) => {
     const spot = store.get(id);
@@ -123,10 +140,16 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     if (p === '/api/v1/spots' && method === 'GET') {
       // NOTE: the README wants the app to see only coarse locations and the server to decide capture, so exact
       // coordinates here are a prototype shortcut. Round them (or drop them) before a real launch.
-      const body = JSON.stringify({ spots: store.list().filter((s) => s.published).map(toPublic) });
+      const body = JSON.stringify({ spots: store.list().filter((s) => s.published).map((s) => { const a = arkivInfo(s.id); return { ...toPublic(s), ...(a && s.onArkiv ? { arkiv: { entityKey: a.entityKey, owner: a.owner, expiresOn: a.expiresOn } } : {}) }; }) });
       const etag = `"${createHash('sha1').update(body).digest('hex').slice(0, 16)}"`;
       if (req.headers['if-none-match'] === etag) return send(res, 304, '', { etag, ...cors });
       return send(res, 200, body, { 'content-type': 'application/json; charset=utf-8', etag, 'cache-control': 'no-cache', ...cors });
+    }
+
+    // what is public on Arkiv right now, read back from the chain (anyone can run the same query without this server)
+    if (p === '/api/v1/arkiv/spots' && method === 'GET') {
+      if (!arkiv.enabled) throw new HttpError(503, 'Arkiv is not configured on this server.');
+      return send(res, 200, { owner: arkiv.owner, eventSlug: arkiv.eventSlug, schema: 'world3.spot', spots: await arkiv.list() }, cors);
     }
 
     // ---- sign in with World ID ----------------------------------------------------------------------------------
@@ -169,17 +192,17 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
 
     // ---- admin API ----------------------------------------------------------------------------------------------
     if (p === '/api/spots') {
-      if (method === 'GET') return send(res, 200, { spots: store.list() });
+      if (method === 'GET') return send(res, 200, { spots: store.list().map(withArkiv) });
       if (method === 'POST') {
         const { value, errors } = validateSpot(await readJson(req));
         if (errors.length) throw new HttpError(400, 'Some fields need fixing.', { issues: errors });
-        return send(res, 201, { spot: await store.create(value) });
+        return send(res, 201, { spot: withArkiv(await store.create(value)) });
       }
     }
     m = p.match(/^\/api\/spots\/(\d+)$/);
     if (m) {
       const spot = needSpot(m[1]);
-      if (method === 'GET') return send(res, 200, { spot });
+      if (method === 'GET') return send(res, 200, { spot: withArkiv(spot) });
       if (method === 'PUT') {
         const body = await readJson(req);
         const { value, errors } = validateSpot(body, { partial: true });
@@ -188,9 +211,12 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
         const app = value.approachRadiusM ?? spot.approachRadiusM;
         if (app <= cap && !errors.some((e) => e.field === 'approachRadiusM')) errors.push({ field: 'approachRadiusM', message: 'The approach radius must be bigger than the capture radius.' });
         if (errors.length) throw new HttpError(400, 'Some fields need fixing.', { issues: errors });
-        return send(res, 200, { spot: await store.update(spot.id, value) });
+        const saved = await store.update(spot.id, value);
+        const arkivError = await syncArkiv(saved);
+        return send(res, 200, { spot: withArkiv(saved), arkivError });
       }
       if (method === 'DELETE') {
+        if (arkiv.enabled && arkiv.status(spot.id)) await arkiv.unpublish(spot.id).catch((e) => console.error('arkiv unpublish failed:', safeMessage(e)));
         await store.remove(spot.id);
         return send(res, 200, { ok: true });
       }
@@ -205,9 +231,15 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
         try { stats = parseGlb(buf); } catch (e) { throw e instanceof GlbError ? new HttpError(400, e.message) : e; }
         const { warnings, sha256, bytes, ...rest } = stats;
         const info = { file: `${spot.id}-${sha256.slice(0, 10)}.glb`, bytes, sha256, uploadedAt: new Date().toISOString(), originalName: sanitizeName(req.headers['x-filename']), stats: rest, warnings };
-        return send(res, 200, { spot: await store.setFile(spot.id, 'model', info, buf) });
+        const withModel = await store.setFile(spot.id, 'model', info, buf);
+        const arkivError = await syncArkiv(withModel);
+        return send(res, 200, { spot: withArkiv(withModel), arkivError });
       }
-      if (method === 'DELETE') return send(res, 200, { spot: await store.setFile(spot.id, 'model', null) });
+      if (method === 'DELETE') {
+        const without = await store.setFile(spot.id, 'model', null);
+        const arkivError = await syncArkiv(without);
+        return send(res, 200, { spot: withArkiv(without), arkivError });
+      }
     }
 
     m = p.match(/^\/api\/spots\/(\d+)\/image$/);
@@ -252,5 +284,5 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     log(`${req.method} ${req.url.split('?')[0]} ${res.statusCode} ${Date.now() - started}ms`);
   });
 
-  return { server, store, captures, voucherSigner };
+  return { server, store, captures, voucherSigner, arkiv };
 }

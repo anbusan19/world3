@@ -22,6 +22,7 @@ export const DEFAULTS = {
   art: null,
   icon: 'location',
   published: false,
+  onArkiv: false,
 };
 
 export function defaultLabel(name) {
@@ -86,6 +87,10 @@ export function validateSpot(input, { partial = false } = {}) {
   ranged('scale', 0.05, 20, 'Scale');
   ranged('heightOffsetM', -5, 50, 'Height offset', ' m');
 
+  if (has('onArkiv')) {
+    if (typeof body.onArkiv !== 'boolean') bad('onArkiv', 'Publish on Arkiv must be true or false.');
+    else value.onArkiv = body.onArkiv;
+  }
   if (has('published')) {
     if (typeof body.published !== 'boolean') bad('published', 'Published must be true or false.');
     else value.published = body.published;
