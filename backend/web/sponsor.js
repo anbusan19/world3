@@ -234,15 +234,28 @@ async function chooseImage(file) {
   if (S.image?.url) URL.revokeObjectURL(S.image.url);
   S.image = null;
   const img = node('img', { alt: '' });
+  const thumb = $('#dropThumb'); const info = $('#dropInfo');
+  info.className = '';
   if (file) {
-    if (file.size > LIMITS.creativeBytes) { $('#problem').textContent = `That image is ${Math.round(file.size / 1024)} KB; the limit is ${LIMITS.creativeBytes / 1024} KB.`; }
-    else {
+    if (file.size > LIMITS.creativeBytes) {
+      $('#problem').textContent = `That image is ${Math.round(file.size / 1024)} KB; the limit is ${LIMITS.creativeBytes / 1024} KB.`;
+      info.textContent = `${Math.round(file.size / 1024)} KB: too big`; info.className = 'warn';
+    } else {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const url = URL.createObjectURL(new Blob([bytes], { type: file.type }));
       S.image = { bytes, url };
       img.src = url;
+      // read the real size so we can say whether it fits the 16:9 card
+      await new Promise((r) => { const probe = new Image(); probe.onload = () => { S.image.w = probe.naturalWidth; S.image.h = probe.naturalHeight; r(); }; probe.onerror = r; probe.src = url; });
+      const { w, h } = S.image;
+      const ratio = w && h ? w / h : 0;
+      const ok = Math.abs(ratio - 16 / 9) < 0.06;
+      info.textContent = w ? `${w}×${h} · ${Math.round(file.size / 1024)} KB · ${ok ? 'fits 16:9' : `ratio ${ratio.toFixed(2)}:1, 16:9 is best`}` : `${Math.round(file.size / 1024)} KB`;
+      info.className = ok ? 'ok' : 'warn';
     }
-  }
+    $('#dropName').textContent = file.name;
+  } else { $('#dropName').textContent = 'Choose or drop a file'; info.textContent = 'Nothing chosen yet'; }
+  thumb.replaceChildren(S.image ? node('img', { alt: '', src: S.image.url }) : document.createTextNode('+'));
   $('#pvImg').replaceChildren(S.image ? img : node('span', {}, 'Your image'));
   validate();
 }
@@ -281,6 +294,10 @@ function init() {
   $('#form').addEventListener('submit', publish);
   for (const id of ['spot', 'sponsor', 'headline', 'url', 'alt', 'days']) $(`#${id}`).addEventListener('input', validate);
   $('#image').addEventListener('change', (e) => chooseImage(e.target.files?.[0]));
+  const drop = $('#drop');
+  ['dragover', 'dragenter'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (e) => { const f = e.dataTransfer?.files?.[0]; if (f) chooseImage(f); });
   refreshInfo().then(validate).catch(() => { $('#problem').textContent = 'Could not reach the World3 server.'; });
   validate(); renderCampaigns();
 }

@@ -17,6 +17,9 @@ const ALLOWED = [
   // the public passport page (it reads ENS itself; only the spots' names and art come from us)
   /^\/(passport\.html|passport\.css|skin\.css|passport\.bundle\.js)$/,
   /^\/p\/[a-z0-9-]{1,32}\/?$/i,
+  // the explorer: recent stamps across everyone, no personal data
+  /^\/(explorer\.html|skin\.css|logo\.png)$/,
+  /^\/api\/v1\/explorer$/,
 ];
 
 export function createProxy({ upstreamHost = UP_HOST, upstreamPort = UP_PORT } = {}) {

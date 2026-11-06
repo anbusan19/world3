@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World3 · Explorer</title>
+  <link rel="icon" href="/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/sponsor.css">
+  <link rel="stylesheet" href="/skin.css">
+  <style>
+    main.xp { max-width: none; margin: 0; padding: 6px clamp(10px, 2vw, 24px) 48px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; align-items: start; }
+    .xp .intro { grid-column: span 7; }
+    .xp .stat { grid-column: span 5; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .tile { background: var(--card); border-radius: 28px; padding: 20px 22px; }
+    .tile b { display: block; font-size: clamp(34px, 5vw, 56px); line-height: 1; letter-spacing: -.05em; font-weight: 800; }
+    .tile span { color: var(--muted); font-weight: 700; font-size: 13px; }
+    .tile.green { background: var(--green); color: #0B0B0F; } .tile.green span { color: #0B0B0F; opacity: .75; }
+    .xp .tools { grid-column: span 4; position: sticky; top: 84px; }
+    .xp .feed { grid-column: span 8; }
+    .tools input, .tools select { width: 100%; height: 44px; border: 1.5px solid var(--line); border-radius: 14px; padding: 0 14px; background: var(--soft); margin-bottom: 10px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip2 { border: 0; border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 13px; background: var(--soft); cursor: pointer; }
+    .chip2.on { background: var(--solid); color: var(--on-solid); }
+    .item { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 4px; border-top: 1px solid var(--line); }
+    .item:first-child { border-top: 0; }
+    .av { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #0B0B0F; font-size: 12px; }
+    .item b { display: block; font-size: 15px; letter-spacing: 0; line-height: 1.3; } .item small { color: var(--muted); font-weight: 600; }
+    .when { color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .more { margin-top: 12px; }
+    @media (max-width: 900px) { .xp .intro, .xp .stat, .xp .tools, .xp .feed { grid-column: 1 / -1; } .xp .tools { position: static; } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/explorer.html"><img src="/logo.png" width="34" height="34" alt=""><span>World3 <em>Explorer</em></span></a>
+    <span class="grow"></span>
+  </header>
+  <main class="xp">
+    <section class="intro hero">
+      <h1>Every stamp, as it is collected.</h1>
+      <p>Each line is one verified human standing at one spot. Names are anonymous handles unless the person published a passport. Coordinates are never stored.</p>
+    </section>
+    <section class="stat">
+      <div class="tile green"><b id="total">–</b><span>stamps shown</span></div>
+      <div class="tile"><b id="places">–</b><span>places</span></div>
+    </section>
+    <aside class="tile tools">
+      <label class="label" for="q">Search</label>
+      <input id="q" type="search" placeholder="A place, a city or a name" autocomplete="off">
+      <p class="label">Place</p>
+      <div class="chips" id="chips"></div>
+    </aside>
+    <section class="tile feed">
+      <div id="list"></div>
+      <p id="empty" class="muted" hidden>Nothing here yet.</p>
+      <button id="more" class="btn more" type="button" hidden>Load more</button>
+    </section>
+  </main>
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const TH = { coral: '#F9A98B', sky: '#8FD3E4', sun: '#F4D35E', leaf: '#A6D16C', ocean: '#3D8FD0' };
+    let state = { q: '', spot: '', offset: 0, total: 0 };
+    const ago = (iso) => { const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000); if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s / 60) + ' min ago'; if (s < 86400) return Math.floor(s / 3600) + ' h ago'; return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); };
+    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    async function load(reset) {
+      if (reset) state.offset = 0;
+      const u = new URLSearchParams({ limit: 20, offset: state.offset, q: state.q, spot: state.spot });
+      const r = await fetch('/api/v1/explorer?' + u).then((x) => x.json()).catch(() => null);
+      if (!r) { $('#empty').hidden = false; $('#empty').textContent = 'Could not reach the server.'; return; }
+      state.total = r.total;
+      $('#total').textContent = r.total; $('#places').textContent = r.spots.length;
+      if (reset) $('#list').innerHTML = '';
+      $('#list').insertAdjacentHTML('beforeend', r.items.map((e) => `<div class="item"><div class="av" style="background:${TH[e.theme] || TH.coral}">${esc(e.spotId)}</div><div><b>${esc(e.who)}</b><small>collected ${esc(e.spot)} · ${esc(e.city || '')}</small></div><span class="when">${ago(e.at)}</span></div>`).join(''));
+      state.offset += r.items.length;
+      $('#empty').hidden = state.offset > 0; $('#more').hidden = state.offset >= r.total;
+      if (reset) $('#chips').innerHTML = `<button class="chip2 ${state.spot ? '' : 'on'}" data-s="">All</button>` + r.spots.map((s) => `<button class="chip2 ${state.spot === s.id ? 'on' : ''}" data-s="${esc(s.id)}">${esc(s.name)} · ${s.count}</button>`).join('');
+    }
+    let t; $('#q').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => { state.q = e.target.value; load(true); }, 250); });
+    $('#chips').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; state.spot = b.dataset.s; load(true); });
+    $('#more').addEventListener('click', () => load(false));
+    load(true); setInterval(() => load(true), 30000);
+  </script>
+</body>
+</html>
