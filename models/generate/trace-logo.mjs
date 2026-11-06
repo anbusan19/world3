@@ -100,7 +100,7 @@ function traceShapes(file) {
     return [...simplify(l.slice(0, far + 1), eps).slice(0, -1), ...simplify([...l.slice(far), l[0]], eps).slice(0, -1)];
   };
   // drop specks: loops far smaller than the picture
-  const simple = loops.map((l) => simplifyLoop(l, 0.45)).filter((l) => l.length >= 4 && Math.abs(area(l)) > FW * FH * 0.00002);
+  const simple = loops.map((l) => simplifyLoop(l, 1.1)).filter((l) => l.length >= 4 && Math.abs(area(l)) > FW * FH * 0.00002);
   const depth = simple.map((l, i) => simple.reduce((n, m, j) => n + (i !== j && inside(l[0], m) ? 1 : 0), 0));
   const cx = (W * S) / 2 + PAD; const cy = (H * S) / 2 + PAD; const R = (W * S) / 2;
   const conv = (l) => l.map((p) => ({ x: (p.x - cx) / R, y: -(p.y - cy) / R }));

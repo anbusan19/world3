@@ -101,14 +101,28 @@ export class Scene {
     const k = targetHeight / (max[1] - min[1]); const cx = (min[0] + max[0]) / 2; const cz = (min[2] + max[2]) / 2;
     const prims = []; const chunks = []; let off = 0; const views = []; const accessors = []; const materials = [];
     const push = (arr, target) => { const buf = Buffer.from(new Float32Array(arr).buffer); views.push({ buffer: 0, byteOffset: off, byteLength: buf.length, target }); chunks.push(buf); off += buf.length; return views.length - 1; };
+    const pushIdx = (arr, wide) => { // triangle indices, padded so the next buffer stays 4-byte aligned
+      let buf = Buffer.from((wide ? new Uint32Array(arr) : new Uint16Array(arr)).buffer);
+      const len = buf.length; while (buf.length % 4) buf = Buffer.concat([buf, Buffer.from([0])]);
+      views.push({ buffer: 0, byteOffset: off, byteLength: len, target: 34963 }); chunks.push(buf); off += buf.length; return views.length - 1;
+    };
     for (const b of this.bins.values()) {
-      const pos = []; for (let i = 0; i < b.pos.length; i += 3) pos.push((b.pos[i] - cx) * k, (b.pos[i + 1] - min[1]) * k, (b.pos[i + 2] - cz) * k);
+      // weld identical corners (same place and same normal) so a flat face of many triangles shares its vertices instead of repeating them
+      const pos = []; const nor = []; const idx = []; const seen = new Map();
+      for (let i = 0; i < b.pos.length; i += 3) {
+        const x = (b.pos[i] - cx) * k, y = (b.pos[i + 1] - min[1]) * k, z = (b.pos[i + 2] - cz) * k;
+        const key = `${Math.round(x * 1e5)},${Math.round(y * 1e5)},${Math.round(z * 1e5)},${Math.round(b.nor[i] * 1e3)},${Math.round(b.nor[i + 1] * 1e3)},${Math.round(b.nor[i + 2] * 1e3)}`;
+        let at = seen.get(key);
+        if (at === undefined) { at = pos.length / 3; seen.set(key, at); pos.push(x, y, z); nor.push(b.nor[i], b.nor[i + 1], b.nor[i + 2]); }
+        idx.push(at);
+      }
       let lo = [Infinity, Infinity, Infinity]; let hi = [-Infinity, -Infinity, -Infinity];
       for (let i = 0; i < pos.length; i += 3) for (let q = 0; q < 3; q++) { lo[q] = Math.min(lo[q], pos[i + q]); hi[q] = Math.max(hi[q], pos[i + q]); }
-      const pv = push(pos, 34962); const nv = push(b.nor, 34962);
-      accessors.push({ bufferView: pv, componentType: 5126, count: pos.length / 3, type: 'VEC3', min: lo, max: hi }, { bufferView: nv, componentType: 5126, count: pos.length / 3, type: 'VEC3' });
+      const wide = pos.length / 3 > 65535;
+      const pv = push(pos, 34962); const nv = push(nor, 34962); const iv = pushIdx(idx, wide);
+      accessors.push({ bufferView: pv, componentType: 5126, count: pos.length / 3, type: 'VEC3', min: lo, max: hi }, { bufferView: nv, componentType: 5126, count: pos.length / 3, type: 'VEC3' }, { bufferView: iv, componentType: wide ? 5125 : 5123, count: idx.length, type: 'SCALAR' });
       materials.push({ pbrMetallicRoughness: { baseColorFactor: [...b.color, 1], metallicFactor: 0, roughnessFactor: 0.85 }, doubleSided: true });
-      prims.push({ attributes: { POSITION: accessors.length - 2, NORMAL: accessors.length - 1 }, material: materials.length - 1, mode: 4 });
+      prims.push({ attributes: { POSITION: accessors.length - 3, NORMAL: accessors.length - 2 }, indices: accessors.length - 1, material: materials.length - 1, mode: 4 });
     }
     const bin = Buffer.concat(chunks);
     const json = { asset: { version: '2.0', generator: 'wrld3 landmark generator' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0, name: this.name }], meshes: [{ name: this.name, primitives: prims }], materials, accessors, bufferViews: views, buffers: [{ byteLength: bin.length }] };
