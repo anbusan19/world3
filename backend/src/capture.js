@@ -64,10 +64,12 @@ export class Captures {
 }
 
 export function createCaptureService({ store, captures, world, accounts, voucherSigner = null, config = {}, now = () => Date.now(), gate = () => null }) {
-  const c = { action: 'capture', maxAccuracyM: 25, maxAgeMs: 60_000, ...config };
+  const c = { action: 'capture', maxAccuracyM: 25, maxAgeMs: 60_000, actionOverrides: {}, ...config };
   // One World ID action per spot. A person's nullifier is derived from the action, so a separate action per spot is what
   // makes "one human, one stamp per spot" work: a single shared action would let each person prove only once, ever.
-  const actionFor = (spotId) => `${c.action}-${spotId}`;
+  // One World ID action per spot (a person can prove only once per action). To let people capture a spot again after its action
+  // was spent (testing), point it at a fresh action with WORLD_ID_ACTION_OVERRIDES='{"02":"capture-02b"}' and create that action in the portal.
+  const actionFor = (spotId) => c.actionOverrides?.[String(spotId)] ?? `${c.action}-${spotId}`;
 
   // Step 1: a signed-in person asks to capture a spot. We sign a World ID request for it and remember the nonce.
   function issue(user, spotId) {
@@ -122,5 +124,6 @@ export function captureConfigFromEnv(env = process.env) {
   return {
     action: env.WORLD_ID_ACTION || 'capture',
     maxAccuracyM: Number(env.MAX_ACCURACY_M) || 25,
+    actionOverrides: (() => { try { const o = JSON.parse(env.WORLD_ID_ACTION_OVERRIDES || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } })(),
   };
 }
