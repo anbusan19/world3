@@ -20,7 +20,9 @@ a { color: var(--info); }
 .top { display: flex; align-items: center; gap: 14px; padding: 10px 20px; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; letter-spacing: -.3px; }
 .brand img { border-radius: 11px; }
-.brand em { font-style: normal; font-weight: 700; color: var(--muted); }
+.brand em { font-style: normal; font-weight: 500; font-size: 17px; letter-spacing: 0; color: var(--muted); }
+.brand picture { display: flex; }
+.brand picture img { height: 30px; width: auto; border-radius: 0; }
 .grow { flex: 1; }
 .status { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--muted); background: var(--card); padding: 6px 12px; border-radius: 999px; }
 .status i { width: 8px; height: 8px; border-radius: 50%; background: #B9BCC6; }
