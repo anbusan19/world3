@@ -158,6 +158,39 @@ test('bad, reserved and taken names are refused with a reason, and nothing is sp
   await done();
 });
 
+test('profane names are refused, including disguised ones, and the reason never says which word matched', async () => {
+  const { svc, ens, done } = await make();
+  for (const label of ['sh1t', 'f-u-c-k', 'annashit', 'b00bs', 'shitty-name', 'fuckyou']) {
+    await assert.rejects(() => svc.start('u1', label), (e) => e.message === 'That name is not allowed. Please pick another.', label);
+  }
+  assert.equal(ens.log.length, 0);
+  await done();
+});
+
+test('innocent words that merely contain a bad one are still allowed', () => {
+  for (const label of ['classic', 'grass', 'assassin', 'scunthorpe', 'analyst', 'therapist', 'anna-travels', 'k7m2qx', 'hello-there']) assert.equal(checkLabel(label).ok, true, label);
+});
+
+test('the organizer can block more words, in any language, and they match anywhere in a name', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'world3-pp-'));
+  const svc = await createPassports({ dataDir: dir, ens: fakeEns(), ownerSeed: SEED, captures: caps(), blockedWords: [' Mango ', ''] });
+  assert.equal((await svc.available('my-mango-trip')).ok, false);
+  assert.equal((await svc.available('MANGO')).ok, false);
+  assert.equal((await svc.available('apple-trip')).ok, true);
+  await rm(dir, { recursive: true, force: true });
+});
+
+test('a random name that happens to be profane is skipped', async () => {
+  // 'sh1t' is not a legal 6-character name, so make the first candidate a word the filter rejects: "fuck" + 2 letters
+  const seq = [...'fucker'].map((c) => 'abcdefghjkmnpqrstuvwxyz23456789'.indexOf(c));
+  let i = 0;
+  const { svc, ens, done } = await make({ random: () => ((i < 6 ? (seq[i++] ?? 0) : 7) + 0.1) / 31 });
+  await svc.start('u1'); await svc.idle();
+  assert.notEqual(svc.get('u1').label, 'fucker');
+  assert.equal(svc.get('u1').status, 'ready');
+  await done();
+});
+
 test('the name check is the same one used while typing, and accepts a pasted full name', async () => {
   const { svc, done } = await make({ ens: fakeEns({ taken: ['anna'] }) });
   assert.deepEqual(await svc.available('Zed-9.wrld3.eth'), { ok: true, label: 'zed-9' });
