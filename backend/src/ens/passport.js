@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { encodeFunctionData, createPublicClient, createWalletClient, http, parseAbi, zeroAddress } from 'viem';
+import { encodeFunctionData, createPublicClient, createWalletClient, http, keccak256, parseAbi, stringToBytes, zeroAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
 import { permissionedResolverRevokeRootRolesSnippet } from '@ensdomains/ensjs/contracts';
@@ -60,22 +60,46 @@ export async function createEns({ privateKey, rpcUrl, dataDir, parent = 'wrld3.e
       return registry;
     },
 
-    // one passport: its own resolver, the right split of permissions, the name, and the first stamps record
-    async createPassport({ name, owner, stamps = '' }) {
-      const registry = await this.ensureRegistry();
-      const full = `${name}.${parent}`;
-      // 1. the traveler's own resolver. The traveler and (for now) the backend both start with every right.
+    // ---- the four steps of a passport. Each one is separate so a failure part-way can resume where it stopped. ----
+
+    // 1. the traveler's own resolver. The traveler and (for now) the backend both start with every right.
+    async deployResolver(owner) {
       const callData = encodeFunctionData({ abi: resolverAbi, functionName: 'initialize', args: [[{ account: owner, roleBitmap: RESOLVER_ALL_ROLES }, { account: account.address, roleBitmap: RESOLVER_ALL_ROLES }], []] });
-      const resolver = await deployProxy(deployVerifiableProxyWriteParameters(wallet, { factoryAddress: SEPOLIA.verifiableFactory, implAddress: SEPOLIA.permissionedResolverImpl, callData }));
-      // 2. the backend gets the one record right, then gives up everything else it started with
+      return deployProxy(deployVerifiableProxyWriteParameters(wallet, { factoryAddress: SEPOLIA.verifiableFactory, implAddress: SEPOLIA.permissionedResolverImpl, callData }));
+    },
+
+    // 2. the backend gets the one record right, then gives up everything else it started with
+    async restrictBackend(resolver) {
       await wait(await grantResolverRoles(wallet, { resolverAddress: resolver, targetAccount: account.address, scope: 'setter', setter: { kind: 'text', key: STAMPS_KEY } }));
       await wait(await wallet.writeContract({ address: resolver, abi: [permissionedResolverRevokeRootRolesSnippet[0]], functionName: 'revokeRootRoles', args: [RESOLVER_ALL_ROLES, account.address] }));
-      // 3. the name itself, owned by the traveler
-      const nameTx = await createSubname(wallet, { registryAddress: registry, label: name, owner, subregistryAddress: zeroAddress, resolverAddress: resolver, roleBitmap: ownerRoles });
-      await wait(nameTx);
-      // 4. the stamps record, written by the backend's one right
+    },
+
+    // 3. the name itself, owned by the traveler
+    async registerName({ label: sub, owner, resolver }) {
+      const registry = await this.ensureRegistry();
+      const hash = await createSubname(wallet, { registryAddress: registry, label: sub, owner, subregistryAddress: zeroAddress, resolverAddress: resolver, roleBitmap: ownerRoles });
+      await wait(hash);
+      return hash;
+    },
+
+    // is this label still free in the passport registry? (status 0 = available)
+    async isLabelFree(sub) {
+      const registry = await this.ensureRegistry();
+      const status = await pub.readContract({ address: registry, abi: parseAbi(['function getStatus(uint256 labelHash) view returns (uint8)']), functionName: 'getStatus', args: [BigInt(keccak256(stringToBytes(sub)))] });
+      return Number(status) === 0;
+    },
+
+    // how much Sepolia ETH is left to pay for gas
+    balance: () => pub.getBalance({ address: account.address }),
+
+    // all four in a row (the spike uses this)
+    async createPassport({ name, owner, stamps = '' }) {
+      const resolver = await this.deployResolver(owner);
+      await this.restrictBackend(resolver);
+      const nameTx = await this.registerName({ label: name, owner, resolver });
+      const full = `${name}.${parent}`;
       const recordTx = stamps ? await this.setStamps({ name: full, resolver, value: stamps }) : null;
-      return { name: full, resolver, owner, registry, nameTx, recordTx };
+      return { name: full, resolver, owner, registry: await this.ensureRegistry(), nameTx, recordTx };
     },
 
     async setStamps({ name, resolver, value }) {
