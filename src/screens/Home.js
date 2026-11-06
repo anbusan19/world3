@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MapCard } from '../MapCard';
+import { Meadow } from '../art/Nature';
 import { Stamp } from '../Stamp';
 import { formatDistance } from '../geo';
 import { CAPTURE_M, NEAR_METERS, shortName } from '../spots';
@@ -24,9 +25,11 @@ export function Home({ spots, user, collected, openSpot, setScrollLock }) {
         <Text style={styles.titleLight}>Prove it.</Text>
       </Text>
 
+      <Meadow />
+
       <View style={styles.heading}>
         <Text style={styles.headingTitle}>Around you</Text>
-        <Text style={styles.headingMeta}>real map</Text>
+        <Text style={styles.headingMeta}>within 100 km</Text>
       </View>
       <MapCard spots={spots} user={user} selectedId={selectedId} onSelect={setSelectedId} setScrollLock={setScrollLock} />
 
@@ -65,7 +68,7 @@ export function Home({ spots, user, collected, openSpot, setScrollLock }) {
         {next && (
           <Pressable style={({ pressed }) => [styles.captureBtn, pressed && { opacity: 0.85 }]} onPress={() => openSpot(next)}>
             <Text style={styles.captureBtnText}>Open spot</Text>
-            <Ionicons name="arrow-forward" size={18} color="#0B0B0F" />
+            <View style={styles.captureArrow}><Ionicons name="arrow-forward" size={16} color={C.green} /></View>
           </Pressable>
         )}
       </View>
@@ -98,5 +101,6 @@ const useStyles = makeStyles((C) => ({
   captureTitle: { fontFamily: F.bold, fontSize: 24, color: '#fff', letterSpacing: -0.5, marginTop: 10 },
   captureCopy: { fontFamily: F.reg, fontSize: 13, color: '#B9BCC6', marginTop: 6 },
   captureBtn: { height: 52, borderRadius: 26, backgroundColor: C.green, marginTop: 18, paddingHorizontal: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  captureArrow: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#0B0B0F', alignItems: 'center', justifyContent: 'center', marginRight: -10 },
   captureBtnText: { fontFamily: F.semi, fontSize: 14, color: '#0B0B0F' },
 }));

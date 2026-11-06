@@ -1,13 +1,19 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Camera, Map, ViewAnnotation } from '@maplibre/maplibre-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getCartoonStyle } from './mapStyle';
+import { Stamp } from './Stamp';
 import { formatDistance } from './geo';
+import { shortName } from './spots';
 import { makeStyles, useColors, useTheme } from './theme';
 
 export const MUMBAI = [72.8347, 18.9322]; // between the Gateway of India and CSMT
-const START_ZOOM = 12.6;
+// The map opens on YOU, zoomed out far enough to show everything within about 100 km. With no location yet it
+// shows Mumbai and flies to you the moment the first position arrives.
+const WIDE_ZOOM = 7;
+const NEAR_ZOOM = 15;
+const RADIUS_M = 100_000;
 
 const GREEN = '#A6D16C';
 const FONT = { med: 'PlusJakartaSans_500Medium', bold: 'PlusJakartaSans_700Bold' };
@@ -34,10 +40,20 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
   const C = useColors();
   const { isDark } = useTheme();
   const camera = useRef(null);
+  const nearby = user.coords ? spots.filter((s) => s.dist == null || s.dist <= RADIUS_M) : spots;
+  const shown = nearby.length ? nearby : spots;
   const selected = spots.find((s) => s.id === selectedId) ?? spots[0];
 
-  const goToMe = () => user.coords && camera.current?.flyTo({ center: user.coords, zoom: 15, duration: 900 });
-  const goToMumbai = () => camera.current?.flyTo({ center: MUMBAI, zoom: START_ZOOM, duration: 900 });
+  const centred = useRef(false);
+  useEffect(() => {
+    if (user.coords && !centred.current) {
+      centred.current = true;
+      camera.current?.flyTo({ center: user.coords, zoom: WIDE_ZOOM, duration: 1200 });
+    }
+  }, [user.coords]);
+
+  const goToMe = () => user.coords && camera.current?.flyTo({ center: user.coords, zoom: NEAR_ZOOM, duration: 900 });
+  const goWide = () => camera.current?.flyTo({ center: user.coords ?? MUMBAI, zoom: WIDE_ZOOM, duration: 900 });
 
   return (
     <View
@@ -57,15 +73,22 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
         touchRotate={false}
         attributionPosition={{ bottom: 6, right: 6 }}
       >
-        <Camera ref={camera} initialViewState={{ center: MUMBAI, zoom: START_ZOOM }} minZoom={9} maxZoom={17} />
+        <Camera ref={camera} initialViewState={{ center: user.coords ?? MUMBAI, zoom: WIDE_ZOOM }} minZoom={5} maxZoom={17} />
 
-        {spots.map((s) => (
-          <ViewAnnotation key={s.id} id={`spot-${s.id}`} lngLat={s.coord} anchor="center" onPress={() => onSelect(s.id)}>
-            <View style={[styles.pin, { backgroundColor: s.tint }, s.id === selected.id && styles.pinSelected]}>
-              <Ionicons name={s.icon} size={20} color="#F26B21" />
-            </View>
-          </ViewAnnotation>
-        ))}
+        {shown.map((s) => {
+          const on = s.id === selected.id;
+          const w = on ? 54 : 44;
+          return (
+            <ViewAnnotation key={s.id} id={`spot-${s.id}`} lngLat={s.coord} anchor="bottom" onPress={() => onSelect(s.id)}>
+              <View style={styles.pinWrap}>
+                <View style={[styles.pin, on && styles.pinSelected]}>
+                  <Stamp theme={s.theme} art={s.art} icon={s.icon} label={shortName(s)} iconSize={16} labelSize={5.5} style={{ width: w }} />
+                </View>
+                <View style={[styles.pinTip, on && styles.pinTipSelected]} />
+              </View>
+            </ViewAnnotation>
+          );
+        })}
 
         {user.coords && (
           <ViewAnnotation id="me" lngLat={user.coords} anchor="center">
@@ -86,9 +109,9 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
             <Ionicons name="navigate" size={14} color={C.ink} />
             <Text style={styles.btnText}>Me</Text>
           </Pressable>
-          <Pressable style={styles.btn} onPress={goToMumbai}>
-            <Ionicons name="map" size={14} color={C.ink} />
-            <Text style={styles.btnText}>Mumbai</Text>
+          <Pressable style={styles.btn} onPress={goWide}>
+            <Ionicons name="scan" size={14} color={C.ink} />
+            <Text style={styles.btnText}>100 km</Text>
           </Pressable>
         </View>
       </View>
@@ -106,8 +129,11 @@ export function MapCard({ spots, user, selectedId, onSelect, setScrollLock }) {
 const useStyles = makeStyles((C) => ({
   card: { height: 320, borderRadius: 28, overflow: 'hidden', backgroundColor: '#0265AD' },
 
-  pin: { width: 42, height: 42, borderRadius: 21, borderWidth: 3, borderColor: C.card, alignItems: 'center', justifyContent: 'center' },
-  pinSelected: { width: 50, height: 50, borderRadius: 25, borderColor: C.ink },
+  pinWrap: { alignItems: 'center' },
+  pin: { padding: 3, borderRadius: 5, backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 4, elevation: 4 },
+  pinSelected: { backgroundColor: '#F26B21' },
+  pinTip: { width: 0, height: 0, borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: C.card },
+  pinTipSelected: { borderTopColor: '#F26B21' },
   meRing: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#0265AD55', alignItems: 'center', justifyContent: 'center' },
   meCore: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#fff', borderWidth: 4, borderColor: '#0265AD' },
 
