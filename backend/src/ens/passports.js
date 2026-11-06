@@ -14,8 +14,21 @@ import { privateKeyToAccount } from 'viem/accounts';
 const ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'; // no look-alike characters
 const MIN_GAS = 4_000_000_000_000_000n; // 0.004 Sepolia ETH is the least a full passport needs, with room to spare
 // our own messages are written for people and shown as they are; anything from a library or the network is reduced to a short, scrubbed line
-class PassportError extends Error {}
+export class PassportError extends Error {}
 const safe = (e) => String(e instanceof PassportError ? e.message : (e?.shortMessage ?? e?.name ?? 'The passport could not be created')).replace(/https?:\/\/\S+/g, '[url]').replace(/ark_live_\S+/g, '[key]').slice(0, 140);
+
+// What a chosen name may look like. Plain lowercase letters, digits and single dashes only (anything else would need ENS normalisation and
+// invites look-alike characters), 3 to 20 long. A short list of names nobody may take: brands we do not own, and names that sound official.
+export const LABEL_RULE = /^[a-z0-9](?:[a-z0-9]|-(?!-)){1,18}[a-z0-9]$/;
+const RESERVED = new Set(['world', 'worldcoin', 'worldid', 'world3', 'wrld3', 'wrld', 'admin', 'administrator', 'root', 'support', 'official', 'staff', 'team', 'help', 'security', 'ens', 'eth', 'ethereum', 'ethglobal', 'arkiv', 'test', 'null', 'undefined', 'www', 'api', 'passport', 'sponsor', 'sponsors']);
+export function checkLabel(raw) {
+  const label = String(raw ?? '').trim().toLowerCase().replace(/\.wrld3\.eth$/, '');
+  if (label.length < 3) return { ok: false, reason: 'Use at least 3 characters.' };
+  if (label.length > 20) return { ok: false, reason: 'Use at most 20 characters.' };
+  if (!LABEL_RULE.test(label)) return { ok: false, reason: 'Use only lowercase letters, numbers and single dashes, starting and ending with a letter or number.' };
+  if (RESERVED.has(label) || label.startsWith('xn')) return { ok: false, reason: 'That name is reserved. Please pick another.' };
+  return { ok: true, label };
+}
 
 export async function createPassports({ dataDir, ens, ownerSeed, captures, publicBase = '', random = Math.random, now = () => Date.now() }) {
   const file = path.join(dataDir, 'passports.json');
@@ -87,11 +100,25 @@ export async function createPassports({ dataDir, ens, ownerSeed, captures, publi
   return {
     get: (userId) => dto(userId),
 
-    // idempotent: asking twice never makes two passports
-    start(userId) {
+    // is this name allowed and free? (used while the person types)
+    async available(raw) {
+      const c = checkLabel(raw);
+      if (!c.ok) return c;
+      return (await ens.isLabelFree(c.label)) ? { ok: true, label: c.label } : { ok: false, reason: 'That name is taken.' };
+    },
+
+    // idempotent: asking twice never makes two passports. `label` is optional: a name the person chose (checked here), else a random one.
+    // A retry after a failure keeps the name already chosen, so progress is never thrown away.
+    async start(userId, label) {
       const st = users[userId];
       if (st?.status === 'ready' || st?.status === 'creating') return dto(userId);
-      users[userId] = { ...(st ?? {}), status: 'creating', createdAt: st?.createdAt ?? new Date(now()).toISOString() };
+      let chosen = null;
+      if (label != null && label !== '' && !st?.label) {
+        const a = await this.available(label);
+        if (!a.ok) throw new PassportError(a.reason);
+        chosen = a.label;
+      }
+      users[userId] = { ...(st ?? {}), ...(chosen ? { label: chosen, name: `${chosen}.${ens.parent}` } : {}), status: 'creating', createdAt: st?.createdAt ?? new Date(now()).toISOString() };
       delete users[userId].error;
       touch(users[userId]);
       save();

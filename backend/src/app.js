@@ -5,7 +5,7 @@ import path from 'node:path';
 import { Accounts, createAuthService } from './auth.js';
 import { createAds } from './ads.js';
 import { createEns } from './ens/passport.js';
-import { createPassports } from './ens/passports.js';
+import { PassportError, createPassports } from './ens/passports.js';
 import { Sponsors } from './sponsors.js';
 import { createArkiv, safeMessage } from './arkiv.js';
 import { Captures, captureConfigFromEnv, createCaptureService } from './capture.js';
@@ -177,12 +177,23 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
     }
 
     // ---- the person's own public passport (opt-in) --------------------------------------------------------------------
+    if (p === '/api/v1/passport/name' && method === 'GET') {
+      const user = auth.user(bearer(req));
+      if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
+      if (!passports) throw new HttpError(503, 'Public passports are not set up on this server.');
+      const r = await passports.available(url.searchParams.get('label')).catch(() => ({ ok: false, reason: 'Could not check right now. Try again.' }));
+      return send(res, 200, { ok: r.ok, ...(r.ok ? { label: r.label } : { reason: r.reason }) });
+    }
     if (p === '/api/v1/passport' || p === '/api/v1/passport/public') {
       const user = auth.user(bearer(req));
       if (!user) throw new CaptureError('signed_out', 'Not signed in.', 401);
       if (!passports) throw new HttpError(503, 'Public passports are not set up on this server.');
       if (p === '/api/v1/passport' && method === 'GET') return send(res, 200, { passport: passports.get(user.id), parent: ensClient.parent });
-      if (p === '/api/v1/passport' && method === 'POST') return send(res, 202, { passport: passports.start(user.id), parent: ensClient.parent });
+      if (p === '/api/v1/passport' && method === 'POST') {
+        const { label } = await readJson(req);
+        try { return send(res, 202, { passport: await passports.start(user.id, label), parent: ensClient.parent }); }
+        catch (e) { if (e instanceof PassportError) throw new HttpError(409, e.message); throw e; }
+      }
       if (p === '/api/v1/passport/public' && method === 'POST') {
         const { public: flag } = await readJson(req);
         if (typeof flag !== 'boolean') throw new HttpError(400, 'public must be true or false.');
