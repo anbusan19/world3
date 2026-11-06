@@ -4,9 +4,9 @@
   "cleanUrls": false,
   "rewrites": [
     { "source": "/", "destination": "/sponsor.html" },
-    { "source": "/api/:path*", "destination": "https://cancel-dramatically-road-aid.trycloudflare.com/api/:path*" },
-    { "source": "/share/:path*", "destination": "https://cancel-dramatically-road-aid.trycloudflare.com/share/:path*" },
-    { "source": "/files/:path*", "destination": "https://cancel-dramatically-road-aid.trycloudflare.com/files/:path*" },
-    { "source": "/stamp/:path*", "destination": "https://cancel-dramatically-road-aid.trycloudflare.com/stamp/:path*" }
+    { "source": "/api/:path*", "destination": "https://15-252-207-174.sslip.io/api/:path*" },
+    { "source": "/share/:path*", "destination": "https://15-252-207-174.sslip.io/share/:path*" },
+    { "source": "/files/:path*", "destination": "https://15-252-207-174.sslip.io/files/:path*" },
+    { "source": "/stamp/:path*", "destination": "https://15-252-207-174.sslip.io/stamp/:path*" }
   ]
 }

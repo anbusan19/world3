@@ -49,7 +49,7 @@ and refuses everything else, so the organizer dashboard and its edit API cannot 
 ## Point the app at it
 Build the APK with both servers, so people get a switch in **Profile, Settings, Connection**:
 ```
-EXPO_PUBLIC_SERVERS="AWS|https://3-110-4-5.sslip.io,Laptop|https://<your-tunnel>.trycloudflare.com" scripts/build-apk.sh
+EXPO_PUBLIC_SERVERS="AWS|https://15-252-207-174.sslip.io,Laptop|https://<your-tunnel>.trycloudflare.com" scripts/build-apk.sh
 ```
 The first entry is the default. Each server keeps its own sign-in and stamps, so people who switch sign in again.
 
