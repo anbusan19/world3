@@ -44,4 +44,4 @@ The same generator builds a 3D version of each workstation logo, 4 m tall, same 
 |---|---|
 | `ens-logo.glb` | ENS diamond |
 | `arkiv-logo.glb` | Arkiv |
-| `world-logo.glb` | World globe mark |
+| `world-logo.glb` | The World mark, traced from the real logo image (`ref/world.png`): `node generate/trace-logo.mjs ../ref/world.png world-logo.glb` |

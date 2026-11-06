@@ -264,14 +264,6 @@ export const LANDMARKS = {
     const bar = (ry) => s.at({ y: up + 0.06, ry }, () => s.box(hex('#FFFFFF'), 1.0, 0, 0, 2.0, 0.05, 0.34));
     bar(0); bar(120); bar(240);
   }); },
-  'world-logo'(s) { coin(s, '#15151B', '#F4F1EA', (up) => {
-    // the World mark: a ring around a globe
-    const k = hex('#0B0B0F'); const w = hex('#F4F1EA'); const h = 0.04;
-    s.cyl(k, 0, up, 0, 3.6, 3.6, h, 40); s.cyl(w, 0, up + h, 0, 3.15, 3.15, h, 40);
-    s.cyl(k, 0, up + 2 * h, 0, 2.1, 2.1, h, 40); s.cyl(w, 0, up + 3 * h, 0, 1.8, 1.8, h, 40);
-    s.at({ sx: 0.42 }, () => { s.cyl(k, 0, up + 4 * h, 0, 2.1, 2.1, h, 40); s.cyl(w, 0, up + 5 * h, 0, 1.8, 1.8, h, 40); });
-    s.box(k, 0, up + 6 * h, 0, 4.2, h, 0.3); s.box(k, 0, up + 6 * h, 0, 0.3, h, 4.2);
-  }); },
 };
 
 // a coin 10 wide, 1 thick, standing on its edge, facing the viewer; draw(up) paints the mark at height `up` on a face.
