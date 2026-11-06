@@ -19,7 +19,7 @@ import { F, ThemeProvider, makeStyles, useColors, useTheme } from './src/theme';
 import { loadFeedBase, refreshSpots, spots } from './src/spots';
 import { distanceMeters } from './src/geo';
 import { useLocation } from './src/useLocation';
-import { loadSession, signOut } from './src/world';
+import { fetchMyCaptures, loadSession, signOut } from './src/world';
 import { Onboarding } from './src/Onboarding';
 import { SignIn } from './src/screens/SignIn';
 import { Home } from './src/screens/Home';
@@ -60,7 +60,7 @@ function AppInner() {
   const [collected, setCollected] = useState({}); // spotId -> time captured
   const [scrollLock, setScrollLock] = useState(false);
   const [profile, setProfile] = useState({ name: 'Explorer', avatar: 'sky' });
-  const [settings, setSettings] = useState({ nearby: true, captures: true, haptics: true, publicPassport: false });
+  const [settings, setSettings] = useState({ nearby: true, captures: true, haptics: true });
   const updateSetting = (key, value) => setSettings((s) => ({ ...s, [key]: value }));
   const backOverride = useRef(null); // a screen can claim Android back (e.g. the capture flow's own steps)
   const user = useLocation();
@@ -80,6 +80,14 @@ function AppInner() {
     loadFeedBase().then(() => loadSession()).then((u) => { if (live && u) setPhase('app'); });
     return () => { live = false; };
   }, []);
+
+  // stamps are kept on the server; load them whenever the person is in the app (after a restart, or on a new phone)
+  useEffect(() => {
+    if (phase !== 'app') return;
+    let live = true;
+    fetchMyCaptures().then((list) => { if (live && list.length) setCollected((c) => ({ ...Object.fromEntries(list.map((x) => [x.spotId, Date.parse(x.at) || Date.now()])), ...c })); });
+    return () => { live = false; };
+  }, [phase]);
 
   const [fontsLoaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold, GeistMono_500Medium });
   const onLayout = useCallback(() => {
