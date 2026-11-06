@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@arkiv-network/sdk": "^1.0.1",
+    "@ensdomains/ensjs": "^5.2.12",
     "@noble/hashes": "^2.4.0",
     "@worldcoin/idkit-server": "^1.2.0",
     "viem": "^2.57.16"
