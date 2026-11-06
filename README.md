@@ -451,7 +451,7 @@ The React Native / Expo Android app shell exists. The integrations below remain 
 | Refusal paths (unverified, repeat capture) | [ ] |
 | Voucher issuance and stamp mint on Sepolia | [ ] |
 | Mint relay and delayed minting | [ ] |
-| ENSv2 passport name and permissioned stamp records | [~] `wrld3.eth` registered on Sepolia; a passport's own resolver lets the backend write only `world3.stamps` and nothing else (proved on-chain by `backend/scripts/ens-spike.mjs`). Not yet wired to real captures or the app |
+| ENSv2 passport name and permissioned stamp records | [x] app flow built (opt-in "Create my public passport" on the Passport tab; server creates the name and publishes stamps, updates after each capture; the backend holds the name's owner key for now). Proof:  `wrld3.eth` registered on Sepolia; a passport's own resolver lets the backend write only `world3.stamps` and nothing else (proved on-chain by `backend/scripts/ens-spike.mjs`). Created by a real person's request on a real phone: not yet tested |
 | Public passport page | [x] `/p/<name>` reads the stamps from ENS in the visitor's browser (try `/p/spikef99n`); needs a passport created through the app flow, not built yet |
 | Arkiv spot write and in-app read | [x] two spots live on Rabdi, shown in the app as "Listed on Arkiv" and a demo sponsor campaign shown after a verified capture (payouts not built) |
 | Geospatial pose and VPS availability check | [ ] roadmap |
