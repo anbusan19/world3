@@ -5,7 +5,7 @@ import { Stamp } from '../Stamp';
 import { eventOf, getEvents, shortName, spots } from '../spots';
 import { eventLine } from '../eventLine';
 import { PassportCard, PassportScreen } from './PassportPoster';
-import { explorerUrl, fetchExplorer } from '../world';
+import { explorerUrl, fetchExplorer, findPassport } from '../world';
 import { F, STAMP_THEMES, makeStyles, useColors } from '../theme';
 
 // Two views of the same place: "Mine" (my stamps) and "Explorer" (search every place, and see the 10 most recent
@@ -112,6 +112,70 @@ const ago = (iso) => {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 };
 
+// Look up anyone's public passport by name and see the stamps they chose to publish. Private passports are never found.
+function FindPassport({ openSpot }) {
+  const styles = useStyles();
+  const C = useColors();
+  const [typed, setTyped] = useState('');
+  const [state, setState] = useState({ status: 'idle' }); // idle | loading | found | missing | error
+  const name = typed.trim().toLowerCase().replace(/\.wrld3\.eth$/, '');
+  const go = async () => {
+    if (name.length < 3 || state.status === 'loading') return;
+    setState({ status: 'loading' });
+    const r = await findPassport(name);
+    if (!r) setState({ status: 'error' });
+    else if (!r.found) setState({ status: 'missing' });
+    else setState({ status: 'found', ...r });
+  };
+  const items = state.status === 'found' ? state.stamps.map((id) => spots.find((s) => s.id === id)).filter(Boolean) : [];
+  return (
+    <>
+      <View style={styles.head}>
+        <Text style={styles.h2}>Find a passport</Text>
+        <Text style={styles.sub2}>by name</Text>
+      </View>
+      <View style={styles.card}>
+        <View style={[styles.search, { marginTop: 12, marginBottom: 6 }]}>
+          <Ionicons name="person-circle-outline" size={20} color={C.muted} />
+          <TextInput
+            value={typed}
+            onChangeText={(t) => { setTyped(t.replace(/[^A-Za-z0-9.-]/g, '')); if (state.status !== 'idle') setState({ status: 'idle' }); }}
+            onSubmitEditing={go}
+            placeholder="a name, like taco"
+            placeholderTextColor={C.muted}
+            style={styles.input}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            accessibilityLabel="Passport name"
+          />
+          <Text style={styles.sub2}>.wrld3.eth</Text>
+        </View>
+        <Pressable onPress={go} disabled={name.length < 3 || state.status === 'loading'} style={[styles.findBtn, (name.length < 3 || state.status === 'loading') && { opacity: 0.4 }]}>
+          {state.status === 'loading' ? <ActivityIndicator color={C.onSolid} /> : <Text style={styles.findText}>Find passport</Text>}
+        </Pressable>
+        {state.status === 'missing' ? <Text style={styles.empty}>No public passport with that name. It may be private, or not created yet.</Text> : null}
+        {state.status === 'error' ? <Text style={styles.empty}>Could not reach the server.</Text> : null}
+        {state.status === 'found' ? (
+          <View style={{ paddingBottom: 14 }}>
+            <Text style={[styles.who, { marginTop: 6 }]} selectable>{state.name}</Text>
+            <Text style={styles.what}>{items.length} public stamp{items.length === 1 ? '' : 's'}. Tap one to open the place.</Text>
+            <View style={[styles.grid, { marginTop: 12 }]}>
+              {items.map((s) => (
+                <Pressable key={s.id} style={styles.cell} onPress={() => openSpot(s)}>
+                  <Stamp theme={s.theme} art={s.art} icon={s.icon} label={shortName(s)} tag={s.id} iconSize={46} labelSize={14} holes={10} />
+                  <View style={styles.meta}><Text style={styles.name} numberOfLines={1}>{s.name}</Text></View>
+                </Pressable>
+              ))}
+            </View>
+            {items.length === 0 ? <Text style={styles.empty}>No stamps published yet.</Text> : null}
+          </View>
+        ) : null}
+      </View>
+    </>
+  );
+}
+
 function ExplorerView({ q, places, openSpot }) {
   const styles = useStyles();
   const C = useColors();
@@ -132,6 +196,7 @@ function ExplorerView({ q, places, openSpot }) {
 
   return (
     <>
+      <FindPassport openSpot={openSpot} />
       <View style={styles.head}>
         <Text style={styles.h2}>Recent stamps</Text>
         <Text style={styles.sub2}>latest 10</Text>
@@ -218,4 +283,6 @@ const useStyles = makeStyles((C) => ({
   allText: { fontFamily: F.semi, fontSize: 14, color: C.ink },
   allArrow: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#0B0B0F', alignItems: 'center', justifyContent: 'center' },
   place: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 22, padding: 10, marginBottom: 10 },
+  findBtn: { height: 46, borderRadius: 23, backgroundColor: C.solid, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  findText: { fontFamily: F.semi, fontSize: 15, color: C.onSolid },
 }));

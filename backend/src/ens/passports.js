@@ -155,6 +155,20 @@ export async function createPassports({ dataDir, ens, ownerSeed, captures, publi
       return dto(userId);
     },
 
+    // Look a public passport up by its name (the part before .wrld3.eth). Only what the person chose to publish is returned: the
+    // spot ids that are written on their ENS record. A private passport, a passport still being made and a name nobody has all give
+    // the same answer (not found), so this cannot be used to find out who has a private passport.
+    find(raw) {
+      const c = checkLabel(raw, { blocked: [] });
+      if (!c.ok) return { found: false };
+      for (const st of Object.values(users)) {
+        if (st.label === c.label && st.status === 'ready' && st.published) {
+          return { found: true, label: st.label, name: st.name, stamps: (st.written ?? '').split(',').filter(Boolean) };
+        }
+      }
+      return { found: false };
+    },
+
     idle: () => tail.then(() => saving),
     ownerFor,
   };

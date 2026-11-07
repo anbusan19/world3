@@ -299,6 +299,12 @@ export async function createApp({ dataDir, publicDir, host = '127.0.0.1', log = 
       return send(res, 200, { captures: captures.items.filter((c) => c.userId === user.id).map((c) => ({ spotId: c.spotId, at: c.at, mintTx: c.mintTx ?? null, mintUrl: c.mintTx && chain.enabled ? chain.txUrl(c.mintTx) : null })) });
     }
 
+    // ---- look up anyone's PUBLIC passport by name (no sign-in: it is only what they chose to publish on ENS) ----------------
+    if (p === '/api/v1/passport/find' && method === 'GET') {
+      if (!passports) return send(res, 200, { found: false }, cors);
+      return send(res, 200, passports.find(url.searchParams.get('label')), cors);
+    }
+
     // ---- the person's own public passport (opt-in) --------------------------------------------------------------------
     if (p === '/api/v1/passport/name' && method === 'GET') {
       const user = auth.user(bearer(req));

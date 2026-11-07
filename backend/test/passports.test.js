@@ -325,3 +325,25 @@ test('public must be true or false', async () => {
   assert.equal((await call('POST', '/api/v1/passport/public', { public: 'yes' }, tok)).status, 400);
   assert.equal((await call('POST', '/api/v1/passport/public', { public: false }, tok)).body.passport.published, false);
 });
+
+test('find: a public passport is found by its name, with exactly what was published; private and unknown look the same', async () => {
+  const { svc, done } = await make();
+  await svc.start('u1', 'taco');
+  await svc.idle();
+  assert.deepEqual(svc.find('taco'), { found: true, label: 'taco', name: 'taco.wrld3.eth', stamps: ['05', '06'] });
+  assert.deepEqual(svc.find('  TACO.wrld3.eth '), { found: true, label: 'taco', name: 'taco.wrld3.eth', stamps: ['05', '06'] }, 'case and the suffix do not matter');
+  svc.setPublic('u1', false);
+  await svc.idle();
+  assert.deepEqual(svc.find('taco'), { found: false }, 'a private passport cannot be found');
+  assert.deepEqual(svc.find('nobody'), { found: false }, 'same answer as a name that does not exist');
+  assert.deepEqual(svc.find('x'), { found: false }, 'a bad name is just not found');
+  await done();
+});
+
+test('find: a passport that is still being made is not found', async () => {
+  const { svc, done } = await make();
+  await svc.start('u1', 'taco'); // not idle yet: status is creating
+  assert.deepEqual(svc.find('taco'), { found: false });
+  await svc.idle();
+  await done();
+});

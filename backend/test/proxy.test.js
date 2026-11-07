@@ -68,5 +68,8 @@ test('proxy forwards the feed and files only, read-only', async () => {
   // query strings reach the server (the passport name check and the explorer search depend on them)
   await sendApp('GET', '/api/v1/passport/name?label=taco', { authorization: 'Bearer abc' });
   assert.match(seen[seen.length - 1], /^GET \/api\/v1\/passport\/name\?label=taco /);
+  // looking up a public passport by name goes through too (no sign-in needed)
+  assert.equal((await sendApp('GET', '/api/v1/passport/find?label=taco')).status, 200);
+  assert.match(seen[seen.length - 1], /^GET \/api\/v1\/passport\/find\?label=taco /);
   proxy.close(); up.close();
 });

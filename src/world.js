@@ -248,6 +248,20 @@ export async function fetchExplorer({ limit = 10, offset = 0, q = '', spot = '' 
   }
 }
 
+// Look up someone's PUBLIC passport by its name. { found: false } for a private one or a name nobody has. No sign-in needed.
+export async function findPassport(label) {
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 6000);
+    const res = await fetch(`${getFeedBase()}/api/v1/passport/find?label=${encodeURIComponent(label)}`, { signal: ctl.signal });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 // The full explorer lives on the website. It only works from a phone when the spot server has a public https address.
 export function explorerUrl() {
   const base = getFeedBase();
